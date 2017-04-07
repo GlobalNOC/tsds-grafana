@@ -10,6 +10,17 @@ import os
 from urllib2 import Request, urlopen, URLError, HTTPBasicAuthHandler, HTTPPasswordMgr, HTTPPasswordMgrWithDefaultRealm, build_opener, install_opener
 
 
+
+def convert(innerValue):
+	IV = [ list(reversed(element)) for element in innerValue]
+	
+	for element in IV:
+        	#element[0]= float(element[0]) # Converting to float
+		element[1]*=1000 #converting to millisecond
+	
+    	return IV
+
+
 def auth_Connection(url):
 	username = "test_user"
         password = "testpass123"
@@ -73,8 +84,18 @@ def query():
 		if hasattr(e,'code'):
                         if e.code==401:
 				print "Auth required"
-	#print response.read()
-
+	tsds_result =  json.loads(response.read())
+	output=[]
+	dict_element={"target":tsds_query}
+	for key,value in tsds_result.iteritems():
+		if key =="results":
+			for innerKey,innerValue in value[0].iteritems():
+				if innerKey == "aggregate(values.input, 182, average)":
+					dict_element["datapoints"] = convert(innerValue)
+					#print json.dumps(reverse(innerValue))
+	output.append(dict_element)
+	print json.dumps(output)
+					
 	#Format the data received from tsds to grafana compatibale data - 
 
 		
