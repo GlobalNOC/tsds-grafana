@@ -75,18 +75,17 @@ def query():
 			end_time = (value["to"])
 	
 	#Read query and set the variable $START & $END in the query to appropriate timestamp sent by grafana before querying tsds - 
-	#start_time = str(iso8601.parse_date(start_time))
+
+	# - Convert start_time from iso8601 to UTC format 
 	start_time = datetime.datetime.strptime(start_time, "%Y-%m-%dT%H:%M:%S.%fZ")
-	start_time = str(start_time.strftime("%m-%d-%Y %H:%M:%S.%fZ")).replace("-","/")
-	start_time =  '"'+start_time[:start_time.index(".")]+' UTC"'
-	
-	#end_time = str(iso8601.parse_date(end_time))
+	start_time = str(start_time.strftime("%m-%d-%Y %H:%M:%S.%fZ")).replace("-","/") # Replace '-' with '/'
+	start_time =  '"'+start_time[:start_time.index(".")]+' UTC"' # Adding quotes before and after
+	# - Convert end_time from iso8601 to UTC format
 	end_time = datetime.datetime.strptime(end_time, "%Y-%m-%dT%H:%M:%S.%fZ")
-	end_time= str(end_time.strftime("%m-%d-%Y %H:%M:%S.%fZ")).replace("-","/")
-	end_time =  '"'+end_time[:end_time.index(".")]+' UTC"'
-	tsds_query = replaceQuery(tsds_query,start_time,end_time)
-        #print "Content-Type: text/plain\n"
-        #print tsds_query
+	end_time= str(end_time.strftime("%m-%d-%Y %H:%M:%S.%fZ")).replace("-","/") #Replace '-' with '/' 
+	end_time =  '"'+end_time[:end_time.index(".")]+' UTC"' #Adding quotes before and after
+	
+	tsds_query = replaceQuery(tsds_query,start_time,end_time)#To replace variables $START and $END with start_time and end_time respectively
 		
 	#Request data from tsds - 
 	url= "https://tsds-services-el7-test.grnoc.iu.edu/tsds-basic/services/query.cgi"
