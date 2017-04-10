@@ -7,8 +7,8 @@ from urllib import urlencode
 import os
 from urllib2 import Request, urlopen, URLError, HTTPBasicAuthHandler, HTTPPasswordMgr, HTTPPasswordMgrWithDefaultRealm, build_opener, install_opener
 import re
-import iso8601
 import datetime
+import time
 
 def convert(innerValue):
 	IV = [ list(reversed(element)) for element in innerValue]
@@ -102,17 +102,25 @@ def query():
 	#Prepare output for grafana
 	#Format the data received from tsds to grafana compatibale data -
 	output=[]
-	dict_element={"target":tsds_query}
+	dict_element={"target":"Output"}
 	for key,value in tsds_result.iteritems():
 		if key =="results":
 			for innerKey,innerValue in value[0].iteritems():
-				if innerKey == "aggregate(values.input, 182, average)":
+				if innerKey == "aggregate(values.output, 182, average)":
 					dict_element["datapoints"] = convert(innerValue)
 	output.append(dict_element)
+	
+	dict_element={"target":"Input"}
+        for key,value in tsds_result.iteritems():
+                if key =="results":
+                        for innerKey,innerValue in value[0].iteritems():
+                                if innerKey == "aggregate(values.input, 182, average)":
+                                        dict_element["datapoints"] = convert(innerValue)
+	output.append(dict_element)
+
 	print "Content-Type: application/json" # set the HTTP response header to json data
         print "Cache-Control: no-cache\n"	
 	print json.dumps(output)
-
 		
 if __name__ == "__main__":
 	print "Cache-Control: no-cache"
