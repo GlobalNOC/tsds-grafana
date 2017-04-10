@@ -1,25 +1,30 @@
 #!/usr/bin/python
 
 # enable debugging
-import cgi
-import cgitb
 import sys
 import json
 from urllib import urlencode
 import os
 from urllib2 import Request, urlopen, URLError, HTTPBasicAuthHandler, HTTPPasswordMgr, HTTPPasswordMgrWithDefaultRealm, build_opener, install_opener
-
-
+import re
+import iso8601
+import datetime
 
 def convert(innerValue):
 	IV = [ list(reversed(element)) for element in innerValue]
-	
+	return [[element[0],element[1]*1000] for element in IV]
+	'''
 	for element in IV:
-        	#element[0]= float(element[0]) # Converting to float
 		element[1]*=1000 #converting to millisecond
-	
     	return IV
+	'''
+#Replace - 
 
+def replaceQuery(query,start_time,end_time):
+	replace = {"$START":start_time,"$END":end_time}
+       	replace = dict((re.escape(key),value) for key, value in replace.iteritems())
+      	pattern = re.compile("|".join(replace.keys()))
+	return pattern.sub(lambda m: replace[re.escape(m.group(0))], query)
 
 def auth_Connection(url):
 	username = "test_user"
@@ -31,6 +36,7 @@ def auth_Connection(url):
         install_opener(opener)
 
 def search():
+	
 	inpParameter = sys.stdin.read() # reading the input data sent in POST method
 	url = "https://tsds-services-el7-test.grnoc.iu.edu/tsds-basic/services/metadata.cgi?method=get_measurement_type_values;measurement_type=interface"
 	auth_Connection(url)
@@ -52,25 +58,36 @@ def search():
 	except URLError, e:
 		print "Content-type: text/plain"
     		print 'Error opening tsds URL \n', e
-		if hasattr(e,'code'):
-			if e.code==401:
-				print e.headers
-				print e.headers["www-authenticate"]
-			else:
-				print "different error code \n"
 	
 def query():
-	print "Content-Type: application/json\n"
         inpParameter = json.loads(sys.stdin.read())
+	
 	#get to the target field of json : 
 	tsds_query=""
+	start_time=""
+	end_time=""
 	for key,value in inpParameter.iteritems():
 		if key == "targets":
 			for eachElement in value:
 				tsds_query = eachElement["target"]
-	#print tsds_query
-	#print json.dumps(tsds_query)
+		if key =="range":
+			start_time = value["from"]
+			end_time = (value["to"])
 	
+	#Read query and set the variable $START & $END in the query to appropriate timestamp sent by grafana before querying tsds - 
+	#start_time = str(iso8601.parse_date(start_time))
+	start_time = datetime.datetime.strptime(start_time, "%Y-%m-%dT%H:%M:%S.%fZ")
+	start_time = str(start_time.strftime("%m-%d-%Y %H:%M:%S.%fZ")).replace("-","/")
+	start_time =  '"'+start_time[:start_time.index(".")]+' UTC"'
+	
+	#end_time = str(iso8601.parse_date(end_time))
+	end_time = datetime.datetime.strptime(end_time, "%Y-%m-%dT%H:%M:%S.%fZ")
+	end_time= str(end_time.strftime("%m-%d-%Y %H:%M:%S.%fZ")).replace("-","/")
+	end_time =  '"'+end_time[:end_time.index(".")]+' UTC"'
+	tsds_query = replaceQuery(tsds_query,start_time,end_time)
+        #print "Content-Type: text/plain\n"
+        #print tsds_query
+		
 	#Request data from tsds - 
 	url= "https://tsds-services-el7-test.grnoc.iu.edu/tsds-basic/services/query.cgi"
 	auth_Connection(url)
@@ -81,10 +98,10 @@ def query():
 	except URLError, e:
        		print "Content-type: text/plain"
          	print 'Error opening tsds server URL \n', e
-		if hasattr(e,'code'):
-                        if e.code==401:
-				print "Auth required"
-	tsds_result =  json.loads(response.read())
+	tsds_result =  json.loads(response.read()) #Response from tsds server is cached in tsds_result
+
+	#Prepare output for grafana
+	#Format the data received from tsds to grafana compatibale data -
 	output=[]
 	dict_element={"target":tsds_query}
 	for key,value in tsds_result.iteritems():
@@ -92,25 +109,18 @@ def query():
 			for innerKey,innerValue in value[0].iteritems():
 				if innerKey == "aggregate(values.input, 182, average)":
 					dict_element["datapoints"] = convert(innerValue)
-					#print json.dumps(reverse(innerValue))
 	output.append(dict_element)
+	print "Content-Type: application/json" # set the HTTP response header to json data
+        print "Cache-Control: no-cache\n"	
 	print json.dumps(output)
-					
-	#Format the data received from tsds to grafana compatibale data - 
 
 		
 if __name__ == "__main__":
 	print "Cache-Control: no-cache"
 	inpUrl = os.environ["PATH_INFO"]
-	filemain = open("/home/mthatte/mainData.txt","rw+")
 	if inpUrl == "/":
 		testDataSource()
 	if inpUrl == "/search":
-		filemain.write("Search param - "+inpUrl+" \n") # for debugging purpose writing to the file
 		search()
 	if inpUrl == "/query":
-		filemain.write("Query param - "+inpUrl+" \n") # for debugging purpose writing to the file
 		query()
-	filemain.close()
-
-
