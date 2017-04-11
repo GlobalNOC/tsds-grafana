@@ -8,18 +8,32 @@ import os
 from urllib2 import Request, urlopen, URLError, HTTPBasicAuthHandler, HTTPPasswordMgr, HTTPPasswordMgrWithDefaultRealm, build_opener, install_opener
 import re
 import datetime
-import time
+
+
+def findtarget_names(tsds_result,i):
+	returnname = []
+    	results_dict = tsds_result["results"][i]
+    	for key,value in results_dict.iteritems():
+        	targetname = []
+        	if key.find("values.") > -1:
+            		targetname.append(key+" ")
+            		for k , v in results_dict.iteritems():
+                		if k.find("values.")==-1:
+                    			targetname.append(v+ " ")
+            		returnname.append(" ".join(targetname))
+    	return returnname	
+		
+	
+def match(key,targetname):
+	if targetname.find(key)>-1:
+        	return True
+	return False
 
 def convert(innerValue):
 	IV = [ list(reversed(element)) for element in innerValue]
 	return [[element[0],element[1]*1000] for element in IV]
-	'''
-	for element in IV:
-		element[1]*=1000 #converting to millisecond
-    	return IV
-	'''
-#Replace - 
 
+#Replace - 
 def replaceQuery(query,start_time,end_time):
 	replace = {"$START":start_time,"$END":end_time}
        	replace = dict((re.escape(key),value) for key, value in replace.iteritems())
@@ -102,7 +116,25 @@ def query():
 	#Prepare output for grafana
 	#Format the data received from tsds to grafana compatibale data -
 	output=[]
+	for i in range(len(tsds_result["results"])):
+		#Search for target name - 
+		target = findtarget_names(tsds_result,i)
+
+		for eachTarget in target:
+    			dict_element={"target":eachTarget}
+    			value = tsds_result["results"][0]
+    			#pprint value
+    			for innerKey,innerValue in value.iteritems():
+        			#print innerKey," : ",innerValue
+        			if match(innerKey,eachTarget):
+            				#print "Matched - ",innerKey," : ",innerValue
+            				dict_element["datapoints"] = convert(innerValue)
+    			output.append(dict_element)
+
+
+	'''
 	dict_element={"target":"Output"}
+	
 	for key,value in tsds_result.iteritems():
 		if key =="results":
 			for innerKey,innerValue in value[0].iteritems():
@@ -117,6 +149,7 @@ def query():
                                 if innerKey == "aggregate(values.input, 182, average)":
                                         dict_element["datapoints"] = convert(innerValue)
 	output.append(dict_element)
+	'''
 
 	print "Content-Type: application/json" # set the HTTP response header to json data
         print "Cache-Control: no-cache\n"	
