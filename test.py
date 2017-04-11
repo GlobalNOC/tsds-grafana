@@ -10,6 +10,7 @@ import re
 import datetime
 
 
+#Look for fields in tsds JSON output where key contains keyword - "values"
 def findtarget_names(tsds_result,i):
 	returnname = []
     	results_dict = tsds_result["results"][i]
@@ -25,10 +26,9 @@ def findtarget_names(tsds_result,i):
 		
 	
 def match(key,targetname):
-	if targetname.find(key)>-1:
-        	return True
-	return False
+	return True if targetname.find(key)>-1 else False
 
+#Reversing the datapoints received from tsds and converting time field into miliseconds (*1000)
 def convert(innerValue):
 	IV = [ list(reversed(element)) for element in innerValue]
 	return [[element[0],element[1]*1000] for element in IV]
@@ -119,37 +119,17 @@ def query():
 	for i in range(len(tsds_result["results"])):
 		#Search for target name - 
 		target = findtarget_names(tsds_result,i)
-
 		for eachTarget in target:
     			dict_element={"target":eachTarget}
-    			value = tsds_result["results"][0]
-    			#pprint value
+    			value = tsds_result["results"][i]
+			
     			for innerKey,innerValue in value.iteritems():
-        			#print innerKey," : ",innerValue
         			if match(innerKey,eachTarget):
-            				#print "Matched - ",innerKey," : ",innerValue
             				dict_element["datapoints"] = convert(innerValue)
+			
+			#Above for loop in single line - 
+			#dict_element["datapoints"] = [convert(innerValue) for innerKey,innerValue in value.iteritems() if match(innerKey,eachTarget)]
     			output.append(dict_element)
-
-
-	'''
-	dict_element={"target":"Output"}
-	
-	for key,value in tsds_result.iteritems():
-		if key =="results":
-			for innerKey,innerValue in value[0].iteritems():
-				if innerKey == "aggregate(values.output, 182, average)":
-					dict_element["datapoints"] = convert(innerValue)
-	output.append(dict_element)
-	
-	dict_element={"target":"Input"}
-        for key,value in tsds_result.iteritems():
-                if key =="results":
-                        for innerKey,innerValue in value[0].iteritems():
-                                if innerKey == "aggregate(values.input, 182, average)":
-                                        dict_element["datapoints"] = convert(innerValue)
-	output.append(dict_element)
-	'''
 
 	print "Content-Type: application/json" # set the HTTP response header to json data
         print "Cache-Control: no-cache\n"	
