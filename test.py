@@ -77,13 +77,13 @@ def query():
         inpParameter = json.loads(sys.stdin.read())
 	
 	#get to the target field of json : 
-	tsds_query=""
+	tsds_query=[]
 	start_time=""
 	end_time=""
 	for key,value in inpParameter.iteritems():
 		if key == "targets":
 			for eachElement in value:
-				tsds_query = eachElement["target"]
+				tsds_query.append(eachElement["target"])
 		if key =="range":
 			start_time = value["from"]
 			end_time = (value["to"])
@@ -99,37 +99,39 @@ def query():
 	end_time= str(end_time.strftime("%m-%d-%Y %H:%M:%S.%fZ")).replace("-","/") #Replace '-' with '/' 
 	end_time =  '"'+end_time[:end_time.index(".")]+' UTC"' #Adding quotes before and after
 	
-	tsds_query = replaceQuery(tsds_query,start_time,end_time)#To replace variables $START and $END with start_time and end_time respectively
-		
-	#Request data from tsds - 
-	url= "https://tsds-services-el7-test.grnoc.iu.edu/tsds-basic/services/query.cgi"
-	auth_Connection(url)
-	postParameters = {"method":"query","query":tsds_query}
-	try:
-		request = Request(url,urlencode(postParameters))
-		response = urlopen(request)
-	except URLError, e:
-       		print "Content-type: text/plain"
-         	print 'Error opening tsds server URL \n', e
-	tsds_result =  json.loads(response.read()) #Response from tsds server is cached in tsds_result
-
-	#Prepare output for grafana
-	#Format the data received from tsds to grafana compatibale data -
 	output=[]
-	for i in range(len(tsds_result["results"])):
-		#Search for target name - 
-		target = findtarget_names(tsds_result,i)
-		for eachTarget in target:
-    			dict_element={"target":eachTarget}
-    			value = tsds_result["results"][i]
+	for index in range(len(tsds_query)):
+		tsds_query[index] = replaceQuery(tsds_query[index],start_time,end_time)#To replace variables $START and $END with start_time and end_time respectively
+		
+		#Request data from tsds - 
+		url= "https://tsds-services-el7-test.grnoc.iu.edu/tsds-basic/services/query.cgi"
+		auth_Connection(url)
+		postParameters = {"method":"query","query":tsds_query[index]}
+		try:
+			request = Request(url,urlencode(postParameters))
+			response = urlopen(request)
+		except URLError, e:
+       			print "Content-type: text/plain"
+         		print 'Error opening tsds server URL \n', e
+		tsds_result =  json.loads(response.read()) #Response from tsds server is cached in tsds_result
+
+		#Prepare output for grafana
+		#Format the data received from tsds to grafana compatibale data -
+		#output=[]
+		for i in range(len(tsds_result["results"])):
+			#Search for target name - 
+			target = findtarget_names(tsds_result,i)
+			for eachTarget in target:
+    				dict_element={"target":eachTarget}
+    				value = tsds_result["results"][i]
 			
-    			for innerKey,innerValue in value.iteritems():
-        			if match(innerKey,eachTarget):
-            				dict_element["datapoints"] = convert(innerValue)
+    				for innerKey,innerValue in value.iteritems():
+        				if match(innerKey,eachTarget):
+            					dict_element["datapoints"] = convert(innerValue)
 			
-			#Above for loop in single line - 
-			#dict_element["datapoints"] = [convert(innerValue) for innerKey,innerValue in value.iteritems() if match(innerKey,eachTarget)]
-    			output.append(dict_element)
+				#Above for loop in single line - 
+				#dict_element["datapoints"] = [convert(innerValue) for innerKey,innerValue in value.iteritems() if match(innerKey,eachTarget)]
+    				output.append(dict_element)
 
 	print "Content-Type: application/json" # set the HTTP response header to json data
         print "Cache-Control: no-cache\n"	
