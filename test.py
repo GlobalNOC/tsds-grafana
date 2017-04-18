@@ -50,7 +50,6 @@ def auth_Connection(url):
         install_opener(opener)
 
 def search():
-	
 	inpParameter = sys.stdin.read() # reading the input data sent in POST method
 	url = "https://tsds-services-el7-test.grnoc.iu.edu/tsds-basic/services/metadata.cgi?method=get_measurement_type_values;measurement_type=interface"
 	auth_Connection(url)
@@ -64,7 +63,8 @@ def search():
 			for key,value in eachDict.iteritems():
 				if key =="name":
 					output.append(value)
-		
+		q = 'get intf, node, aggregate(values.input, 182, average), aggregate(values.output, 182, average) between($START,$END) by intf, node from interface where ( intf = "Gi0/3" and node = "mpsw.mnchpharm.ilight.net" )ordered by intf asc, node asc'
+		output.append(q)
         	print "Content-Type: application/json" # set the HTTP response header to json data
 		print "Cache-Control: no-cache\n"
 	        print json.dumps(output) #HTTP response 
