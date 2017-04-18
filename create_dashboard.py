@@ -3,13 +3,14 @@ import json
 from urllib import urlencode
 from ast import literal_eval
 import os
-import base64
-import json
-from requests.auth import HTTPBasicAuth
 from urllib2 import Request, urlopen, URLError, HTTPBasicAuthHandler, HTTPPasswordMgr, HTTPPasswordMgrWithDefaultRealm, build_opener, install_opener
+import re
+import iso8601
+from test import *
+import datetime
+import math
 
-
-def createPanel():
+def createPanel(qVariable):
 	panels= [
         {
           "aliasColors": {},
@@ -54,12 +55,12 @@ def createPanel():
           "steppedLine": False,
           "targets": [
             { 
- 	      'target':'get intf, node, aggregate(values.input, 182, average), aggregate(values.output, 182, average) between($START,$END) by intf, node from interface where ( intf = "Gi0/3" and node = "mpsw.mnchpharm.ilight.net" )ordered by intf asc, node asc'
+ 	      'target':'get intf, node, aggregate(values.input, 182, average), aggregate(values.output, 182, average) between($START,$END) by intf, node from interface where ( intf ='+ '\"'+qVariable+'\"'+' and node = "mpsw.mnchpharm.ilight.net" )ordered by intf asc, node asc'
             }
           ],
           "timeFrom": None,
           "timeShift": None,
-          "title": "Python created Graph",
+          "title": "Graph for Interface - "+qVariable,
           "tooltip": {
             "shared": True,
             "value_type": "cumulative"
@@ -77,24 +78,17 @@ def createPanel():
 
 
 
-def create_db():
-
-	rows = [
-    	{
-      	"collapse": False,
-      	"editable": True,
-      	"height": "250px",
-      	"panels": createPanel(),
-      	"title": "New Python 1st Row"
-    	},
-    	{
-      	"collapse": False,
-      	"editable": True,
-      	"height": "250px",
-      	"panels": [],
-      	"title": "New python 2nd Row"
-    	}
-  	]
+def create_db(whereClause):
+	rows=[]
+	for i in range(0,len(whereClause)):
+		rows.append({
+      		"collapse": False,
+      		"editable": True,
+      		"height": "250px",
+      		"panels": createPanel(whereClause[i]),
+		#"panels":[],
+      		"title": "Row for nodes "+whereClause[i]
+    		})
 
 	dashboard = {
  	"id": None,
@@ -131,21 +125,22 @@ def create_db():
 
 
 if __name__ == "__main__":
-	'''
-	f = open("prod_db.txt","r")
-	dashboard = f.read().replace("\n","")
-	dashboard = literal_eval(dashboard) # To convert string read from file to dictionary
-	f.close()
-	'''
-	dashboard = create_db()
-
+	
+	tsds_url = "https://tsds-services-el7-test.grnoc.iu.edu/tsds-basic/services/metadata.cgi?method=get_distinct_meta_field_values;measurement_type=interface;limit=1000;offset=0;meta_field=intf;node=mpsw.mnchpharm.ilight.net"
+	auth_Connection(tsds_url)
+	try:
+		request = Request(tsds_url)
+    		response = urlopen(request)
+        except URLError, e:
+                print 'Error opening tsds URL \n', e
+	whereClause = [ each["value"] for each in json.load(response)["results"]]
+	print "where clause parameteres - ",whereClause
+	
+	dashboard = create_db(whereClause)
+		
 	url = "https://tsds-frontend-el7-test.grnoc.iu.edu/grafana/api/dashboards/db"
 	API_KEY = "eyJrIjoiM0VFS1NqNUtBZ3B4cFdWUTVRVGNJQnRsMEFZVTBjUWUiLCJuIjoiZGFzaGJvYXJkX2tleSIsImlkIjoxfQ=="
-
-	#{'dashboard': {'rows': [{}], 'tags': ['templated'], 'title': 'Production Overview', 'version': 0, 'timezone': 'browser', 'schemaVersion': 6, 'id': None}, 'overwrite': True}
-
 	postParam = {"dashboard":dashboard,"overwrite": True }
-	print postParam
 	#print postParam
 	headers={"Authorization":"Bearer "+API_KEY,"Content-Type":"application/json"}
 	try:
@@ -155,8 +150,6 @@ if __name__ == "__main__":
 		print 'Error opening URL ---- ***  \n'
 		print e.readlines()
 		sys.exit(1)
-	print response.getcode()
+	print "grafana dashboard --- ",response.getcode()
 	data = json.load(response)
-	#print json.load(response)
-	print data["slug"]
-	
+	print data
