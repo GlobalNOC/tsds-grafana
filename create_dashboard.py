@@ -9,6 +9,7 @@ import iso8601
 from test import *
 import datetime
 import math
+from random import randint
 
 def createPanel(qVariable):
 	panels= [
@@ -50,7 +51,7 @@ def createPanel(qVariable):
           "points": False,
           "renderer": "flot",
           "seriesOverrides": [],
-          "span":6 ,
+          "span":11.5 ,
           "stack": False,
           "steppedLine": False,
           "targets": [
