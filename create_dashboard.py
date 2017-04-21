@@ -9,11 +9,17 @@ import iso8601
 from test import *
 import datetime
 import math
-from random import randint
 
 def createPanel(qVariable):
 	panels= [
         {
+	  "colorBackground": False,
+          "colorValue": False,
+          "colors": [
+          "rgba(245, 54, 54, 0.9)",
+          "rgba(237, 129, 40, 0.89)",
+          "rgba(50, 172, 45, 0.97)"
+          ],
           "aliasColors": {},
           "bars": False,
           "datasource": "simple jason",
@@ -30,7 +36,7 @@ def createPanel(qVariable):
             "threshold1": None,
             "threshold1Color": "rgba(216, 200, 27, 0.27)",
             "threshold2": None,
-            "threshold2Color": "rgba(234, 112, 112, 0.22)"
+            "threshold2Color": "rgba(234, 112, 112, 0.22)",
           },
           "id": 1,
           "legend": {
@@ -51,12 +57,12 @@ def createPanel(qVariable):
           "points": False,
           "renderer": "flot",
           "seriesOverrides": [],
-          "span":11.5 ,
+          "span":12 ,
           "stack": False,
           "steppedLine": False,
           "targets": [
             { 
- 	      'target':'get intf, node, aggregate(values.input, 182, average), aggregate(values.output, 182, average) between($START,$END) by intf, node from interface where ( intf ='+ '\"'+qVariable+'\"'+' and node = "mpsw.mnchpharm.ilight.net" )ordered by intf asc, node asc'
+ 	      'target':'get intf, node,values.input, values.output between($START,$END) by intf, node from interface where ( intf ='+ '\"'+qVariable+'\"'+' and node = "mpsw.mnchpharm.ilight.net" )ordered by intf asc, node asc'
             }
           ],
           "timeFrom": None,
