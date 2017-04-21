@@ -34,11 +34,16 @@ def convert(innerValue):
 	return [[element[0],element[1]*1000] for element in IV]
 
 #Replace - 
-def replaceQuery(query,start_time,end_time):
+def replaceQuery(query,start_time,end_time, aggValue):
 	replace = {"$START":start_time,"$END":end_time}
        	replace = dict((re.escape(key),value) for key, value in replace.iteritems())
       	pattern = re.compile("|".join(replace.keys()))
-	return pattern.sub(lambda m: replace[re.escape(m.group(0))], query)
+	query = pattern.sub(lambda m: replace[re.escape(m.group(0))], query)
+
+	replace = {"values.input":"aggregate(values.input, "+str(aggValue)+", average)","values.output":"aggregate(values.output, "+str(aggValue)+", average)"}
+        replace = dict((re.escape(key),value) for key, value in replace.iteritems())
+        pattern = re.compile("|".join(replace.keys()))
+        return pattern.sub(lambda m: replace[re.escape(m.group(0))], query)
 
 def auth_Connection(url):
 	username = "test_user"
@@ -63,7 +68,7 @@ def search():
 			for key,value in eachDict.iteritems():
 				if key =="name":
 					output.append(value)
-		q = 'get intf, node, aggregate(values.input, 182, average), aggregate(values.output, 182, average) between($START,$END) by intf, node from interface where ( intf = "Gi0/3" and node = "mpsw.mnchpharm.ilight.net" )ordered by intf asc, node asc'
+		q = 'get intf, node,values.input, values.output between($START,$END) by intf, node from interface where ( intf = "Gi0/3" and node = "mpsw.mnchpharm.ilight.net" )ordered by intf asc,node asc'
 		output.append(q)
         	print "Content-Type: application/json" # set the HTTP response header to json data
 		print "Cache-Control: no-cache\n"
@@ -80,6 +85,7 @@ def query():
 	tsds_query=[]
 	start_time=""
 	end_time=""
+	maxDataPoints=1
 	for key,value in inpParameter.iteritems():
 		if key == "targets":
 			for eachElement in value:
@@ -87,22 +93,36 @@ def query():
 		if key =="range":
 			start_time = value["from"]
 			end_time = (value["to"])
+		if key =="maxDataPoints":
+			maxDataPoints = value
 	
 	#Read query and set the variable $START & $END in the query to appropriate timestamp sent by grafana before querying tsds - 
-
+	ostart = start_time
+	oend = end_time
 	# - Convert start_time from iso8601 to UTC format 
 	start_time = datetime.datetime.strptime(start_time, "%Y-%m-%dT%H:%M:%S.%fZ")
+	ostart = (start_time - datetime.datetime(1970, 1, 1)).total_seconds()
 	start_time = str(start_time.strftime("%m-%d-%Y %H:%M:%S.%fZ")).replace("-","/") # Replace '-' with '/'
 	start_time =  '"'+start_time[:start_time.index(".")]+' UTC"' # Adding quotes before and after
 	# - Convert end_time from iso8601 to UTC format
 	end_time = datetime.datetime.strptime(end_time, "%Y-%m-%dT%H:%M:%S.%fZ")
+	oend = (end_time - datetime.datetime(1970, 1, 1)).total_seconds()
 	end_time= str(end_time.strftime("%m-%d-%Y %H:%M:%S.%fZ")).replace("-","/") #Replace '-' with '/' 
 	end_time =  '"'+end_time[:end_time.index(".")]+' UTC"' #Adding quotes before and after
-	
+	time_duration = (oend-ostart)
+	aggValue = int(time_duration/maxDataPoints)
+	if time_duration > 172800  and time_duration < 604800:
+		aggValue = int(time_duration/maxDataPoints)
+		#aggValue = int(aggValue/3660)
+	elif time_duration > 604800 :
+		aggValue = int(time_duration/maxDataPoints)
+		#aggValue = int(aggValue/86400)
 	output=[]
+	q=""
 	for index in range(len(tsds_query)):
-		tsds_query[index] = replaceQuery(tsds_query[index],start_time,end_time)#To replace variables $START and $END with start_time and end_time respectively
-		
+		tsds_query[index] = replaceQuery(tsds_query[index],start_time,end_time,aggValue)#To replace variables $START and $END with start_time and end_time respectively
+		#print "Content-Type: text/plain"
+		#print tsds_query[index],start_time,end_time
 		#Request data from tsds - 
 		url= "https://tsds-services-el7-test.grnoc.iu.edu/tsds-basic/services/query.cgi"
 		auth_Connection(url)
