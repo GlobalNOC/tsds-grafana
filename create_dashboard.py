@@ -22,7 +22,7 @@ def createPanel(qVariable):
           ],
           "aliasColors": {},
           "bars": False,
-          "datasource": "simple jason",
+          "datasource": "simple json",
           "editable": True,
           "error": False,
           "fill": 0,
