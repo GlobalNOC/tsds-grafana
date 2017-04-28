@@ -1,0 +1,17 @@
+{
+	'rows': [
+		{
+			'height':'200px',
+			'title':'Row panel'
+		}
+		], 
+	'tags': ['templated'], 
+	'title': 'New dashboard from JSON', 
+	'version': 0, 'timezone': 
+	'browser', 
+	'schemaVersion': 6,
+	'annotations':{
+		'list':[]
+		}, 
+	'id': None
+}

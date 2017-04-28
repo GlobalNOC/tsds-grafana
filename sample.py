@@ -9,51 +9,7 @@ import iso8601
 from test import *
 import datetime
 
-def createTemplateVars(metadata):
-	temp={}
-	interface=[]
-	node=[]
-	print "metada ----",metadata
-	for eachresult in metadata:
-		interface.append(eachresult["intf"])
-		node.append(eachresult["node"])
-	temp["interface"]=interface
-	temp["node"]=node
-	return temp
-
-def parseQuery(dashboard_config, drilldown):
-	if drilldown:
-		replace = {"$group_by":",".join(dashboard_config["drilldown_param"]["group_by"])}
-	else:
-		replace = {"$group_by":dashboard_config["group_by"]}
-        replace = dict((re.escape(key),value) for key, value in replace.iteritems())
-        pattern = re.compile("|".join(replace.keys()))
-        query = pattern.sub(lambda m: replace[re.escape(m.group(0))],dashboard_config["query"])
-	print query
-	return query
-
-
-
-def createPanel(dashboard_config,metadata,drilldown):
-	query = parseQuery(dashboard_config, False)
-	dd=[]
-	drilledDown_links = {}
-	if drilldown:
-		print "Inside drilldown"
-		url = "https://tsds-frontend-el7-test.grnoc.iu.edu/grafana/dashboard/script/scripted.js?"
-		#scripted_db_query = parseQuery(dashboard_config, True)
-
-		scripted_db={"rows":1,"name":"myName","orgId":1,"query":parseQuery(dashboard_config,True),"templateVariable":createTemplateVars(metadata)}
-		
-		drilledDown_links["url"]=url
-		drilledDown_links["dashUri"]="db/drilled"
-		drilledDown_links["params"]=urlencode(scripted_db)
-		drilledDown_links["dashboard"]= "Drilled"
-              	drilledDown_links["title"] = "Drilled"
-              	drilledDown_links["type"] = "absolute"
-	dd.append(drilledDown_links)
-	print "Links - "
-	print dd
+def createPanel(qVariable,dashboard_config):
 	panels={
 	  "colorBackground": False,
           "colorValue": False,
@@ -91,10 +47,9 @@ def createPanel(dashboard_config,metadata,drilldown):
             "total": True,
             "values": True
           },
-          "links":drilledDown_links,
           "lines": dashboard_config["lines_graph"],
           "linewidth": 1,
-          "links": dd,
+          "links": [],
           "NonePointMode": "connected",
           "percentage": False,
           "pointradius": 5,
@@ -106,46 +61,44 @@ def createPanel(dashboard_config,metadata,drilldown):
           "steppedLine": False,
           "targets": [
             { 
- 	      #'target':'get intf, node,values.input, values.output between($START,$END) by intf, node from interface where ( intf ='+ '\"'+qVariable+'\"'+' and node = "mpsw.mnchpharm.ilight.net" )ordered by intf asc, node asc'
-	        "target":query
+ 	      'target':'get intf, node,values.input, values.output between($START,$END) by intf, node from interface where ( intf ='+ '\"'+qVariable+'\"'+' and node = "mpsw.mnchpharm.ilight.net" )ordered by intf asc, node asc'
             }
           ],
           "timeFrom": None,
           "timeShift": None,
-          "title": "Graph for Interface - ",
+          "title": "Graph for Interface - "+qVariable,
           "tooltip": {
             "shared": True,
             "value_type": "cumulative"
           },
-          "transparent": True,
           "type": "graph",
           "x-axis": True,
           "y-axis": True,
-          "y_formats":[ 
+          "y_formats": [
         "bps",
         "short"
         ]
         }
-	print "panles - "
-	print panels
-	print panels["links"]
-	return [panels]
+	return panels
 
 
 
-def create_db(dashboard_config,metadata,drilldown = False):
-	
+def create_db(circuit , dashboard_config):
 	rows=[]
+	'''	
 	#Multiple panels in single row - 
-	#multiPanels =[createPanel(circuit[0],dashboard_config), createPanel(circuit[1],dashboard_config)]
+	multiPanels =[createPanel(circuit[0],dashboard_config), createPanel(circuit[1],dashboard_config)]
+	multiPanels[1]["id"]=2
+	multiPanels[0]["span"]=6
+	multiPanels[1]["span"]=6
 	rows.append({
                 "collapse": False,
                 "editable": True,
                 "height": "250px",
-                "panels": createPanel(dashboard_config,metadata,drilldown),
-                "title": "Graph for Entity - "+dashboard_config["entity"] 
+                "panels": multiPanels,
+                #"panels":[],
+                "title": "Row for nodes "+circuit[0]+" and "+circuit[1]
                 })
-
 	'''
 	for i in range(0,len(circuit)):
 		rows.append({
@@ -156,8 +109,7 @@ def create_db(dashboard_config,metadata,drilldown = False):
 		#"panels":[],
       		"title": "Row for nodes "+circuit[i]
     		})
-	'''
-	#print rows
+	print rows
 	dashboard = {
  	"id": None,
  	"title": dashboard_config["name"],
@@ -201,7 +153,7 @@ if __name__ == "__main__":
 	#dashboard_config = literal_eval(dashboard_config)
 	#print dashboard_config["name"]
 	
-	'''
+	
 	tsds_url = "https://tsds-services-el7-test.grnoc.iu.edu/tsds-basic/services/metadata.cgi?method=get_distinct_meta_field_values;measurement_type=interface;limit=1000;offset=0;meta_field=intf;node=mpsw.mnchpharm.ilight.net"
 	auth_Connection(tsds_url)
 	try:
@@ -210,26 +162,10 @@ if __name__ == "__main__":
         except URLError, e:
                 print 'Error opening tsds URL \n', e
 	circuit = [ each["value"] for each in json.load(response)["results"]]
-	'''
-
+	print "where clause parameteres - ",circuit
 	for dashboard_config in dashboard_config_file:
-
-		#tsds_url = "https://tsds-services-el7-test.grnoc.iu.edu/tsds-basic/services/metadata.cgi?method=get_distinct_meta_field_values;measurement_type=interface;limit=1000;offset=0;meta_field=intf;entity.name="+dashboard_config["entity"]
-        	tsds_url = "https://tsds-services-el7-test.grnoc.iu.edu/tsds-basic/services/query.cgi?"
-		paramQuery = 'get intf, node between(now-1d, now) by intf, node from interface where entity.name ="'+dashboard_config["entity"]+'"'
-		param={"method":"query","query":paramQuery}
-		tsds_url+=urlencode(param)
-		auth_Connection(tsds_url)
-        	try:
-                	request = Request(tsds_url)
-                	response = urlopen(request)
-        	except URLError, e:
-                	print 'Error opening tsds URL \n', e
-		response = json.load(response)["results"]
-		print "Rewpone === ",response
-		dashboard = create_db(dashboard_config,response,dashboard_config["drilldown"])		
-
-
+		dashboard = create_db(circuit , dashboard_config)
+		
 		url = "https://tsds-frontend-el7-test.grnoc.iu.edu/grafana/api/dashboards/db"
 		API_KEY = "eyJrIjoiM0VFS1NqNUtBZ3B4cFdWUTVRVGNJQnRsMEFZVTBjUWUiLCJuIjoiZGFzaGJvYXJkX2tleSIsImlkIjoxfQ=="
 		postParam = {"dashboard":dashboard,"overwrite": True }

@@ -113,9 +113,13 @@ def query():
 	aggValue = int(time_duration/maxDataPoints)
 	if time_duration > 172800  and time_duration < 604800:
 		aggValue = int(time_duration/maxDataPoints)
+                if aggValue < 3600:
+                        aggValue = 3600
 		#aggValue = int(aggValue/3660)
 	elif time_duration > 604800 :
 		aggValue = int(time_duration/maxDataPoints)
+                if aggValue < 86400:
+                        aggValue = 86400
 		#aggValue = int(aggValue/86400)
 	output=[]
 	q=""
@@ -124,7 +128,8 @@ def query():
 		#print "Content-Type: text/plain"
 		#print tsds_query[index],start_time,end_time
 		#Request data from tsds - 
-		url= "https://tsds-services-el7-test.grnoc.iu.edu/tsds-basic/services/query.cgi"
+		#url= "https://tsds-services-el7-test.grnoc.iu.edu/tsds-basic/services/query.cgi"
+                url= "https://netsage-archive.grnoc.iu.edu/tsds/services-basic/query.cgi"
 		auth_Connection(url)
 		postParameters = {"method":"query","query":tsds_query[index]}
 		try:
