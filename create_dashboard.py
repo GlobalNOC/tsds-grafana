@@ -9,6 +9,7 @@ import iso8601
 from test import *
 import datetime
 
+
 def createTemplateVars(metadata):
 	temp={}
 	interface=[]
@@ -19,7 +20,8 @@ def createTemplateVars(metadata):
 		node.append(eachresult["node"])
 	temp["interface"]=interface
 	temp["node"]=node
-	return temp
+	print "templates -- ",temp
+	return json.dumps(temp)
 
 def parseQuery(dashboard_config, drilldown):
 	if drilldown:
@@ -29,7 +31,6 @@ def parseQuery(dashboard_config, drilldown):
         replace = dict((re.escape(key),value) for key, value in replace.iteritems())
         pattern = re.compile("|".join(replace.keys()))
         query = pattern.sub(lambda m: replace[re.escape(m.group(0))],dashboard_config["query"])
-	print query
 	return query
 
 
@@ -41,10 +42,11 @@ def createPanel(dashboard_config,metadata,drilldown):
 	if drilldown:
 		print "Inside drilldown"
 		url = "https://tsds-frontend-el7-test.grnoc.iu.edu/grafana/dashboard/script/scripted.js?"
-		#scripted_db_query = parseQuery(dashboard_config, True)
-
-		scripted_db={"rows":1,"name":"myName","orgId":1,"query":parseQuery(dashboard_config,True),"templateVariable":createTemplateVars(metadata)}
-		
+		scripted_query = parseQuery(dashboard_config, True)
+		scripted_query = scripted_query[:scripted_query.find("where")+len("where")]
+		print "query for dashboard ----",scripted_query
+		scripted_db={"rows":1,"name":"myName","orgId":1,"query":scripted_query,"templateVariable":createTemplateVars(metadata)}
+		print "scripted db ---",scripted_db	
 		drilledDown_links["url"]=url
 		drilledDown_links["dashUri"]="db/drilled"
 		drilledDown_links["params"]=urlencode(scripted_db)
@@ -52,8 +54,8 @@ def createPanel(dashboard_config,metadata,drilldown):
               	drilledDown_links["title"] = "Drilled"
               	drilledDown_links["type"] = "absolute"
 	dd.append(drilledDown_links)
-	print "Links - "
-	print dd
+	#print "Links - "
+	#print dd
 	panels={
 	  "colorBackground": False,
           "colorValue": False,
@@ -64,7 +66,7 @@ def createPanel(dashboard_config,metadata,drilldown):
           ],
           "aliasColors": {},
           "bars": dashboard_config["bar_graph"],
-          "datasource": "simple json",
+          "datasource": "Dev_JSON",
           "editable": True,
           "error": False,
           "fill": 0,
@@ -126,9 +128,9 @@ def createPanel(dashboard_config,metadata,drilldown):
         "short"
         ]
         }
-	print "panles - "
-	print panels
-	print panels["links"]
+	#print "panles - "
+	#print panels
+	#nprint panels["links"]
 	return [panels]
 
 
@@ -189,9 +191,6 @@ def create_db(dashboard_config,metadata,drilldown = False):
 	return dashboard
 	
 
-
-
-
 if __name__ == "__main__":
 	
 
@@ -201,23 +200,13 @@ if __name__ == "__main__":
 	#dashboard_config = literal_eval(dashboard_config)
 	#print dashboard_config["name"]
 	
-	'''
-	tsds_url = "https://tsds-services-el7-test.grnoc.iu.edu/tsds-basic/services/metadata.cgi?method=get_distinct_meta_field_values;measurement_type=interface;limit=1000;offset=0;meta_field=intf;node=mpsw.mnchpharm.ilight.net"
-	auth_Connection(tsds_url)
-	try:
-		request = Request(tsds_url)
-    		response = urlopen(request)
-        except URLError, e:
-                print 'Error opening tsds URL \n', e
-	circuit = [ each["value"] for each in json.load(response)["results"]]
-	'''
-
 	for dashboard_config in dashboard_config_file:
 
 		#tsds_url = "https://tsds-services-el7-test.grnoc.iu.edu/tsds-basic/services/metadata.cgi?method=get_distinct_meta_field_values;measurement_type=interface;limit=1000;offset=0;meta_field=intf;entity.name="+dashboard_config["entity"]
-        	tsds_url = "https://tsds-services-el7-test.grnoc.iu.edu/tsds-basic/services/query.cgi?"
-		paramQuery = 'get intf, node between(now-1d, now) by intf, node from interface where entity.name ="'+dashboard_config["entity"]+'"'
+        	tsds_url = "https://netsage-archive.grnoc.iu.edu/tsds/services-basic/query.cgi?"
+		paramQuery = 'get intf, node between(now-1d, now) by intf, node from interface where network ="'+dashboard_config["entity"]+'"'
 		param={"method":"query","query":paramQuery}
+		print "Param -----",paramQuery
 		tsds_url+=urlencode(param)
 		auth_Connection(tsds_url)
         	try:
@@ -225,8 +214,11 @@ if __name__ == "__main__":
                 	response = urlopen(request)
         	except URLError, e:
                 	print 'Error opening tsds URL \n', e
-		response = json.load(response)["results"]
-		print "Rewpone === ",response
+		response =json.load(response)["results"	]
+		#response = [{str(key):str(v)for key,v in response[0].iteritems()}]
+		print "--------------"
+		print "Respone === ",response
+		print "---------------"
 		dashboard = create_db(dashboard_config,response,dashboard_config["drilldown"])		
 
 
