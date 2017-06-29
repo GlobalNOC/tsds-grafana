@@ -20,9 +20,6 @@ def natural_keys(text):
 def findtarget_names(tsds_result,i, alias_list):
         returnname = []
         results_dict = tsds_result["results"][i]
-	#open("output_file.txt",'w').close()
-        output_file = open("output_file.txt","rw+")
-	output_file.write("find target namesss ----------------------  "+str(i)+"\n")
 	if len(alias_list) == 0:
         	for key,value in results_dict.iteritems():
                 	targetname = []
@@ -38,8 +35,6 @@ def findtarget_names(tsds_result,i, alias_list):
                         	returnname.append(" ".join(targetname))
 
 	else:
-		for a in alias_list:
-			output_file.write(a+" , ")
 		for key,value in results_dict.iteritems():
                         targetname = []
                         if isinstance(value, list):
@@ -48,13 +43,9 @@ def findtarget_names(tsds_result,i, alias_list):
                                	for i in range(0,len(nonValues)):
         				if '$' in nonValues[i]:
 						v = nonValues[i][1:]
-						#output_file.write(json.dumps(results_dict))
-						#output_file.write(v+"\n")
           					nonValues[i] = str(results_dict[v])
 				targetname.append(" "+" ".join(nonValues))
                                 returnname.append(" ".join(targetname))	
-		output_file.write("\n")
-		output_file.close()
         return returnname
 
 def match(key,targetname):
@@ -69,21 +60,16 @@ def convert(innerValue):
         return [[element[0],element[1]*1000] for element in IV]
 
 def replaceQuery(query,start_time,end_time, aggValue):
-	open("output_file.txt",'w').close()
-        output_file = open("output_file.txt","rw+")
 	
-	output_file.write("In replace query ---------- \n");
         replace = {"$START":start_time,"$END":end_time, "{":" ", "}":" "}
         replace = dict((re.escape(key),value) for key, value in replace.iteritems())
         pattern = re.compile("|".join(replace.keys()))
         query = pattern.sub(lambda m: replace[re.escape(m.group(0))], query)
-	output_file.write("After replacing $start and $end -  "+query+"\n");
 	
 	replace = {"$quantify":str(aggValue)}
 	replace = dict((re.escape(key),value) for key, value in replace.iteritems())
 	pattern = re.compile("|".join(replace.keys()))
 	query = pattern.sub(lambda m: replace[re.escape(m.group(0))], query)
-	output_file.write("After replacing $quantify -  "+query+"\n")
 	return query 
 
 def auth_Connection(url):
@@ -98,13 +84,9 @@ def auth_Connection(url):
 
 def search():
         inpParameter = literal_eval(sys.stdin.read())
-        output_file = open("output_file_query.txt","rw+")
         url = "https://netsage-archive.grnoc.iu.edu/tsds/services-basic/query.cgi"
         auth_Connection(url)
-        output_file.write(inpParameter['target']+"\n")
         postParameters = {"method":"query","query":inpParameter["target"]}
-        output_file.write("Post params --- \n")
-        output_file.write(postParameters["query"])
         try:
                 request = Request(url,urlencode(postParameters))
                 response = urlopen(request)
@@ -126,7 +108,6 @@ def search():
         except URLError, e:
                 print "Content-type: text/plain"
                 print 'Error opening tsds URL \n', e
-        output_file.close()
 
 
 def searchT():
@@ -143,14 +124,6 @@ def searchT():
 			for key,value in eachDict.iteritems():
 				if key =="name":
 					output.append(value)
-
-		output_file = open("output_file.txt","rw+")
-	        output_file.write("\n")
-        	output_file.write("------  In Search Method --------"+"\n")
-		for e in output:
-        		output_file.write(e+"\n")
-        	output_file.close();
-
         	print "Content-Type: application/json" # set the HTTP response header to json data
 		print "Cache-Control: no-cache\n"
 	        print json.dumps(output) #HTTP response 
@@ -162,28 +135,13 @@ def searchT():
 
 def searchC():
         inpParameter = literal_eval(sys.stdin.read()) # reading the input data sent in POST method
-	output_file = open("output_file.txt","rw+")
-	output_file.write("\n")
-	output_file.write("------  In SearchC Method --------"+"\n")
-	#output_file.write(inpParameter);
-	output_file.write("\n")
-	output_file.write(inpParameter['target'])
-	output_file.write("\n")
         url = "https://netsage-archive.grnoc.iu.edu/tsds/services-basic/metadata.cgi?method=get_meta_fields;measurement_type="+inpParameter['target']
-	output_file.write(url)
         auth_Connection(url)
         try:
                 request = Request(url)
                 response = urlopen(request)
                 json_result = json.load(response) #convert the response data into json formated string
                 output=[]
-		
-		'''
-                for eachDict in json_result["results"]:
-                        for key,value in eachDict.iteritems():
-                                if key =="name":
-                                        output.append(value)
-		'''
 		for eachDict in json_result["results"]:
   			if "fields" in eachDict.keys():
 				for field in eachDict["fields"]:
@@ -202,15 +160,7 @@ def searchC():
 
 def searchV():
         inpParameter = literal_eval(sys.stdin.read()) # reading the input data sent in POST method
-        output_file = open("output_file.txt","rw+")
-        output_file.write("\n")
-        output_file.write("------  In SearchC Method --------"+"\n")
-        #output_file.write(inpParameter);
-        output_file.write("\n")
-        output_file.write(inpParameter['target'])
-        output_file.write("\n")
         url = "https://netsage-archive.grnoc.iu.edu/tsds/services-basic/metadata.cgi?method=get_measurement_type_values;measurement_type="+inpParameter['target']
-        output_file.write(url)
         auth_Connection(url)
         try:
                 request = Request(url)
@@ -222,14 +172,6 @@ def searchV():
                         for key,value in eachDict.iteritems():
                                 if key =="name":
                                         output.append(value)
-                '''
-                output_file = open("output_file.txt","rw+")
-                output_file.write("\n")
-                output_file.write("------  In Search Method --------"+"\n")
-                for e in output:
-                        output_file.write(e+"\n")
-                output_file.close();
-                '''
                 print "Content-Type: application/json" # set the HTTP response header to json data
                 print "Cache-Control: no-cache\n"
                 print json.dumps(output) #HTTP response 
@@ -241,15 +183,7 @@ def searchV():
 
 def searchW():
         inpParameter = literal_eval(sys.stdin.read()) # reading the input data sent in POST method
-        output_file = open("output_file.txt","rw+")
-        output_file.write("\n")
-        output_file.write("------  In SearchW Method --------"+"\n")
-        #output_file.write(inpParameter);
-        output_file.write("\n")
-        output_file.write(inpParameter['target'])
-        output_file.write("\n")
         url = "https://netsage-archive.grnoc.iu.edu/tsds/services-basic/metadata.cgi?method=get_meta_field_values;measurement_type="+inpParameter['target']+";meta_field="+inpParameter['meta_field']+";limit=10;offset=0;"+inpParameter['meta_field']+"_like="+inpParameter['like_field']
-        output_file.write(url)
         auth_Connection(url)
         try:
                 request = Request(url)
@@ -261,38 +195,17 @@ def searchW():
                         for key,value in eachDict.iteritems():
                                 if key =="value":
                                         output.append(value)
-                '''
-                output_file = open("output_file.txt","rw+")
-                output_file.write("\n")
-                output_file.write("------  In Search Method --------"+"\n")
-                for e in output:
-                        output_file.write(e+"\n")
-                output_file.close();
-                '''
                 print "Content-Type: application/json" # set the HTTP response header to json data
                 print "Cache-Control: no-cache\n"
                 print json.dumps(output) #HTTP response 
-		output_file.write(json.dumps(output))
 
         except URLError, e:
                 print "Content-type: text/plain"
                 print 'Error opening tsds URL \n', e
 
-
-
-
-
 def searchR():
         inpParameter = literal_eval(sys.stdin.read()) # reading the input data sent in POST method
-        output_file = open("output_file.txt","rw+")
-        output_file.write("\n")
-        output_file.write("------  In SearchR Method --------"+"\n")
-        output_file.write("\n")
-        output_file.write(inpParameter['like_field'])
-        output_file.write("\n")
         url = "https://netsage-archive.grnoc.iu.edu/tsds/services-basic/metadata.cgi?method=get_meta_field_values;measurement_type="+inpParameter['target']+";meta_field="+inpParameter['meta_field']+";limit=10;offset=0;"+inpParameter['parent_meta_field']+"="+inpParameter['parent_meta_field_value']+";"+inpParameter['meta_field']+"_like="+str(inpParameter['like_field'])
-        output_file.write(url)
-	output_file.write("\n")
         auth_Connection(url)
         try:
                 request = Request(url)
@@ -304,18 +217,9 @@ def searchR():
                         for key,value in eachDict.iteritems():
                                 if key =="value":
                                         output.append(value)
-                '''
-                output_file = open("output_file.txt","rw+")
-                output_file.write("\n")
-                output_file.write("------  In Search Method --------"+"\n")
-                for e in output:
-                        output_file.write(e+"\n")
-                output_file.close();
-                '''
                 print "Content-Type: application/json" # set the HTTP response header to json data
                 print "Cache-Control: no-cache\n"
                 print json.dumps(output) #HTTP response 
-                output_file.write(json.dumps(output))
 
         except URLError, e:
                 print "Content-type: text/plain"
@@ -521,14 +425,7 @@ def createTemplateVars(metadata):
 if __name__ == "__main__":
 	print "Cache-Control: no-cache"
 	path  = os.environ["PATH_INFO"]
-	open("output_file.txt",'w').close()
-        output_file = open("output_file.txt","rw+")
-	output_file.write(path+"\n")
-	output_file.write("--------------"+"\n")
-	#query_string = os.getenv("QUERY_STRING").split('&')[1].split('=')
-	#output_file.write(query_string[1])
 	inpUrl = path
-	output_file.close();
 	if inpUrl == "/dashboard":
 		drilldown()
 	if inpUrl == "/search":
