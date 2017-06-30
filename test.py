@@ -10,6 +10,8 @@ import re
 import datetime
 from ast import literal_eval
 
+tsds_url = "https://tsds.bldc.grnoc.iu.edu/i2/services/"
+
 def atoi(text):
     return int(text) if text.isdigit() else text
 
@@ -84,7 +86,7 @@ def auth_Connection(url):
 
 def search():
         inpParameter = literal_eval(sys.stdin.read())
-        url = "https://netsage-archive.grnoc.iu.edu/tsds/services-basic/query.cgi"
+        url = tsds_url+"query.cgi"
         auth_Connection(url)
         postParameters = {"method":"query","query":inpParameter["target"]}
         try:
@@ -112,7 +114,7 @@ def search():
 
 def searchT():
 	inpParameter = sys.stdin.read() # reading the input data sent in POST method
-	url = "https://netsage-archive.grnoc.iu.edu/tsds/services-basic/metadata.cgi?method=get_measurement_types"
+	url = tsds_url+"metadata.cgi?method=get_measurement_types"
 	auth_Connection(url)
 	try:
 		request = Request(url)
@@ -135,7 +137,7 @@ def searchT():
 
 def searchC():
         inpParameter = literal_eval(sys.stdin.read()) # reading the input data sent in POST method
-        url = "https://netsage-archive.grnoc.iu.edu/tsds/services-basic/metadata.cgi?method=get_meta_fields;measurement_type="+inpParameter['target']
+        url = tsds_url+"metadata.cgi?method=get_meta_fields;measurement_type="+inpParameter['target']
         auth_Connection(url)
         try:
                 request = Request(url)
@@ -160,7 +162,7 @@ def searchC():
 
 def searchV():
         inpParameter = literal_eval(sys.stdin.read()) # reading the input data sent in POST method
-        url = "https://netsage-archive.grnoc.iu.edu/tsds/services-basic/metadata.cgi?method=get_measurement_type_values;measurement_type="+inpParameter['target']
+        url = tsds_url+"metadata.cgi?method=get_measurement_type_values;measurement_type="+inpParameter['target']
         auth_Connection(url)
         try:
                 request = Request(url)
@@ -183,7 +185,7 @@ def searchV():
 
 def searchW():
         inpParameter = literal_eval(sys.stdin.read()) # reading the input data sent in POST method
-        url = "https://netsage-archive.grnoc.iu.edu/tsds/services-basic/metadata.cgi?method=get_meta_field_values;measurement_type="+inpParameter['target']+";meta_field="+inpParameter['meta_field']+";limit=10;offset=0;"+inpParameter['meta_field']+"_like="+inpParameter['like_field']
+        url = tsds_url+"metadata.cgi?method=get_meta_field_values;measurement_type="+inpParameter['target']+";meta_field="+inpParameter['meta_field']+";limit=10;offset=0;"+inpParameter['meta_field']+"_like="+inpParameter['like_field']
         auth_Connection(url)
         try:
                 request = Request(url)
@@ -205,7 +207,7 @@ def searchW():
 
 def searchR():
         inpParameter = literal_eval(sys.stdin.read()) # reading the input data sent in POST method
-        url = "https://netsage-archive.grnoc.iu.edu/tsds/services-basic/metadata.cgi?method=get_meta_field_values;measurement_type="+inpParameter['target']+";meta_field="+inpParameter['meta_field']+";limit=10;offset=0;"+inpParameter['parent_meta_field']+"="+inpParameter['parent_meta_field_value']+";"+inpParameter['meta_field']+"_like="+str(inpParameter['like_field'])
+        url = tsds_url+"metadata.cgi?method=get_meta_field_values;measurement_type="+inpParameter['target']+";meta_field="+inpParameter['meta_field']+";limit=10;offset=0;"+inpParameter['parent_meta_field']+"="+inpParameter['parent_meta_field_value']+";"+inpParameter['meta_field']+"_like="+str(inpParameter['like_field'])
         auth_Connection(url)
         try:
                 request = Request(url)
@@ -239,7 +241,7 @@ def query():
                 if key == "targets":
                         for eachElement in value:
                                 tsds_query.append(eachElement["target"])
-				if "alias" in value:
+				if "alias" in eachElement and eachElement['alias'] != "":
 					target_alias = eachElement["alias"]
                 if key =="range":
                         start_time = value["from"]
@@ -262,25 +264,33 @@ def query():
         ostart = (start_time - datetime.datetime(1970, 1, 1)).total_seconds()
         start_time = str(start_time.strftime("%m-%d-%Y %H:%M:%S.%fZ")).replace("-","/") # Replace '-' with '/'
         start_time =  '"'+start_time[:start_time.index(".")]+' UTC"' # Adding quotes before and after
-        #output_file.write("Start_time -"+str(start_time)+"\n")
+        output_file.write("Start_time -"+str(start_time)+"\n")
 
         # - Convert end_time from iso8601 to UTC format
         end_time = datetime.datetime.strptime(end_time, "%Y-%m-%dT%H:%M:%S.%fZ")
         oend = (end_time - datetime.datetime(1970, 1, 1)).total_seconds()
         end_time= str(end_time.strftime("%m-%d-%Y %H:%M:%S.%fZ")).replace("-","/") #Replace '-' with '/' 
         end_time =  '"'+end_time[:end_time.index(".")]+' UTC"' #Adding quotes before and after
-        #output_file.write("End_time -"+str(end_time)+"\n")
+        output_file.write("End_time -"+str(end_time)+"\n")
 
         time_duration = (oend-ostart)
         #output_file.write("Duration - "+str(time_duration)+"\n")
         #output_file.write("MaxData Points - "+str(maxDataPoints)+"\n")
         aggValue = int(time_duration/maxDataPoints)
-        if time_duration > 172800  and time_duration < 604800:
+	'''
+        if time_duration > 172800  and time_duration <= 604800:#Time between 2 and 7 days
                 aggValue = max(aggValue, int(86400/maxDataPoints))
-        elif time_duration > 604800 and time_duration < 2592000 :
-                aggValue = max(aggValue, int(604800/maxDataPoints))
-        elif time_duration > 2592000:
-                aggValue = max(aggValue, int(2592000/maxDataPoints))
+        elif time_duration > 604800 and time_duration <= 2592000 : #Time between 7 and 30 days
+                aggValue = max(aggValue, 3600)
+        elif time_duration > 2592000: #Time greater than 30 days
+                aggValue = max(aggValue, 86400)
+	'''
+	if time_duration >= 7776000:
+		aggValue = max(aggValue, 86400)
+	elif time_duration >= 259200:
+		aggValue = max(aggValue, 3600) 
+
+	
         #output_file.write("Agg value -"+str(aggValue)+"\n")
 	#output_file.close()
         output=[]
@@ -292,11 +302,10 @@ def query():
                 tsds_query[index] = tquery
 
                 #Request data from tsds - 
-                url= "https://netsage-archive.grnoc.iu.edu/tsds/services-basic/query.cgi"
+                url= tsds_url+"query.cgi"
                 auth_Connection(url)
                 postParameters = {"method":"query","query":tsds_query[index]}
-                #output_file.write("Query  -"+tsds_query[index]+"\n")
-		#output_file.close()
+                output_file.write("Query  -"+tsds_query[index]+"\n")
                 try:
                         request = Request(url,urlencode(postParameters))
                         response = urlopen(request)
@@ -352,11 +361,30 @@ def generateDB(postParam):
                 print "Success"
 
 def drilldown():
+	open("dash.txt",'w').close()
+	output_file = open("dash.txt","rw+")
 	inpParameter = literal_eval(sys.stdin.read())
 	query = inpParameter["query"]
 	drill = inpParameter["drill"]
-	timeFrom = inpParameter["timeFrom"]
-	timeTo = inpParameter["timeTo"]
+	start_time = inpParameter["timeFrom"]
+	end_time = inpParameter["timeTo"]
+
+	#Convert From time to ISO Format
+	start_time = datetime.datetime.strptime(start_time, "%Y-%m-%dT%H:%M:%S.%fZ")
+	ostart = (start_time - datetime.datetime(1970, 1, 1)).total_seconds()
+	start_time = str(start_time.strftime("%m-%d-%Y %H:%M:%S.%fZ")).replace("-","/") # Replace '-' with '/'
+	start_time =  '"'+start_time[:start_time.index(".")]+' UTC"' # Adding quotes before and after
+	output_file.write("Start_time -"+str(start_time)+"\n")
+
+	#Conver To time to ISO Format
+	end_time = datetime.datetime.strptime(end_time, "%Y-%m-%dT%H:%M:%S.%fZ")
+	oend = (end_time - datetime.datetime(1970, 1, 1)).total_seconds()
+	end_time= str(end_time.strftime("%m-%d-%Y %H:%M:%S.%fZ")).replace("-","/") #Replace '-' with '/' 
+	end_time =  '"'+end_time[:end_time.index(".")]+' UTC"' #Adding quotes before and after
+	output_file.write("End_time -"+str(end_time)+"\n")
+
+
+	
 	DB_title = inpParameter["DB_title"]
 	Data_source = inpParameter["Data_source"]
 	url = "https://tsds-frontend-el7-test.grnoc.iu.edu/grafana/api/dashboards/db/"+DB_title
@@ -371,25 +399,23 @@ def drilldown():
 		print e.readlines()
 		sys.exit(1)
 		#print "grafana dashboard --- ",response.getcode()
-	open("dash.txt",'w').close()
-	output_file = open("dash.txt","rw+")
 	#output_file.write(response.read()+"\n")
 	data = json.load(response)
 	db =  data["dashboard"]
 	output_file.write("query --- "+query+" Drill -- "+drill+"\n")
 	output_file.write(json.dumps(db)+"\n")
 	if "links" not in db["rows"][0]["panels"][0]:
-  		db["rows"][0]["panels"][0]["links"] = [{"dashUri":"db/Drill_Down_for_"+DB_title,"dashboard":"Drill_Down_for_"+DB_title,"title":"Drill_Down_for_"+DB_title,"type":"dashboard"}]
+  		db["rows"][0]["panels"][0]["links"] = [{"dashUri":"db/Drill_Down_on_"+DB_title,"dashboard":"Drill_Down_on_"+DB_title,"title":"Drill_Down_on_"+DB_title,"type":"dashboard"}]
 	else:
 		db["rows"][0]["panels"][0]["links"] = []
-		db["rows"][0]["panels"][0]["links"].append({"dashUri":"db/Drill_Down_for_"+DB_title,"dashboard":"Drill_Down_for_"+DB_title,"title":"Drill_Down_for_"+DB_title,"type":"dashboard"})
+		db["rows"][0]["panels"][0]["links"].append({"dashUri":"db/Drill_Down_on_"+DB_title,"dashboard":"Drill_Down_on_"+DB_title,"title":"Drill_Down_on_"+DB_title,"type":"dashboard"})
 	
 	postParam = {"dashboard":db,"overwrite": True }
 	generateDB(postParam) #Creating a link in same dashboard to a drill down db
 			
 	
 	#Create new dashboard with templates
-	templateQuery = parseDrillDownQuery(query, drill, timeFrom, timeTo)
+	templateQuery = parseDrillDownQuery(query, drill, start_time, end_time)
 	output_file.write("\n")
 	output_file.write("Query for template ---- \n")
 	output_file.write(templateQuery)
@@ -400,10 +426,18 @@ def drilldown():
 		db["templating"]["list"].append({ "allValue": None, "current": { "text": "", "value": [ ] },"datasource": Data_source, "hide": 0, "includeAll": True, "label": None, "multi": True, "name": "temp", "options": [], "query": templateQuery, "refresh": 2, "regex": "", "sort": 0,   "tagValuesQuery": "", "tags": [], "tagsQuery": "", "type": "query", "useTags": False })
 	db["rows"][0]["panels"][0]["targets"][0]["rawQuery"] = True
 	panel_query = db["rows"][0]["panels"][0]["targets"][0]["target"]
-	panel_query = panel_query[:panel_query.find(")",-1)] + "and $temp )"
+	#panel_query = panel_query[:panel_query.find(")",-1)] + "and $temp )"
+	panel_query = panel_query + " and ($temp)"
 	db["rows"][0]["panels"][0]["targets"][0]["target"] = panel_query
 	db["rows"][0]["panels"][0]["repeat"] = "temp"
-	db["rows"][0]["panels"][0]["minSpan"] = 12	
+	db["rows"][0]["panels"][0]["minSpan"] = 12
+	db["rows"][0]["panels"][0]["yaxes"][0]["format"] = "bps"
+	db["rows"][0]["panels"][0]["yaxes"][1]["format"] = "bps"
+	db["rows"][0]["panels"][0]["title"] = "$temp"	
+	if "transparent" in db["rows"][0]["panels"][0]:
+		db["rows"][0]["panels"][0]["transparent"] = True
+	else:
+		db["rows"][0]["panels"][0]["transparent"] = True
 	db["id"] = None
 	db["title"] = "Drill_Down_on_"+DB_title
 	postParam = {"dashboard":db,"overwrite": True }
@@ -442,7 +476,4 @@ if __name__ == "__main__":
                 searchR()
 	if inpUrl == "/query":
 		query()
-
-
-
 			
