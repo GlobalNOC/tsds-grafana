@@ -84,148 +84,74 @@ def auth_Connection(url):
         install_opener(opener)
 
 
-def search():
-        inpParameter = literal_eval(sys.stdin.read())
-        url = tsds_url+"query.cgi"
-        auth_Connection(url)
-        postParameters = {"method":"query","query":inpParameter["target"]}
-        try:
-                request = Request(url,urlencode(postParameters))
-                response = urlopen(request)
-                json_result = json.load(response) #convert the response data into json formated string
-                output=[]
+def make_TSDS_Request(url,postParam = None):
+	auth_Connection(url)
+	try:
+		if not postParam:
+                	request = Request(url)
+                	response = urlopen(request)
+                	return json.load(response)
+		else:
+			request = Request(url,postParam)
+			response = urlopen(request)
+			return json.load(response)
+			
+        except URLError, e:
+                print "Content-type: text/plain"
+                print 'Error opening tsds URL \n', e
 
+
+def search():
+	inpParameter = literal_eval(sys.stdin.read()) # reading the input data sent in POST method
+	searchType = inpParameter['type']
+	output=[]
+	if searchType == "Column": # Searching for Columns
+		url = tsds_url+"metadata.cgi?method=get_meta_fields;measurement_type="+inpParameter['target']
+		json_result = make_TSDS_Request(url)
                 for eachDict in json_result["results"]:
+                        if "fields" in eachDict:
+                                for field in eachDict["fields"]:
+                                        output.append(eachDict["name"]+"."+field["name"])
+                        else:
+                                output.append(eachDict["name"])
+
+	elif searchType == "Value": # Searching for Values
+		url = tsds_url+"metadata.cgi?method=get_measurement_type_values;measurement_type="+inpParameter['target']
+		json_result = make_TSDS_Request(url)	
+		output = [eachDict["name"] for eachDict in json_result["results"] if "name" in eachDict]
+
+	elif searchType == "Table": # Searching for Tables
+		url = tsds_url+"metadata.cgi?method=get_measurement_types"
+                json_result = make_TSDS_Request(url)    
+                output = [eachDict["name"] for eachDict in json_result["results"] if "name" in eachDict]
+
+	elif searchType == "Where":
+		url = tsds_url+"metadata.cgi?method=get_meta_field_values;measurement_type="+inpParameter['target']+";meta_field="+inpParameter['meta_field']+";limit=10;offset=0;"+inpParameter['meta_field']+"_like="+inpParameter['like_field']
+		json_result = make_TSDS_Request(url)
+		output = [eachDict["value"] for eachDict in json_result["results"]]
+
+	elif searchType == "Where_Related":
+		url = tsds_url+"metadata.cgi?method=get_meta_field_values;measurement_type="+inpParameter['target']+";meta_field="+inpParameter['meta_field']+";limit=10;offset=0;"+inpParameter['parent_meta_field']+"="+inpParameter['parent_meta_field_value']+";"+inpParameter['meta_field']+"_like="+str(inpParameter['like_field'])
+		json_result = make_TSDS_Request(url)
+		output = [eachDict["value"] for eachDict in json_result["results"]]
+
+	elif searchType == "Search":
+		url = tsds_url+"query.cgi"
+		postParameters = {"method":"query","query":inpParameter["target"]}
+		json_result = make_TSDS_Request(url,urlencode(postParameters))
+		for eachDict in json_result["results"]:
 			v=""
-                        for key,value in eachDict.iteritems():
+			for key,value in eachDict.iteritems():
 				if len(v) == 0:
 					v+= key+" = \""+value+"\""
 				else:
 					v = v+" and "+key+" = \""+value+"\""
-                    	output.append(v)
-                print "Content-Type: application/json" # set the HTTP response header to json data
-                print "Cache-Control: no-cache\n"
-                print json.dumps(output) #HTTP response 
+			output.append(v)
 
-        except URLError, e:
-                print "Content-type: text/plain"
-                print 'Error opening tsds URL \n', e
-
-
-def searchT():
-	inpParameter = sys.stdin.read() # reading the input data sent in POST method
-	url = tsds_url+"metadata.cgi?method=get_measurement_types"
-	auth_Connection(url)
-	try:
-		request = Request(url)
-		response = urlopen(request)
-		json_result = json.load(response) #convert the response data into json formated string
-		output=[]
+	print "Content-Type: application/json" # set the HTTP response header to json data
+	print "Cache-Control: no-cache\n"
+	print json.dumps(output) #HTTP response
 		
-		for eachDict in json_result["results"]:
-			for key,value in eachDict.iteritems():
-				if key =="name":
-					output.append(value)
-        	print "Content-Type: application/json" # set the HTTP response header to json data
-		print "Cache-Control: no-cache\n"
-	        print json.dumps(output) #HTTP response 
-		
-	except URLError, e:
-		print "Content-type: text/plain"
-    		print 'Error opening tsds URL \n', e
-
-
-def searchC():
-        inpParameter = literal_eval(sys.stdin.read()) # reading the input data sent in POST method
-        url = tsds_url+"metadata.cgi?method=get_meta_fields;measurement_type="+inpParameter['target']
-        auth_Connection(url)
-        try:
-                request = Request(url)
-                response = urlopen(request)
-                json_result = json.load(response) #convert the response data into json formated string
-                output=[]
-		for eachDict in json_result["results"]:
-  			if "fields" in eachDict.keys():
-				for field in eachDict["fields"]:
-					output.append(eachDict["name"]+"."+field["name"])
-			else:
-				output.append(eachDict["name"])		
-
-                print "Content-Type: application/json" # set the HTTP response header to json data
-                print "Cache-Control: no-cache\n"
-                print json.dumps(output) #HTTP response 
-
-        except URLError, e:
-                print "Content-type: text/plain"
-                print 'Error opening tsds URL \n', e
-
-
-def searchV():
-        inpParameter = literal_eval(sys.stdin.read()) # reading the input data sent in POST method
-        url = tsds_url+"metadata.cgi?method=get_measurement_type_values;measurement_type="+inpParameter['target']
-        auth_Connection(url)
-        try:
-                request = Request(url)
-                response = urlopen(request)
-                json_result = json.load(response) #convert the response data into json formated string
-                output=[]
-
-                for eachDict in json_result["results"]:
-                        for key,value in eachDict.iteritems():
-                                if key =="name":
-                                        output.append(value)
-                print "Content-Type: application/json" # set the HTTP response header to json data
-                print "Cache-Control: no-cache\n"
-                print json.dumps(output) #HTTP response 
-
-        except URLError, e:
-                print "Content-type: text/plain"
-                print 'Error opening tsds URL \n', e
-
-
-def searchW():
-        inpParameter = literal_eval(sys.stdin.read()) # reading the input data sent in POST method
-        url = tsds_url+"metadata.cgi?method=get_meta_field_values;measurement_type="+inpParameter['target']+";meta_field="+inpParameter['meta_field']+";limit=10;offset=0;"+inpParameter['meta_field']+"_like="+inpParameter['like_field']
-        auth_Connection(url)
-        try:
-                request = Request(url)
-                response = urlopen(request)
-                json_result = json.load(response) #convert the response data into json formated string
-                output=[]
-
-                for eachDict in json_result["results"]:
-                        for key,value in eachDict.iteritems():
-                                if key =="value":
-                                        output.append(value)
-                print "Content-Type: application/json" # set the HTTP response header to json data
-                print "Cache-Control: no-cache\n"
-                print json.dumps(output) #HTTP response 
-
-        except URLError, e:
-                print "Content-type: text/plain"
-                print 'Error opening tsds URL \n', e
-
-def searchR():
-        inpParameter = literal_eval(sys.stdin.read()) # reading the input data sent in POST method
-        url = tsds_url+"metadata.cgi?method=get_meta_field_values;measurement_type="+inpParameter['target']+";meta_field="+inpParameter['meta_field']+";limit=10;offset=0;"+inpParameter['parent_meta_field']+"="+inpParameter['parent_meta_field_value']+";"+inpParameter['meta_field']+"_like="+str(inpParameter['like_field'])
-        auth_Connection(url)
-        try:
-                request = Request(url)
-                response = urlopen(request)
-                json_result = json.load(response) #convert the response data into json formated string
-                output=[]
-
-                for eachDict in json_result["results"]:
-                        for key,value in eachDict.iteritems():
-                                if key =="value":
-                                        output.append(value)
-                print "Content-Type: application/json" # set the HTTP response header to json data
-                print "Cache-Control: no-cache\n"
-                print json.dumps(output) #HTTP response 
-
-        except URLError, e:
-                print "Content-type: text/plain"
-                print 'Error opening tsds URL \n', e
 
 def query():
         inpParameter = json.loads(sys.stdin.read())
@@ -251,12 +177,6 @@ def query():
 
         #Read query and set the variable $START & $END in the query to appropriate timestamp sent by grafana before querying tsds - 
         # - Convert start_time from iso8601 to UTC format 
-
-
-        #write to file for debugging -- 
-        open("output_file_query.txt",'w').close()
-        output_file = open("output_file_query.txt","rw+")
-	
 	if target_alias != "":
 		alias_list = target_alias.split(' ')
 
@@ -264,18 +184,14 @@ def query():
         ostart = (start_time - datetime.datetime(1970, 1, 1)).total_seconds()
         start_time = str(start_time.strftime("%m-%d-%Y %H:%M:%S.%fZ")).replace("-","/") # Replace '-' with '/'
         start_time =  '"'+start_time[:start_time.index(".")]+' UTC"' # Adding quotes before and after
-        output_file.write("Start_time -"+str(start_time)+"\n")
 
         # - Convert end_time from iso8601 to UTC format
         end_time = datetime.datetime.strptime(end_time, "%Y-%m-%dT%H:%M:%S.%fZ")
         oend = (end_time - datetime.datetime(1970, 1, 1)).total_seconds()
         end_time= str(end_time.strftime("%m-%d-%Y %H:%M:%S.%fZ")).replace("-","/") #Replace '-' with '/' 
         end_time =  '"'+end_time[:end_time.index(".")]+' UTC"' #Adding quotes before and after
-        output_file.write("End_time -"+str(end_time)+"\n")
-
         time_duration = (oend-ostart)
-        #output_file.write("Duration - "+str(time_duration)+"\n")
-        #output_file.write("MaxData Points - "+str(maxDataPoints)+"\n")
+	
         aggValue = int(time_duration/maxDataPoints)
 	'''
         if time_duration > 172800  and time_duration <= 604800:#Time between 2 and 7 days
@@ -289,37 +205,19 @@ def query():
 		aggValue = max(aggValue, 86400)
 	elif time_duration >= 259200:
 		aggValue = max(aggValue, 3600) 
-
 	
-        #output_file.write("Agg value -"+str(aggValue)+"\n")
-	#output_file.close()
         output=[]
 	q=""
 	for index in range(len(tsds_query)):
-                tquery = replaceQuery(tsds_query[index],start_time,end_time,aggValue)
-		
-                #tsds_query[index] = replaceQuery(tsds_query[index],start_time,end_time,aggValue)#To replace variables $START and $END with start_time and end_time respectively
-                tsds_query[index] = tquery
-
+                tsds_query[index] = replaceQuery(tsds_query[index],start_time,end_time,aggValue)
                 #Request data from tsds - 
-                url= tsds_url+"query.cgi"
-                auth_Connection(url)
-                postParameters = {"method":"query","query":tsds_query[index]}
-                output_file.write("Query  -"+tsds_query[index]+"\n")
-                try:
-                        request = Request(url,urlencode(postParameters))
-                        response = urlopen(request)
-                except URLError, e:
-                        print "Content-type: text/plain"
-                        print 'Error opening tsds server URL \n', e
-                tsds_result =  json.loads(response.read()) #Response from tsds server cached in tsds_result
+		url= tsds_url+"query.cgi"
+		postParameters = {"method":"query","query":tsds_query[index]}
+		tsds_result = make_TSDS_Request(url,urlencode(postParameters))
                 #Prepare output for grafana
                 #Format the data received from tsds to grafana compatible data -
                 for i in range(len(tsds_result["results"])):
                         #Search for target name - 
-			for a in alias_list:
-                        	output_file.write(a+" ")
-			output_file.write(str(i)+"\n")
                         target = findtarget_names(tsds_result, i, alias_list)
                         for eachTarget in target:
                                 dict_element={"target":eachTarget}
@@ -464,16 +362,6 @@ if __name__ == "__main__":
 		drilldown()
 	if inpUrl == "/search":
         	search()
-	if inpUrl == "/searchT":
-		searchT()
-	if inpUrl == "/searchC":
-                searchC()
-	if inpUrl == "/searchV":
-                searchV()
-	if inpUrl == "/searchW":
-                searchW()
-	if inpUrl == "/searchR":
-                searchR()
 	if inpUrl == "/query":
 		query()
 			
