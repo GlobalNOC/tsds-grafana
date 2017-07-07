@@ -18,14 +18,13 @@ def atoi(text):
 def natural_keys(text):
     return [ atoi(c) for c in re.split('(\d+)', text) ]
 
-#Look for fields in tsds JSON output where key contains keyword - "values"
 def findtarget_names(tsds_result,i, alias_list):
         returnname = []
         results_dict = tsds_result["results"][i]
 	if len(alias_list) == 0:
         	for key,value in results_dict.iteritems():
                 	targetname = []
-                	if isinstance(value, list):
+                	if isinstance(value, list): #when value is a list append its key with all the other non-list key-value pair
                         	targetname.append(key)
                         	nonValues = []
                         	for k , v in results_dict.iteritems():
@@ -43,7 +42,7 @@ def findtarget_names(tsds_result,i, alias_list):
                                 targetname.append(key)
                                 nonValues = list(alias_list) #deep copy to counter alias_list values getting modified due to references
                                	for i in range(0,len(nonValues)):
-        				if '$' in nonValues[i]:
+        				if '$' in nonValues[i]: #Look for $ sign in alias_list and replace it with its correpsonding value from results
 						v = nonValues[i][1:]
           					nonValues[i] = str(results_dict[v])
 				targetname.append(" "+" ".join(nonValues))
@@ -51,16 +50,14 @@ def findtarget_names(tsds_result,i, alias_list):
         return returnname
 
 def match(key,targetname):
-        #tname = targetname[:targetname.find(")")+1]
-        #print tnam
         return True if targetname.find(key)>-1 else False
-        #return True if targetname.find(key)>-1 else False
 
 #Reversing the datapoints received from tsds and converting time field into miliseconds (*1000)
 def convert(innerValue):
         IV = [ list(reversed(element)) for element in innerValue]
         return [[element[0],element[1]*1000] for element in IV]
 
+#Replace $START, $END, and $quantify variables in query with its corresponding value
 def replaceQuery(query,start_time,end_time, aggValue):
 	
         replace = {"$START":start_time,"$END":end_time, "{":" ", "}":" "}
@@ -72,7 +69,21 @@ def replaceQuery(query,start_time,end_time, aggValue):
 	replace = dict((re.escape(key),value) for key, value in replace.iteritems())
 	pattern = re.compile("|".join(replace.keys()))
 	query = pattern.sub(lambda m: replace[re.escape(m.group(0))], query)
-	return query 
+	return query
+
+#Convert time to UTC string
+def extract_time(start_time,end_time):
+	start_time = datetime.datetime.strptime(start_time, "%Y-%m-%dT%H:%M:%S.%fZ")
+        ostart = (start_time - datetime.datetime(1970, 1, 1)).total_seconds()
+        start_time = str(start_time.strftime("%m-%d-%Y %H:%M:%S.%fZ")).replace("-","/") # Replace '-' with '/'
+        start_time =  '"'+start_time[:start_time.index(".")]+' UTC"' # Adding quotes before and after
+
+	end_time = datetime.datetime.strptime(end_time, "%Y-%m-%dT%H:%M:%S.%fZ")
+        oend = (end_time - datetime.datetime(1970, 1, 1)).total_seconds()
+        end_time= str(end_time.strftime("%m-%d-%Y %H:%M:%S.%fZ")).replace("-","/") #Replace '-' with '/' 
+        end_time =  '"'+end_time[:end_time.index(".")]+' UTC"' #Adding quotes before and after
+	
+        return (start_time, end_time, oend-ostart) 
 
 def auth_Connection(url):
 	username = "test_user"
@@ -125,17 +136,17 @@ def search():
                 json_result = make_TSDS_Request(url)    
                 output = [eachDict["name"] for eachDict in json_result["results"] if "name" in eachDict]
 
-	elif searchType == "Where":
+	elif searchType == "Where": # Searching for where clause
 		url = tsds_url+"metadata.cgi?method=get_meta_field_values;measurement_type="+inpParameter['target']+";meta_field="+inpParameter['meta_field']+";limit=10;offset=0;"+inpParameter['meta_field']+"_like="+inpParameter['like_field']
 		json_result = make_TSDS_Request(url)
 		output = [eachDict["value"] for eachDict in json_result["results"]]
 
-	elif searchType == "Where_Related":
+	elif searchType == "Where_Related": # Searching for dependent where clause
 		url = tsds_url+"metadata.cgi?method=get_meta_field_values;measurement_type="+inpParameter['target']+";meta_field="+inpParameter['meta_field']+";limit=10;offset=0;"+inpParameter['parent_meta_field']+"="+inpParameter['parent_meta_field_value']+";"+inpParameter['meta_field']+"_like="+str(inpParameter['like_field'])
 		json_result = make_TSDS_Request(url)
 		output = [eachDict["value"] for eachDict in json_result["results"]]
 
-	elif searchType == "Search":
+	elif searchType == "Search": #Searching for template variables in Drill Down report
 		url = tsds_url+"query.cgi"
 		postParameters = {"method":"query","query":inpParameter["target"]}
 		json_result = make_TSDS_Request(url,urlencode(postParameters))
@@ -175,23 +186,13 @@ def query():
                 if key =="maxDataPoints":
                         maxDataPoints = value
 
-        #Read query and set the variable $START & $END in the query to appropriate timestamp sent by grafana before querying tsds - 
-        # - Convert start_time from iso8601 to UTC format 
 	if target_alias != "":
 		alias_list = target_alias.split(' ')
 
-        start_time = datetime.datetime.strptime(start_time, "%Y-%m-%dT%H:%M:%S.%fZ")
-        ostart = (start_time - datetime.datetime(1970, 1, 1)).total_seconds()
-        start_time = str(start_time.strftime("%m-%d-%Y %H:%M:%S.%fZ")).replace("-","/") # Replace '-' with '/'
-        start_time =  '"'+start_time[:start_time.index(".")]+' UTC"' # Adding quotes before and after
-
-        # - Convert end_time from iso8601 to UTC format
-        end_time = datetime.datetime.strptime(end_time, "%Y-%m-%dT%H:%M:%S.%fZ")
-        oend = (end_time - datetime.datetime(1970, 1, 1)).total_seconds()
-        end_time= str(end_time.strftime("%m-%d-%Y %H:%M:%S.%fZ")).replace("-","/") #Replace '-' with '/' 
-        end_time =  '"'+end_time[:end_time.index(".")]+' UTC"' #Adding quotes before and after
-        time_duration = (oend-ostart)
-	
+	time = extract_time(start_time,end_time)
+	start_time = time[0]
+	end_time = time[1]
+	time_duration = time[2]
         aggValue = int(time_duration/maxDataPoints)
 	'''
         if time_duration > 172800  and time_duration <= 604800:#Time between 2 and 7 days
@@ -232,8 +233,8 @@ def query():
         print "Cache-Control: no-cache\n"
         print json.dumps(output)
 
-def parseDrillDownQuery(query, drill, timeFrom, timeTo):
-	q = "get "+drill+" "+ query[query.find('between'): query.find("by")]+" by "+drill +" " + query[query.find('from'):]
+def parseDrillDownQuery(query, drill_down_on, timeFrom, timeTo):
+	q = "get "+drill_down_on+" "+ query[query.find('between'): query.find("by")]+" by "+ drill_down_on +" " + query[query.find('from'):]
 	replace = {"$START":timeFrom,"$END":timeTo}
 	replace = dict((re.escape(key),value) for key, value in replace.iteritems())
 	pattern = re.compile("|".join(replace.keys()))
@@ -244,7 +245,6 @@ def parseDrillDownQuery(query, drill, timeFrom, timeTo):
 def generateDB(postParam):
 	url = "https://tsds-frontend-el7-test.grnoc.iu.edu/grafana/api/dashboards/db"
         API_KEY = "eyJrIjoiM0VFS1NqNUtBZ3B4cFdWUTVRVGNJQnRsMEFZVTBjUWUiLCJuIjoiZGFzaGJvYXJkX2tleSIsImlkIjoxfQ=="
-        #print postParam
         req_headers={"Authorization":"Bearer "+API_KEY,"Content-Type":"application/json"}
         try:
                 request = Request(url,json.dumps(postParam),req_headers)
@@ -253,42 +253,27 @@ def generateDB(postParam):
                 print 'Error opening URL ---- ***  \n'
                 print e.readlines()
                 sys.exit(1)
-        #data = json.load(response)
         if response.getcode() == 200:
                 print "Content-Type: text/plain"
                 print "Success"
 
 def drilldown():
-	open("dash.txt",'w').close()
 	output_file = open("dash.txt","rw+")
 	inpParameter = literal_eval(sys.stdin.read())
 	query = inpParameter["query"]
-	drill = inpParameter["drill"]
+	drill_down_on = inpParameter["drill"]
 	start_time = inpParameter["timeFrom"]
 	end_time = inpParameter["timeTo"]
 
-	#Convert From time to ISO Format
-	start_time = datetime.datetime.strptime(start_time, "%Y-%m-%dT%H:%M:%S.%fZ")
-	ostart = (start_time - datetime.datetime(1970, 1, 1)).total_seconds()
-	start_time = str(start_time.strftime("%m-%d-%Y %H:%M:%S.%fZ")).replace("-","/") # Replace '-' with '/'
-	start_time =  '"'+start_time[:start_time.index(".")]+' UTC"' # Adding quotes before and after
-	output_file.write("Start_time -"+str(start_time)+"\n")
-
-	#Conver To time to ISO Format
-	end_time = datetime.datetime.strptime(end_time, "%Y-%m-%dT%H:%M:%S.%fZ")
-	oend = (end_time - datetime.datetime(1970, 1, 1)).total_seconds()
-	end_time= str(end_time.strftime("%m-%d-%Y %H:%M:%S.%fZ")).replace("-","/") #Replace '-' with '/' 
-	end_time =  '"'+end_time[:end_time.index(".")]+' UTC"' #Adding quotes before and after
-	output_file.write("End_time -"+str(end_time)+"\n")
-
-
+	time = extract_time(start_time,end_time)
+        start_time = time[0]
+        end_time = time[1]	
 	
 	DB_title = inpParameter["DB_title"]
 	Data_source = inpParameter["Data_source"]
 	url = "https://tsds-frontend-el7-test.grnoc.iu.edu/grafana/api/dashboards/db/"+DB_title
 	API_KEY = "eyJrIjoiM0VFS1NqNUtBZ3B4cFdWUTVRVGNJQnRsMEFZVTBjUWUiLCJuIjoiZGFzaGJvYXJkX2tleSIsImlkIjoxfQ=="
 	req_headers={"Authorization":"Bearer "+API_KEY,"Content-Type":"application/json"}
-	#print postParam
 	try:
 		request = Request(url,headers = req_headers)
 		response = urlopen(request)
@@ -296,62 +281,44 @@ def drilldown():
 		print 'Error opening URL ---- ***  \n'
 		print e.readlines()
 		sys.exit(1)
-		#print "grafana dashboard --- ",response.getcode()
-	#output_file.write(response.read()+"\n")
 	data = json.load(response)
 	db =  data["dashboard"]
-	output_file.write("query --- "+query+" Drill -- "+drill+"\n")
-	output_file.write(json.dumps(db)+"\n")
-	if "links" not in db["rows"][0]["panels"][0]:
+	if "links" not in db["rows"][0]["panels"][0]: #If no Drill Down link is present, then create one at head of the list
   		db["rows"][0]["panels"][0]["links"] = [{"dashUri":"db/Drill_Down_on_"+DB_title,"dashboard":"Drill_Down_on_"+DB_title,"title":"Drill_Down_on_"+DB_title,"type":"dashboard"}]
 	else:
-		db["rows"][0]["panels"][0]["links"] = []
+		db["rows"][0]["panels"][0]["links"] = [] #If Drill down link already exists, then remove the older one and add updated one to it
 		db["rows"][0]["panels"][0]["links"].append({"dashUri":"db/Drill_Down_on_"+DB_title,"dashboard":"Drill_Down_on_"+DB_title,"title":"Drill_Down_on_"+DB_title,"type":"dashboard"})
 	
 	postParam = {"dashboard":db,"overwrite": True }
-	generateDB(postParam) #Creating a link in same dashboard to a drill down db
+	generateDB(postParam) #Generating same dashboard with a Drill Down report in it
 			
 	
-	#Create new dashboard with templates
-	templateQuery = parseDrillDownQuery(query, drill, start_time, end_time)
-	output_file.write("\n")
-	output_file.write("Query for template ---- \n")
-	output_file.write(templateQuery)
-	if len(db["templating"]["list"]) == 0:
+	#Create a new dashboard with templates
+
+	templateQuery = parseDrillDownQuery(query, drill_down_on, start_time, end_time) #Extract query for creating templating variables
+	if len(db["templating"]["list"]) == 0:#If template variable doesn't exist, then add it to the list
 		db["templating"]["list"].append({ "allValue": None, "current": { "text": "", "value": [ ] },"datasource": Data_source, "hide": 0, "includeAll": True, "label": None, "multi": True, "name": "temp", "options": [], "query": templateQuery, "refresh": 2, "regex": "", "sort": 0,   "tagValuesQuery": "", "tags": [], "tagsQuery": "", "type": "query", "useTags": False })
-	else:
-		db["templating"]["list"] = []
+	else: #If template variable exists, then remove it and then add new upadated variables to the list
+		db["templating"]["list"] = [] 
 		db["templating"]["list"].append({ "allValue": None, "current": { "text": "", "value": [ ] },"datasource": Data_source, "hide": 0, "includeAll": True, "label": None, "multi": True, "name": "temp", "options": [], "query": templateQuery, "refresh": 2, "regex": "", "sort": 0,   "tagValuesQuery": "", "tags": [], "tagsQuery": "", "type": "query", "useTags": False })
-	db["rows"][0]["panels"][0]["targets"][0]["rawQuery"] = True
+
+	db["rows"][0]["panels"][0]["targets"][0]["rawQuery"] = True #Setting the Raw Query mode ON
 	panel_query = db["rows"][0]["panels"][0]["targets"][0]["target"]
-	#panel_query = panel_query[:panel_query.find(")",-1)] + "and $temp )"
 	panel_query = panel_query + " and ($temp)"
 	db["rows"][0]["panels"][0]["targets"][0]["target"] = panel_query
 	db["rows"][0]["panels"][0]["repeat"] = "temp"
 	db["rows"][0]["panels"][0]["minSpan"] = 12
-	db["rows"][0]["panels"][0]["yaxes"][0]["format"] = "bps"
+	db["rows"][0]["panels"][0]["yaxes"][0]["format"] = "bps" #Setting Y-axis unit to bps
 	db["rows"][0]["panels"][0]["yaxes"][1]["format"] = "bps"
-	db["rows"][0]["panels"][0]["title"] = "$temp"	
+	db["rows"][0]["panels"][0]["title"] = "$temp" 	
 	if "transparent" in db["rows"][0]["panels"][0]:
 		db["rows"][0]["panels"][0]["transparent"] = True
 	else:
 		db["rows"][0]["panels"][0]["transparent"] = True
 	db["id"] = None
-	db["title"] = "Drill_Down_on_"+DB_title
+	db["title"] = "Drill_Down_on_"+DB_title #Title for Drill Down Dashboard
 	postParam = {"dashboard":db,"overwrite": True }
 	generateDB(postParam)
-
-def createTemplateVars(metadata):
-       	temp={}
-       	interface=[]
-       	node=[]
-       	for eachresult in metadata:
-               	interface.append(eachresult["intf"])
-               	node.append(eachresult["node"])
-       	temp["interface"]=interface
-        temp["node"]=node
-        return json.dumps(temp)
-
 
 
 if __name__ == "__main__":
@@ -364,4 +331,3 @@ if __name__ == "__main__":
         	search()
 	if inpUrl == "/query":
 		query()
-			
