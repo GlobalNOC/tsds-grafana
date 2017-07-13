@@ -1,5 +1,0 @@
-{
-"tsds_url":"https://tsds.bldc.grnoc.iu.edu/i2/services/",
-"username":"test_user",
-"password":"testpass123"
-}
