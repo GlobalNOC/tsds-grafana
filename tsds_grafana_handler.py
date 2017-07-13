@@ -63,17 +63,10 @@ def convert(innerValue):
 
 #Replace $START, $END, and $quantify variables in query with its corresponding value
 def replaceQuery(query,start_time,end_time, aggValue):
-	
-        replace = {"$START":start_time,"$END":end_time, "{":" ", "}":" "}
+        replace = {"$START":start_time,"$END":end_time, "$quantify":str(aggValue), "{":" ", "}":" "}
         replace = dict((re.escape(key),value) for key, value in replace.iteritems())
         pattern = re.compile("|".join(replace.keys()))
-        query = pattern.sub(lambda m: replace[re.escape(m.group(0))], query)
-	
-	replace = {"$quantify":str(aggValue)}
-	replace = dict((re.escape(key),value) for key, value in replace.iteritems())
-	pattern = re.compile("|".join(replace.keys()))
-	query = pattern.sub(lambda m: replace[re.escape(m.group(0))], query)
-	return query
+        return pattern.sub(lambda m: replace[re.escape(m.group(0))], query)
 
 #Convert time to UTC string
 def extract_time(start_time,end_time):
@@ -99,35 +92,39 @@ def auth_Connection(url):
         opener = build_opener(authhandler)
         install_opener(opener)
 
+def serialize(obj): #Serializing JSON output
+	if not isinstance(obj, str):
+		serial = str(obj)
+		return serial
+	return obj.__dict__
+
 
 def make_TSDS_Request(url,postParam = None):
 	auth_Connection(url)
+	open("output_file.txt",'w').close()
+	output_file = open("output_file.txt","rw+")
 	try:
 		if not postParam:
-			'''
-                	request = Request(url)
-                	response = urlopen(request)
-                	return json.load(response)'''
 			response = json.load(urlopen(Request(url)))
-                        if response['results']=='null':
+                        if response['results']==None:
+				output_file.write(json.dumps(response))
                                 raise Exception(response['error_text'])
                         else:
                                 return response
 		else:
-			'''
-			request = Request(url,postParam)
-			response = urlopen(request)
-			return json.load(response)'''
 			response = json.load(urlopen(Request(url,postParam)))
-                        if not response['results']:
+                        if response['results'] == None:
+				output_file.write(json.dumps(response))
                                 raise Exception(response['error_text'])
                         else:
                                 return response
 			
         except Exception as e:
-                print "Content-type: text/plain"
-                print 'Error opening tsds URL'
-		print e
+		print 'Status: 412 Precondition failed'
+		print 
+                #print "Content-Type: application/json"
+		#print "Cache-Control: no-cache\n"
+		print json.dumps([{"Error Text":e}], default=serialize)
 		exit(0)
 
 def testDataSource():
@@ -297,6 +294,7 @@ def drilldown():
 	
 	DB_title = inpParameter["DB_title"]
 	Data_source = inpParameter["Data_source"]
+	alias = inpParameter["alias"]
 	url = "https://tsds-frontend-el7-test.grnoc.iu.edu/grafana/api/dashboards/db/"+DB_title
 	API_KEY = "eyJrIjoiM0VFS1NqNUtBZ3B4cFdWUTVRVGNJQnRsMEFZVTBjUWUiLCJuIjoiZGFzaGJvYXJkX2tleSIsImlkIjoxfQ=="
 	req_headers={"Authorization":"Bearer "+API_KEY,"Content-Type":"application/json"}
@@ -323,20 +321,22 @@ def drilldown():
 
 	templateQuery = parseDrillDownQuery(query, drill_down_on, start_time, end_time) #Extract query for creating templating variables
 	if len(db["templating"]["list"]) == 0:#If template variable doesn't exist, then add it to the list
-		db["templating"]["list"].append({ "allValue": None, "current": { "text": "", "value": [ ] },"datasource": Data_source, "hide": 0, "includeAll": True, "label": None, "multi": True, "name": "temp", "options": [], "query": templateQuery, "refresh": 2, "regex": "", "sort": 0,   "tagValuesQuery": "", "tags": [], "tagsQuery": "", "type": "query", "useTags": False })
+		db["templating"]["list"].append({ "allValue": None, "current": { "text": "", "value": [ ] },"datasource": Data_source, "hide": 0, "includeAll": True, "label": None, "multi": True, "name": alias, "options": [], "query": templateQuery, "refresh": 2, "regex": "", "sort": 0,   "tagValuesQuery": "", "tags": [], "tagsQuery": "", "type": "query", "useTags": False })
 	else: #If template variable exists, then remove it and then add new upadated variables to the list
 		db["templating"]["list"] = [] 
-		db["templating"]["list"].append({ "allValue": None, "current": { "text": "", "value": [ ] },"datasource": Data_source, "hide": 0, "includeAll": True, "label": None, "multi": True, "name": "temp", "options": [], "query": templateQuery, "refresh": 2, "regex": "", "sort": 0,   "tagValuesQuery": "", "tags": [], "tagsQuery": "", "type": "query", "useTags": False })
+		db["templating"]["list"].append({ "allValue": None, "current": { "text": "", "value": [ ] },"datasource": Data_source, "hide": 0, "includeAll": True, "label": None, "multi": True, "name": alias, "options": [], "query": templateQuery, "refresh": 2, "regex": "", "sort": 0,   "tagValuesQuery": "", "tags": [], "tagsQuery": "", "type": "query", "useTags": False })
 
 	db["rows"][0]["panels"][0]["targets"][0]["rawQuery"] = True #Setting the Raw Query mode ON
 	panel_query = db["rows"][0]["panels"][0]["targets"][0]["target"]
-	panel_query = panel_query + " and ($temp)"
+	#panel_query = panel_query + " and ($temp)"
+	panel_query = panel_query + " and ($"+str(alias)+")"
 	db["rows"][0]["panels"][0]["targets"][0]["target"] = panel_query
-	db["rows"][0]["panels"][0]["repeat"] = "temp"
+	db["rows"][0]["panels"][0]["repeat"] = alias
 	db["rows"][0]["panels"][0]["minSpan"] = 12
 	db["rows"][0]["panels"][0]["yaxes"][0]["format"] = "bps" #Setting Y-axis unit to bps
 	db["rows"][0]["panels"][0]["yaxes"][1]["format"] = "bps"
-	db["rows"][0]["panels"][0]["title"] = "$temp" 	
+	#db["rows"][0]["panels"][0]["title"] = "$temp" 	
+	db["rows"][0]["panels"][0]["title"] = "$"+str(alias)
 	if "transparent" in db["rows"][0]["panels"][0]:
 		db["rows"][0]["panels"][0]["transparent"] = True
 	else:
