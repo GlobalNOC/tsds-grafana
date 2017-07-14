@@ -1,0 +1,240 @@
+<!-- <query-editor-row query-ctrl="ctrl" class="generic-datasource-query-row" has-text-edit-mode="true"> -->
+<query-editor-row query-ctrl="ctrl" can-collapse="false" has-text-edit-mode="true">
+
+	<div ng-if="ctrl.target.rawQuery">
+    		<div class="gf-form">
+      			<input type="text" class="gf-form-input" ng-model="ctrl.target.target" spellcheck="false" ng-blur="ctrl.panelCtrl.refresh();"></input>
+    		</div>
+        </div>
+
+	<div ng-if="!ctrl.target.rawQuery">
+		<div class="gf-form-inline">
+			<div class="gf-form">
+                                <label class="gf-form-label query-keyword width-7">FROM</label>
+                                        <metric-segment-model property="ctrl.target.series" get-options = "ctrl.getTableNames()" on-change="ctrl.onChangeInternal()" >
+                                        </metric-segment-model>
+                        </div>
+			
+			<div class="gf-form gf-form--grow">
+				<div class="gf-form-label gf-form-label--grow"></div>
+			</div>
+		</div>
+
+
+	 	<div class="gf-form-inline">
+
+                        <div class="gf-form">
+                                <label class="gf-form-label query-keyword width-7">get Values</label>
+                                                <select style = "width : 100px;" name="aggregator" ng-model ="ctrl.target.aggregator[0]" bs-tooltip="'Select an Aggregator'">
+                                                            <option "style = background: #292929" value="average">average</option>
+                                                            <option "style = background: #292929" value="max">max</option>
+                                                            <option "style = background: #292929" value="min">min</option>
+                                                            <option "style = background: #292929" value="percentile">percentile</option>
+                                                </select>
+                                                <input type="text" ng-if ="ctrl.target.aggregator[0]=='percentile'"class="gf-form-input" style="width:80px;" placeholder = "Enter Value" ng-model="ctrl.target.percentileValue[0]">
+                                                <metric-segment-model property = "ctrl.target.metricValues_array[0]" get-options = "ctrl.getMetricValues()"></metric-segment-model>
+                                                <button class = "btn btn-inverse gf-form-btn query-keyword"  ng-click="ctrl.addBucket(0)" bs-tooltip="'Change bucketing size'"><i class="fa fa-bitbucket" aria-hidden="true"></i></button>
+						<input type="text" ng-if ="ctrl.target.bucket[0]=='bucket'"class="gf-form-input" style="width:70px;" placeholder = "Bucket Size" ng-model="ctrl.target.bucketValue[0]">
+                                                <button class = "btn btn-inverse gf-form-btn"  ng-click="ctrl.removeValueSegment(0)"><i class="fa fa-trash"></i></button>
+                        </div>
+                        <div class="gf-form">
+                                <button class = "btn btn-inverse gf-form-btn query-keyword"  ng-click="ctrl.addValueSegments()"><i class="fa fa-plus"></i></button>
+                        </div>
+			<div class="gf-form gf-form--grow">
+                                <div class="gf-form-label gf-form-label--grow"></div>
+                        </div>
+                </div>
+		
+		<div ng-repeat = "segment in ctrl.target.metricValues_array track by $index">
+				<div style="padding-left:95px;" ng-if = "$index > 0"class="gf-form-inline">
+						<select style = "width : 100px;" name="aggregator" ng-model ="ctrl.target.aggregator[$index]" bs-tooltip="'Select an Aggregator'">
+                                                            <option "style = background: #292929" value="average">average</option>
+                                                            <option "style = background: #292929" value="max">max</option>
+                                                            <option "style = background: #292929" value="min">min</option>
+							    <option "style = background: #292929" value="percentile">percentile</option>
+						</select>
+						<input type="text" ng-if ="ctrl.target.aggregator[$index]=='percentile'"class="gf-form-input" style="width:80px;" placeholder = "Enter Value" ng-model="ctrl.target.percentileValue[$index]">
+						<metric-segment-model property = "ctrl.target.metricValues_array[$index]" get-options = "ctrl.getMetricValues()"></metric-segment-model>
+                                                <button class = "btn btn-inverse gf-form-btn query-keyword"  ng-click="ctrl.addBucket($index)" bs-tooltip="'Change bucketing size'"><i class="fa fa-bitbucket" aria-hidden="true"></i></button>
+	                                        <input type="text" ng-if ="ctrl.target.bucket[$index]=='bucket'"class="gf-form-input" style="width:60px;" placeholder = "Bucket Size" ng-model="ctrl.target.bucketValue[$index]">
+						<button class = "btn btn-inverse gf-form-btn"  ng-click="ctrl.removeValueSegment($index)"><i class="fa fa-trash"></i></button>
+				<div class="gf-form">
+                                	<button class = "btn btn-inverse gf-form-btn query-keyword"  ng-click="ctrl.addValueSegments()"><i class="fa fa-plus"></i></button>
+                        	</div>
+				<div class="gf-form gf-form--grow">
+                                	<div class="gf-form-label gf-form-label--grow"></div>
+                        	</div>
+				</div>
+		</div>
+		<div class="gf-form-inline">
+			<div class="gf-form">
+                                <label class="gf-form-label query-keyword width-7">get metric</label>
+			</div>
+                        <div ng-repeat = "element in ctrl.target.metric_array track by $index" class="gf-form">
+				<metric-segment-model property="ctrl.target.metric_array[$index]" get-options = "ctrl.getColumns()"></metric-segment-model>
+				<button  class = "btn btn-inverse gf-form-btn"  ng-click="ctrl.removeSegment($index)"><i class="fa fa-trash"></i></button>
+                        </div>
+				
+			<div class="gf-form">
+                                <button class = "btn btn-inverse gf-form-btn query-keyword"  ng-click="ctrl.addSegments()"><i class="fa fa-plus"></i></button>
+                        </div>
+
+
+			<div class="gf-form gf-form--grow">
+                                <div class="gf-form-label gf-form-label--grow"></div>
+                        </div>
+		
+		</div>
+	
+
+
+		<div ng-repeat = "line in ctrl.target.whereClauseGroup" ng-init="parentIndex = $index">   
+				<div ng-if = "$index > 0" style="padding-left:95px; margin-top:5px; margin-bottom:5px;">
+				<select style = "width : 70px;" name="Group" ng-model ="ctrl.target.outerGroupOperator[$index]" bs-tooltip="'Select an Operator'">
+					<option value="and">and</option>
+                    			<option value="or">or</option>
+                               	</select>
+				</div>
+			
+			<div ng-if="$index == 0"class="gf-form-inline">
+				<div class="gf-form">
+					<label ng-if = "$index == 0"class="gf-form-label query-keyword width-7">Where</label>
+					<div ng-repeat = "segment in line">
+						<div class="gf-form-inline">
+							<select ng-if = "$index >0" style = "width : 70px; margin-left:7px;margin-right:7px;" name="whereGroup" ng-model ="ctrl.target.inlineGroupOperator[parentIndex][$index]" bs-tooltip="'Select an Operator'">
+		                                    		<option value="and">and</option>
+	        		                            	<option value="or">or</option>
+							</select>
+                        		        	<metric-segment-model property="segment.left" ng-model = "segment.left" get-options = "ctrl.getColumns()">
+		                               		 </metric-segment-model>
+
+		        	                        <select style = "width : 60px; margin-left:-3px;" name="operator" ng-model ="segment.op" bs-tooltip="'Select an Operator'">
+        		        	                    <option></option>
+                		        	            <option value="=">=</option>
+                        		        	    <option value="!=">!=</option>
+	                        		            <option value=">=">&ge;</option>
+        	                        		    <option value="<=">&le;</option>
+		                	                    <option value=">">&gt;</option>
+        		                	            <option value="<">&lt;</option>
+                		                	    <option value="like">Like</option>
+	                		                    <option value="not like">Not Like</option>
+        	                		        </select>
+							
+							<input type="text"  placeholder="Type Target name" ng-model="segment.right" bs-typeahead="ctrl.getWhereFields" on-change="ctrl.panelCtrl.refresh();" ng-click="ctrl.saveIndices(parentIndex, $index)"></input>
+							<button class = "btn btn-inverse gf-form-btn"  ng-click="ctrl.removeWhereClause(parentIndex,$index)"><i class="fa fa-trash"></i></button>
+							
+                	 	     		</div>
+	                        	</div>
+	            		</div>	
+            		    	<div class="gf-form">
+		                	<button class = "btn btn-inverse gf-form-btn query-keyword"  ng-click="ctrl.addWhereClause($index)">Add rule <i class="fa fa-plus"></i></button>
+				</div>
+        	    		<div class="gf-form">
+			                <button class = "btn btn-inverse gf-form-btn query-keyword"  ng-click="ctrl.addWhereClauseGroup()">Add Group <i class="fa fa-plus"></i></button>
+			    	</div>
+
+				<div class="gf-form gf-form--grow">
+                                	<div class="gf-form-label gf-form-label--grow"></div>
+                        	</div>
+
+        		</div>
+
+                        <div style="padding-left:95px;"ng-if="$index>0"class="gf-form-inline">
+                                <div class="gf-form">
+                                        <label ng-if = "$index == 0"class="gf-form-label query-keyword width-7">Where</label>
+                                        <div ng-repeat = "segment in line">
+                                                <div class="gf-form-inline">
+                                                        <select ng-if = "$index >0" style = "width : 70px; margin-left:7px;margin-right:7px;" name="whereGroup" ng-model ="ctrl.target.inlineGroupOperator[parentIndex][$index]" bs-tooltip="'Select an Operator'">
+                                                                <option value="and">and</option>
+                                                                <option value="or">or</option>
+                                                        </select>
+                                                        <metric-segment-model property="segment.left" ng-model = "segment.left" get-options = "ctrl.getColumns()">
+                                                         </metric-segment-model>
+
+                                                        <select style = "width : 60px; margin-left:-3px;" name="operator" ng-model ="segment.op" bs-tooltip="'Select an Operator'">
+                                                            <option></option>
+                                                            <option value="=">=</option>
+                                                            <option value="!=">!=</option>
+                                                            <option value=">=">&ge;</option>
+                                                            <option value="<=">&le;</option>
+                                                            <option value=">">&gt;</option>
+                                                            <option value="<">&lt;</option>
+                                                            <option value="like">Like</option>
+                                                            <option value="not like">Not Like</option>
+                                                        </select>
+
+                                                        <input type="text"  placeholder="Type Target name" ng-model="segment.right" bs-typeahead="ctrl.getWhereFields" on-change="ctrl.panelCtrl.refresh();" ng-click="ctrl.saveIndices(parentIndex, $index)"></input>
+                                                        <button class = "btn btn-inverse gf-form-btn"  ng-click="ctrl.removeWhereClause(parentIndex,$index)"><i class="fa fa-trash"></i></button>
+
+                                                </div>
+                                        </div>
+                                </div>
+                                <div class="gf-form">
+                                        <button class = "btn btn-inverse gf-form-btn query-keyword"  ng-click="ctrl.addWhereClause($index)">Add rule <i class="fa fa-plus"></i></button>
+                                </div>
+                                <div class="gf-form">
+                                        <button class = "btn btn-inverse gf-form-btn query-keyword"  ng-click="ctrl.addWhereClauseGroup()">Add Group <i class="fa fa-plus"></i></button>
+                                </div>
+
+
+				<div class="gf-form gf-form--grow">
+                                	<div class="gf-form-label gf-form-label--grow"></div>
+                        	</div>
+
+                        </div>
+
+    		</div>
+		
+		<div class = "gf-form-inline">
+        		<div class="gf-form">
+                		<label class="gf-form-label query-keyword">Group by column</label>
+                                	<input type="text" class="gf-form-input" ng-model="ctrl.target.groupby_field" bs-tooltip="'Add a group by column or leave blank'"
+                                	placeholder="column" spellcheck="false" bs-typeahead="listColumns" data-min-length=0 ></input>
+			</div>
+		</div>
+		<!--
+		<div class="gf-form-inline">
+                        <div class="gf-form">
+                                <label class="gf-form-label query-keyword width-8">Group by column</label>
+                        </div>
+                        <div ng-repeat = "element in ctrl.target.groupby_field by $index" class="gf-form">
+				<input type="text" class="gf-form-input" ng-model="ctrl.target.groupby_field[$index]"></input>
+                                <metric-segment-model property="ctrl.target.groupby_field[$index]" get-options = "ctrl.getColumns()"></metric-segment-model>
+                                <button  class = "btn btn-inverse gf-form-btn"  ng-click="ctrl.removeGroupBy($index)"><i class="fa fa-trash"></i></button>
+                        </div>
+
+                        <div class="gf-form">
+                                <button class = "btn btn-inverse gf-form-btn query-keyword"  ng-click="ctrl.addGroupBy()"><i class="fa fa-plus"></i></button>
+                        </div>
+
+
+
+                </div>
+		-->
+
+		
+		 <div class="gf-form-inline">
+                        <div class="gf-form">
+                                <label class="gf-form-label query-keyword">Target Naming</label>
+					<input type="text" class="gf-form-input" ng-model="ctrl.target.target_alias"
+                                        bs-tooltip="'Add target alias'" data-iplacement="right" spellcheck='false'></input>
+                        </div>
+
+			<div class="gf-form gf-form--grow">
+                                <div class="gf-form-label gf-form-label--grow"></div>
+                        </div>
+
+                </div>
+		<div class="gf-form-inline">
+                        <div class="gf-form">
+				<button class="gf-form-label" style="background-color:#008CBA; border-radius: 4px; width:120px;" ng-click = "ctrl.panelCtrl.refresh();">Run</button>
+                        </div>
+			<div class="gf-form">
+                                <button class="gf-form-label" style="background-color:#008CBA; border-radius: 4px; width:160px;" ng-click = "ctrl.generateDrillDown();">Generate Drill Down</button>
+					<input ng-if = "ctrl.target.drillDown[0] == 'Drill'" type="text" class="gf-form-input" style="width:120px;" placeholder = " Drill down on " ng-model="ctrl.target.drillDownValue">
+					<input ng-if = "ctrl.target.drillDown[0] == 'Drill'" type="text" class="gf-form-input" style="width:120px;" placeholder = " as  " ng-model="ctrl.target.drillDownAlias" required>
+                                        <button ng-if = "ctrl.target.drillDown[0] == 'Drill'" class = "gf-form-label"style="background-color:#008CBA; border-radius: 4px; width:160px;"  ng-click="ctrl.createDashboard()">Create Dashboard</button>
+                        </div>
+                </div>
+	</div>
+</query-editor-row>
