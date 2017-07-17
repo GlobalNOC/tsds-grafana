@@ -36,7 +36,11 @@ def findtarget_names(tsds_result,i, alias_list):
                                         	nonValues.append(k)
                         	nonValues.sort(key=natural_keys)
                         	for nV in nonValues:
-                                	targetname.append("| "+str(results_dict[nV]))
+					if results_dict[nV] == None:
+						targetname.append("| "+str(results_dict[nV]))
+					else:
+						data = results_dict[nV].encode('utf-8')
+						targetname.append("| "+data.decode('utf-8'))
                         	returnname.append(" ".join(targetname))
 
 	else:
@@ -49,9 +53,10 @@ def findtarget_names(tsds_result,i, alias_list):
         				if '$' in nonValues[i]: #Look for $ sign in alias_list and replace it with its correpsonding value from results
 						v = nonValues[i][1:]
           					nonValues[i] = str(results_dict[v])
+						#nonValues[i] = results_dict[v].encode('utf-8')
 				targetname.append(" "+" ".join(nonValues))
                                 returnname.append(" ".join(targetname))	
-        return returnname
+	return returnname
 
 def match(key,targetname):
         return True if targetname.find(key)>-1 else False
