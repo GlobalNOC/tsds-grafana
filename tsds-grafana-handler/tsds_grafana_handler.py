@@ -9,6 +9,7 @@ from urllib2 import Request, urlopen, URLError, HTTPBasicAuthHandler, HTTPPasswo
 import re
 import datetime
 from ast import literal_eval
+from copy import deepcopy
 
 
 def getUrl():
@@ -29,7 +30,8 @@ def findtarget_names(tsds_result,i, alias_list):
         	for key,value in results_dict.iteritems():
                 	targetname = []
                 	if isinstance(value, list): #when value is a list append its key with all the other non-list key-value pair
-                        	targetname.append(key)
+                        	#targetname.append(key)
+				targetname.append(key[key.find("values")+7:key.find(",")])
                         	nonValues = []
                         	for k , v in results_dict.iteritems():
                                 	if not isinstance(v, list):
@@ -39,15 +41,16 @@ def findtarget_names(tsds_result,i, alias_list):
 					if results_dict[nV] == None:
 						targetname.append("| "+str(results_dict[nV]))
 					else:
-						data = results_dict[nV].encode('utf-8')
-						targetname.append("| "+data.decode('utf-8'))
+						data = results_dict[nV].encode('utf-8') #Code to handle UTF-8 encoeed strings
+ 						targetname.append("| "+data.decode('utf-8'))
                         	returnname.append(" ".join(targetname))
 
 	else:
 		for key,value in results_dict.iteritems():
                         targetname = []
                         if isinstance(value, list):
-                                targetname.append(key)
+                                #targetname.append(key)
+				targetname.append(key[key.find("values")+7:key.find(",")])
                                 nonValues = list(alias_list) #deep copy to counter alias_list values getting modified due to references
                                	for i in range(0,len(nonValues)):
         				if '$' in nonValues[i]: #Look for $ sign in alias_list and replace it with its correpsonding value from results
@@ -59,7 +62,7 @@ def findtarget_names(tsds_result,i, alias_list):
 	return returnname
 
 def match(key,targetname):
-        return True if targetname.find(key)>-1 else False
+        return True if targetname.find(key[key.find("values")+7:key.find(",")])>-1 else False
 
 #Reversing the datapoints received from tsds and converting time field into miliseconds (*1000)
 def convert(innerValue):
@@ -123,8 +126,6 @@ def make_TSDS_Request(url,postParam = None):
         except Exception as e:
 		print 'Status: 412 Precondition failed'
 		print 
-                #print "Content-Type: application/json"
-		#print "Cache-Control: no-cache\n"
 		print json.dumps([{"Error Text":e}], default=serialize)
 		exit(0)
 
@@ -134,7 +135,7 @@ def testDataSource():
 	if len(json_result) > 0:
         	print "Content-Type: application/json" # set the HTTP response header to json data
         	print "Cache-Control: no-cache\n"
-        	print json.dumps(output) #HTTP response
+        	print json.dumps(json_result) #HTTP response
 
 
 def search():
@@ -236,6 +237,9 @@ def query():
 	q=""
 	for index in range(len(tsds_query)):
                 tsds_query[index] = replaceQuery(tsds_query[index],start_time,end_time,aggValue)
+		output_file = open("q_fail.txt","rw+")
+		output_file.write(tsds_query[index])
+		output_file.close()
                 #Request data from tsds - 
 		url= getUrl()+"query.cgi"
 		postParameters = {"method":"query","query":tsds_query[index]}
@@ -250,8 +254,8 @@ def query():
                                 value = tsds_result["results"][i]
 
                                 for innerKey,innerValue in value.iteritems():
-                                        if isinstance(innerValue,list) and match(innerKey,eachTarget):
-                                                dict_element["datapoints"] = convert(innerValue)
+                                	if isinstance(innerValue,list) and match(innerKey,eachTarget):
+                                        	dict_element["datapoints"] = convert(innerValue)
                                 output.append(dict_element)
 	output = sorted(output, key=lambda k : k["target"])
         print "Content-Type: application/json" # set the HTTP response header to json data
@@ -286,6 +290,7 @@ def drilldown():
 	inpParameter = literal_eval(sys.stdin.read())
 	query = inpParameter["query"]
 	drill_down_on = inpParameter["drill"]
+	graph_type = inpParameter["graph_type"]
 	start_time = inpParameter["timeFrom"]
 	end_time = inpParameter["timeTo"]
 
@@ -304,49 +309,84 @@ def drilldown():
 		response = urlopen(request)
 	except URLError, e:
 		print 'Error opening URL ---- ***  \n'
-		print e.readlines()
+		print e
 		sys.exit(1)
 	data = json.load(response)
 	db =  data["dashboard"]
-	if "links" not in db["rows"][0]["panels"][0]: #If no Drill Down link is present, then create one at head of the list
-  		db["rows"][0]["panels"][0]["links"] = [{"dashUri":"db/Drill_Down_on_"+DB_title,"dashboard":"Drill_Down_on_"+DB_title,"title":"Drill_Down_on_"+DB_title,"type":"dashboard"}]
-	else:
-		db["rows"][0]["panels"][0]["links"] = [] #If Drill down link already exists, then remove the older one and add updated one to it
-		db["rows"][0]["panels"][0]["links"].append({"dashUri":"db/Drill_Down_on_"+DB_title,"dashboard":"Drill_Down_on_"+DB_title,"title":"Drill_Down_on_"+DB_title,"type":"dashboard"})
+	if graph_type == "graph":
+		if "links" not in db["rows"][0]["panels"][0]: #If no Drill Down link is present, then create one at head of the list
+  			db["rows"][0]["panels"][0]["links"] = [{"dashUri":"db/Drill_Down_on_"+DB_title,"dashboard":"Drill_Down_on_"+DB_title,"title":"Drill_Down_on_"+DB_title,"type":"dashboard"}]
+		else:
+			db["rows"][0]["panels"][0]["links"] = [] #If Drill down link already exists, then remove the older one and add updated one to it
+			db["rows"][0]["panels"][0]["links"].append({"dashUri":"db/Drill_Down_on_"+DB_title,"dashboard":"Drill_Down_on_"+DB_title,"title":"Drill_Down_on_"+DB_title,"type":"dashboard"})
 	
-	postParam = {"dashboard":db,"overwrite": True }
-	generateDB(postParam) #Generating same dashboard with a Drill Down report in it
-			
+		postParam = {"dashboard":db,"overwrite": True }
+		generateDB(postParam) #Generating same dashboard with a Drill Down report in it
 	
 	#Create a new dashboard with templates
 
-	templateQuery = parseDrillDownQuery(query, drill_down_on, start_time, end_time) #Extract query for creating templating variables
-	if len(db["templating"]["list"]) == 0:#If template variable doesn't exist, then add it to the list
-		db["templating"]["list"].append({ "allValue": None, "current": { "text": "", "value": [ ] },"datasource": Data_source, "hide": 0, "includeAll": True, "label": None, "multi": True, "name": alias, "options": [], "query": templateQuery, "refresh": 2, "regex": "", "sort": 0,   "tagValuesQuery": "", "tags": [], "tagsQuery": "", "type": "query", "useTags": False })
-	else: #If template variable exists, then remove it and then add new upadated variables to the list
-		db["templating"]["list"] = [] 
-		db["templating"]["list"].append({ "allValue": None, "current": { "text": "", "value": [ ] },"datasource": Data_source, "hide": 0, "includeAll": True, "label": None, "multi": True, "name": alias, "options": [], "query": templateQuery, "refresh": 2, "regex": "", "sort": 0,   "tagValuesQuery": "", "tags": [], "tagsQuery": "", "type": "query", "useTags": False })
+		templateQuery = parseDrillDownQuery(query, drill_down_on, start_time, end_time) #Extract query for creating templating variables
+		if len(db["templating"]["list"]) == 0:#If template variable doesn't exist, then add it to the list
+			db["templating"]["list"].append({ "allValue": None, "current": { "text": "", "value": [ ] },"datasource": Data_source, "hide": 0, "includeAll": True, "label": None, "multi": True, "name": alias, "options": [], "query": templateQuery, "refresh": 2, "regex": "", "sort": 0,   "tagValuesQuery": "", "tags": [], "tagsQuery": "", "type": "query", "useTags": False })
+		else: #If template variable exists, then remove it and then add new upadated variables to the list
+			db["templating"]["list"] = [] 
+			db["templating"]["list"].append({ "allValue": None, "current": { "text": "", "value": [ ] },"datasource": Data_source, "hide": 0, "includeAll": True, "label": None, "multi": True, "name": alias, "options": [], "query": templateQuery, "refresh": 2, "regex": "", "sort": 0,   "tagValuesQuery": "", "tags": [], "tagsQuery": "", "type": "query", "useTags": False })
 
-	db["rows"][0]["panels"][0]["targets"][0]["rawQuery"] = True #Setting the Raw Query mode ON
-	panel_query = db["rows"][0]["panels"][0]["targets"][0]["target"]
-	#panel_query = panel_query + " and ($temp)"
-	panel_query = panel_query + " and ($"+str(alias)+")"
-	db["rows"][0]["panels"][0]["targets"][0]["target"] = panel_query
-	db["rows"][0]["panels"][0]["repeat"] = alias
-	db["rows"][0]["panels"][0]["minSpan"] = 12
-	db["rows"][0]["panels"][0]["yaxes"][0]["format"] = "bps" #Setting Y-axis unit to bps
-	db["rows"][0]["panels"][0]["yaxes"][1]["format"] = "bps"
-	#db["rows"][0]["panels"][0]["title"] = "$temp" 	
-	db["rows"][0]["panels"][0]["title"] = "$"+str(alias)
-	if "transparent" in db["rows"][0]["panels"][0]:
-		db["rows"][0]["panels"][0]["transparent"] = True
-	else:
-		db["rows"][0]["panels"][0]["transparent"] = True
-	db["id"] = None
-	db["title"] = "Drill_Down_on_"+DB_title #Title for Drill Down Dashboard
-	postParam = {"dashboard":db,"overwrite": True }
-	generateDB(postParam)
 
+		db["rows"][0]["panels"][0]["targets"][0]["rawQuery"] = True #Setting the Raw Query mode ON
+		panel_query = db["rows"][0]["panels"][0]["targets"][0]["target"]
+		#panel_query = panel_query + " and ($temp)"
+		panel_query = panel_query + " and ($"+str(alias)+")"
+		db["rows"][0]["panels"][0]["targets"][0]["target"] = panel_query
+		db["rows"][0]["panels"][0]["repeat"] = alias
+		db["rows"][0]["panels"][0]["minSpan"] = 12
+		if "yaxes" not in  db["rows"][0]["panels"][0]:
+			db["rows"][0]["panels"][0]["yaxes"] = [{"format":"bps","show":True},{"format":"bps","show":True}] #Setting Y-axis unit to bps
+		
+		else:
+			db["rows"][0]["panels"][0]["yaxes"][0]["format"] = "bps"
+		db["rows"][0]["panels"][0]["type"] = "graph"	
+		db["rows"][0]["panels"][0]["title"] = "$"+str(alias)
+		if "transparent" in db["rows"][0]["panels"][0]:
+			db["rows"][0]["panels"][0]["transparent"] = True
+		else:
+			db["rows"][0]["panels"][0]["transparent"] = True
+		db["id"] = None
+		db["title"] = "Drill_Down_on_"+DB_title #Title for Drill Down Dashboard
+		postParam = {"dashboard":db,"overwrite": True }
+		generateDB(postParam)
+	if graph_type == "table":
+		count_query = "get "+drill_down_on+" between("+start_time+","+end_time+") by "+ drill_down_on+" "+query[query.find("from"):]
+		postParameters = {"method":"query","query":count_query}
+                tsds_result = make_TSDS_Request(getUrl()+"query.cgi",urlencode(postParameters))
+		results = tsds_result["results"]
+		links = [each[drill_down_on] for each in results]
+		links=[ "_".join( each.split()) for each in links] #Replacing spaces with underscore
+		if "links" not in db["rows"][0]["panels"][0]: #If no Drill Down link is present, then create one at head of the list
+                        db["rows"][0]["panels"][0]["links"] = []
+                else:
+                        db["rows"][0]["panels"][0]["links"] = [] #If Drill down link already exists, then remove the older one and add updated one to it
+		for each in links:
+			db["rows"][0]["panels"][0]["links"].append({"dashUri":"db/Drill_Down_on_"+each,"dashboard":"Drill_Down_on_"+each,"title":"Drill_Down_on_"+each,"type":"dashboard"})
+		postParam = {"dashboard":db,"overwrite": True }
+                generateDB(postParam) #Generating same dashboard with a Drill Down report in it
+		
+		#Create new drill down dashboards - 
+		for eachDB in links:
+			newDB = deepcopy(db)
+			newDB["rows"][0]["panels"][0]["targets"][0]["rawQuery"] = True
+			panel_query = newDB["rows"][0]["panels"][0]["targets"][0]["target"]+" and "+drill_down_on+" = \""+" ".join(eachDB.split("_"))+"\""
+			#panel_query = newDB["rows"][0]["panels"][0]["targets"][0]["target"]+" and "+drill_down_on+" = \""+eachDB+"\""
+			newDB["rows"][0]["panels"][0]["targets"][0]["target"] = panel_query
+			newDB["rows"][0]["panels"][0]["yaxes"] = [{"format":"bps","show":True},{"format":"bps","show":True}]
+			newDB["rows"][0]["panels"][0]["type"] = "graph"
+			newDB["id"] = None
+			newDB["title"] = "Drill_Down_on_"+eachDB
+			newDB["rows"][0]["panels"][0]["links"] = []
+			postParam = {"dashboard":newDB,"overwrite": True }
+                	generateDB(postParam)
+			
+				
 
 
 if __name__ == "__main__":

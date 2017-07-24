@@ -158,7 +158,7 @@ export class GenericDatasource {
 
  }
 
-  generateDashboard(options, timeFrom, timeTo, DB_title, datasource) {
+  generateDashboard(options, timeFrom, timeTo, DB_title, datasource, type) {
     var target = typeof (options) === "string" ? options : options.target
     var interpolated = {
         query: this.templateSrv.replace(target, null, 'regex'),
@@ -167,7 +167,8 @@ export class GenericDatasource {
 	timeTo: timeTo,
 	DB_title : DB_title,
 	Data_source : datasource,
-	alias: options.drillDownAlias
+	alias: options.drillDownAlias,
+	graph_type : type
     };
     return this.backendSrv.datasourceRequest({
       url: this.url + '/dashboard',
@@ -220,6 +221,9 @@ export class GenericDatasource {
 	var query = _.map(options.targets, function(target) {
 		if(target.rawQuery){
 			var query = t.templateSrv.replace(target.target, scopevar);
+			var oldQ = query.substr(query.indexOf("{"), query.length);
+			var formatQ = oldQ.replace(/,/gi, " or ");
+			query = query.replace(oldQ, formatQ);
 			return query;
 		}
 		else{
