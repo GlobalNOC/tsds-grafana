@@ -252,6 +252,7 @@ var GenericDatasource = exports.GenericDatasource = function () {
           var query = t.templateSrv.replace(target.target, scopevar);
           var oldQ = query.substr(query.indexOf("{"), query.length);
           var formatQ = oldQ.replace(/,/gi, " or ");
+
           query = query.replace(oldQ, formatQ);
           return query;
         } else {
