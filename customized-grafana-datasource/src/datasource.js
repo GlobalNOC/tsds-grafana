@@ -7,13 +7,14 @@ export class GenericDatasource {
     this.url = instanceSettings.url;
     this.name = instanceSettings.name;
     this.q = $q;
+    this.basicAuth = instanceSettings.basicAuth;
+    this.withCredentials = instanceSettings.withCredentials;
     this.backendSrv = backendSrv;
     this.templateSrv = templateSrv;
     this.selectMenu = ['=','>','<'];
     this.metricValue = this.metricValue||[];
     this.metricColumn =this.metricColumn||[];
     this.whereSuggest =[];
-    //self = this;
   }
 
   query(options) {
@@ -32,10 +33,19 @@ export class GenericDatasource {
   }
 
   testDatasource() {
-    return this.backendSrv.datasourceRequest({
+    var options = {
       url: this.url + '/test',
       method: 'GET'
-    }).then(response => {
+    };
+
+    if (this.basicAuth || this.withCredentials) {
+      options.withCredentials = true;
+    }
+    if (this.basicAuth) {
+      options.headers.Authorization = self.basicAuth;
+    }
+
+    return this.backendSrv.datasourceRequest(options).then(response => {
       if (response.status === 200) {
         return { status: "success", message: "Data source is working", title: "Success" };
       }
@@ -56,11 +66,19 @@ export class GenericDatasource {
       rangeRaw: options.rangeRaw
     };
 
-    return this.backendSrv.datasourceRequest({
+    var payload = {
       url: this.url + '/annotations',
       method: 'POST',
       data: annotationQuery
-    }).then(result => {
+    };
+    if (this.basicAuth || this.withCredentials) {
+      payload.withCredentials = true;
+    }
+    if (this.basicAuth) {
+      payload.headers.Authorization = self.basicAuth;
+    }
+
+    return this.backendSrv.datasourceRequest(payload).then(result => {
       return result.data;
     });
   }
@@ -72,12 +90,20 @@ export class GenericDatasource {
 	type:"Search"
     };
 
-    return this.backendSrv.datasourceRequest({
+    var payload = {
       url: this.url + '/search',
       data: interpolated,
       method: 'POST',
       headers: { 'Content-Type': 'application/json' }
-    }).then(this.mapToTextValue);
+    };
+    if (this.basicAuth || this.withCredentials) {
+      payload.withCredentials = true;
+    }
+    if (this.basicAuth) {
+      payload.headers.Authorization = self.basicAuth;
+    }
+
+    return this.backendSrv.datasourceRequest(payload).then(this.mapToTextValue);
   }
   metricFindTables(options) {
     var target = typeof (options) === "string" ? options : "Find tables";
@@ -85,12 +111,21 @@ export class GenericDatasource {
         target: this.templateSrv.replace(target, null, 'regex'),
 	type: "Table"
     };
-    return  this.backendSrv.datasourceRequest({
+
+    var payload = {
       url: this.url + '/search',
       data: interpolated,
       method: 'POST',
       headers: { 'Content-Type': 'application/json' }
-    }).then(this.mapToTextValue);
+    };
+    if (this.basicAuth || this.withCredentials) {
+      payload.withCredentials = true;
+    }
+    if (this.basicAuth) {
+      payload.headers.Authorization = self.basicAuth;
+    }
+
+    return  this.backendSrv.datasourceRequest(payload).then(this.mapToTextValue);
   }
 
   findMetric(options, metric) {
@@ -100,12 +135,21 @@ export class GenericDatasource {
 	type:metric
     };
     console.log(interpolated);
-    return this.backendSrv.datasourceRequest({
+
+    var payload = {
       url: this.url + '/search',
       data: interpolated,
       method: 'POST',
       headers: { 'Content-Type': 'application/json' }
-    }).then(this.mapToTextValue);
+    };
+    if (this.basicAuth || this.withCredentials) {
+      payload.withCredentials = true;
+    }
+    if (this.basicAuth) {
+      payload.headers.Authorization = self.basicAuth;
+    }
+
+    return this.backendSrv.datasourceRequest(payload).then(this.mapToTextValue);
   }
 
   findWhereFields(options,parentIndex,index, like_field, callback){
@@ -133,12 +177,20 @@ export class GenericDatasource {
 		type:"Where_Related"
                 };
 
-		return  this.backendSrv.datasourceRequest({
-                url: this.url + '/search',
-                data: interpolated,
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' }
-                }).then(this.mapToArray).then(callback);
+      var payload = {
+        url: this.url + '/search',
+        data: interpolated,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      };
+      if (this.basicAuth || this.withCredentials) {
+        payload.withCredentials = true;
+      }
+      if (this.basicAuth) {
+        payload.headers.Authorization = self.basicAuth;
+      }
+
+	  return  this.backendSrv.datasourceRequest(payload).then(this.mapToArray).then(callback);
 	}
 	else {
 		var meta_field = options.whereClauseGroup[parentIndex][index].left;
@@ -148,14 +200,22 @@ export class GenericDatasource {
 		like_field: this.templateSrv.replace(like_field, null, 'regex'),
 		type:"Where"
     		};
-    		return  this.backendSrv.datasourceRequest({
-      		url: this.url + '/search',
-      		data: interpolated,
-      		method: 'POST',
-      		headers: { 'Content-Type': 'application/json' }
-    		}).then(this.mapToArray).then(callback);
-  	}
 
+      var payload = {
+        url: this.url + '/search',
+        data: interpolated,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      };
+      if (this.basicAuth || this.withCredentials) {
+        payload.withCredentials = true;
+      }
+      if (this.basicAuth) {
+        payload.headers.Authorization = self.basicAuth;
+      }
+
+      return  this.backendSrv.datasourceRequest(payload).then(this.mapToArray).then(callback);
+    }
  }
 
     generateDashboard(options, timeFrom, timeTo, DB_title, datasource, type) {
@@ -170,14 +230,23 @@ export class GenericDatasource {
 	        alias: options.drillDownAlias,
 	        graph_type : type
         };
-        return this.backendSrv.datasourceRequest({
-            url: this.url + '/dashboard',
-            data: interpolated,
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
-        }).then(function(){
 
-        });
+      var payload = {
+        url: this.url + '/dashboard',
+        data: interpolated,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      };
+      if (this.basicAuth || this.withCredentials) {
+        payload.withCredentials = true;
+      }
+      if (this.basicAuth) {
+        payload.headers.Authorization = self.basicAuth;
+      }
+
+      return this.backendSrv.datasourceRequest(payload).then(function(){
+
+      });
     }
 
     findOperator(){
