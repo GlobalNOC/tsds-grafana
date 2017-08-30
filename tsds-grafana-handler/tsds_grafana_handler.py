@@ -395,3 +395,7 @@ if __name__ == "__main__":
         	search()
 	if inpUrl == "/query":
 		query()
+        if inpUrl == "/test":
+                print "Content-Type: application/json"
+                print "Cache-Control: no-cache\n"
+                print json.dumps({"status": "success", "message": "Data source is working", "title": "Success"}, default=serialize)
