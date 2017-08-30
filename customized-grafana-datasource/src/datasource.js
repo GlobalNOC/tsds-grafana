@@ -7,17 +7,18 @@ export class GenericDatasource {
     this.url = instanceSettings.url;
     this.name = instanceSettings.name;
     this.q = $q;
+    this.basicAuth = instanceSettings.basicAuth;
+    this.withCredentials = instanceSettings.withCredentials;
     this.backendSrv = backendSrv;
     this.templateSrv = templateSrv;
     this.selectMenu = ['=','>','<'];
     this.metricValue = this.metricValue||[];
     this.metricColumn =this.metricColumn||[];
     this.whereSuggest =[];
-    //self = this;
   }
 
   query(options) {
-    var query = this.buildQueryParameters(options, this); 
+    var query = this.buildQueryParameters(options, this);
     query.targets = query.targets.filter(t => !t.hide);
     if (query.targets.length <= 0) {
       return this.q.when({data: []});
@@ -32,10 +33,19 @@ export class GenericDatasource {
   }
 
   testDatasource() {
-    return this.backendSrv.datasourceRequest({
-      url: this.url + '/',
+    var options = {
+      url: this.url + '/test',
       method: 'GET'
-    }).then(response => {
+    };
+
+    if (this.basicAuth || this.withCredentials) {
+      options.withCredentials = true;
+    }
+    if (this.basicAuth) {
+      options.headers.Authorization = self.basicAuth;
+    }
+
+    return this.backendSrv.datasourceRequest(options).then(response => {
       if (response.status === 200) {
         return { status: "success", message: "Data source is working", title: "Success" };
       }
@@ -56,11 +66,19 @@ export class GenericDatasource {
       rangeRaw: options.rangeRaw
     };
 
-    return this.backendSrv.datasourceRequest({
+    var payload = {
       url: this.url + '/annotations',
       method: 'POST',
       data: annotationQuery
-    }).then(result => {
+    };
+    if (this.basicAuth || this.withCredentials) {
+      payload.withCredentials = true;
+    }
+    if (this.basicAuth) {
+      payload.headers.Authorization = self.basicAuth;
+    }
+
+    return this.backendSrv.datasourceRequest(payload).then(result => {
       return result.data;
     });
   }
@@ -72,12 +90,20 @@ export class GenericDatasource {
 	type:"Search"
     };
 
-    return this.backendSrv.datasourceRequest({
+    var payload = {
       url: this.url + '/search',
       data: interpolated,
       method: 'POST',
       headers: { 'Content-Type': 'application/json' }
-    }).then(this.mapToTextValue);
+    };
+    if (this.basicAuth || this.withCredentials) {
+      payload.withCredentials = true;
+    }
+    if (this.basicAuth) {
+      payload.headers.Authorization = self.basicAuth;
+    }
+
+    return this.backendSrv.datasourceRequest(payload).then(this.mapToTextValue);
   }
   metricFindTables(options) {
     var target = typeof (options) === "string" ? options : "Find tables";
@@ -85,12 +111,21 @@ export class GenericDatasource {
         target: this.templateSrv.replace(target, null, 'regex'),
 	type: "Table"
     };
-    return  this.backendSrv.datasourceRequest({
+
+    var payload = {
       url: this.url + '/search',
       data: interpolated,
       method: 'POST',
       headers: { 'Content-Type': 'application/json' }
-    }).then(this.mapToTextValue);
+    };
+    if (this.basicAuth || this.withCredentials) {
+      payload.withCredentials = true;
+    }
+    if (this.basicAuth) {
+      payload.headers.Authorization = self.basicAuth;
+    }
+
+    return  this.backendSrv.datasourceRequest(payload).then(this.mapToTextValue);
   }
 
   findMetric(options, metric) {
@@ -100,12 +135,21 @@ export class GenericDatasource {
 	type:metric
     };
     console.log(interpolated);
-    return this.backendSrv.datasourceRequest({
+
+    var payload = {
       url: this.url + '/search',
       data: interpolated,
       method: 'POST',
       headers: { 'Content-Type': 'application/json' }
-    }).then(this.mapToTextValue);
+    };
+    if (this.basicAuth || this.withCredentials) {
+      payload.withCredentials = true;
+    }
+    if (this.basicAuth) {
+      payload.headers.Authorization = self.basicAuth;
+    }
+
+    return this.backendSrv.datasourceRequest(payload).then(this.mapToTextValue);
   }
 
   findWhereFields(options,parentIndex,index, like_field, callback){
@@ -133,12 +177,20 @@ export class GenericDatasource {
 		type:"Where_Related"
                 };
 
-		return  this.backendSrv.datasourceRequest({
-                url: this.url + '/search',
-                data: interpolated,
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' }
-                }).then(this.mapToArray).then(callback);
+      var payload = {
+        url: this.url + '/search',
+        data: interpolated,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      };
+      if (this.basicAuth || this.withCredentials) {
+        payload.withCredentials = true;
+      }
+      if (this.basicAuth) {
+        payload.headers.Authorization = self.basicAuth;
+      }
+
+	  return  this.backendSrv.datasourceRequest(payload).then(this.mapToArray).then(callback);
 	}
 	else {
 		var meta_field = options.whereClauseGroup[parentIndex][index].left;
@@ -148,107 +200,128 @@ export class GenericDatasource {
 		like_field: this.templateSrv.replace(like_field, null, 'regex'),
 		type:"Where"
     		};
-    		return  this.backendSrv.datasourceRequest({
-      		url: this.url + '/search',
-      		data: interpolated,
-      		method: 'POST',
-      		headers: { 'Content-Type': 'application/json' }
-    		}).then(this.mapToArray).then(callback);
-  	}
 
+      var payload = {
+        url: this.url + '/search',
+        data: interpolated,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      };
+      if (this.basicAuth || this.withCredentials) {
+        payload.withCredentials = true;
+      }
+      if (this.basicAuth) {
+        payload.headers.Authorization = self.basicAuth;
+      }
+
+      return  this.backendSrv.datasourceRequest(payload).then(this.mapToArray).then(callback);
+    }
  }
 
-  generateDashboard(options, timeFrom, timeTo, DB_title, datasource, type) {
-    var target = typeof (options) === "string" ? options : options.target
-    var interpolated = {
-        query: this.templateSrv.replace(target, null, 'regex'),
-	drill : options.drillDownValue,
-	timeFrom : timeFrom,
-	timeTo: timeTo,
-	DB_title : DB_title,
-	Data_source : datasource,
-	alias: options.drillDownAlias,
-	graph_type : type
-    };
-    return this.backendSrv.datasourceRequest({
-      url: this.url + '/dashboard',
-      data: interpolated,
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' }
-    }).then(function(){
-        
-  });
+    generateDashboard(options, timeFrom, timeTo, DB_title, datasource, type) {
+        var target = typeof (options) === "string" ? options : options.target
+        var interpolated = {
+            query: this.templateSrv.replace(target, null, 'regex'),
+	        drill : options.drillDownValue,
+	        timeFrom : timeFrom,
+	        timeTo: timeTo,
+	        DB_title : DB_title,
+	        Data_source : datasource,
+	        alias: options.drillDownAlias,
+	        graph_type : type
+        };
 
-}
-
-   findOperator(){
-	return  new Promise(function(resolve, reject) {
-		var a = {"data":['=','<','>'], "status":200, "statusText":"OK"};
-	        resolve(a);
-	}).then(this.mapToTextValue);
-	}
-  mapToTextValue(result) {
-    var a =  _.map(result.data, (d, i) => {
-      if (d && d.text && d.value) {
-        return { text: d.text, value: d.value };
-      } else if (_.isObject(d)) {
-        return { text: d, value: i};
+      var payload = {
+        url: this.url + '/dashboard',
+        data: interpolated,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      };
+      if (this.basicAuth || this.withCredentials) {
+        payload.withCredentials = true;
       }
-      return { text: d, value: d };
-    });
-	return a;
-  }
+      if (this.basicAuth) {
+        payload.headers.Authorization = self.basicAuth;
+      }
 
- mapToArray(result){
-	if (result.data.length == 0) {
-		result.data = ["No results found"]
-	}
-	return result.data;
+      return this.backendSrv.datasourceRequest(payload).then(function(){
+
+      });
+    }
+
+    findOperator(){
+	    return  new Promise(function(resolve, reject) {
+		    var a = {"data":['=','<','>'], "status":200, "statusText":"OK"};
+	        resolve(a);
+	    }).then(this.mapToTextValue);
 	}
 
-  mapToListValue(result) {
-    this.metricValue = result.data;
-    console.log(this.metricValue);
-  }
+    mapToTextValue(result) {
+        var a =  _.map(result.data, (d, i) => {
+            if (d && d.text && d.value) {
+                return { text: d.text, value: d.value };
+            } else if (_.isObject(d)) {
+                return { text: d, value: i};
+            }
+            return { text: d, value: d };
+        });
+	    return a;
+    }
+
+    mapToArray(result){
+	    if (result.data.length == 0) {
+		    result.data = ["No results found"]
+	    }
+	    return result.data;
+	}
+
+    mapToListValue(result) {
+        this.metricValue = result.data;
+        console.log(this.metricValue);
+    }
  
- targetContainsTemplate(target) {
-    return templateSrv.variableExists(target.target);
-  }
+    targetContainsTemplate(target) {
+        return templateSrv.variableExists(target.target);
+    }
 
+    buildQueryParameters(options, t) {
+        var scopevar = options.scopedVars;
+	    var query = _.map(options.targets, function(target) {
 
-  buildQueryParameters(options, t) {
-    var scopevar = options.scopedVars;
-	var query = _.map(options.targets, function(target) {
-		if(target.rawQuery){
-			var query = t.templateSrv.replace(target.target, scopevar);
-			var oldQ = query.substr(query.indexOf("{"), query.length);
-			var formatQ = oldQ.replace(/,/gi, " or ");
-			
-			query = query.replace(oldQ, formatQ);
-			return query;
-		}
-		else{
-			var query = 'get ';
-			var seriesName = target.series;
-			for(var index = 0 ; index < target.metric_array.length; index++){
-				query+= ' '+target.metric_array[index];
-				if ( index+1 == target.metric_array.length){
-					break;
-				}
-				query+=',';
-			}		
+            // Returns target when not formated as a tsds query
+            // object.
+            if (typeof(target) === "string") { return target; }
 
-			for(var index = 0 ; index < target.metricValues_array.length; index++){
-				query+= ', aggregate(values.'+target.metricValues_array[index];
-				if(typeof target.bucketValue[index] ==='undefined'|| target.bucketValue[index] ==='')  query+=', $quantify, ';
-				else query+=', '+target.bucketValue[index]+', ';
-				if(target.aggregator[index]=="percentile") query+= target.aggregator[index]+'('+target.percentileValue[index]+'))';
-				else query+= target.aggregator[index]+')'; 
-                	}
-			query+= ' between ($START,$END)';
-			if (target.groupby_field != " ") {
-                		query += ' by ' + target.groupby_field;
-                	}
+		    if(target.rawQuery){
+			    var query = t.templateSrv.replace(target.target, scopevar);
+			    var oldQ = query.substr(query.indexOf("{"), query.length);
+			    var formatQ = oldQ.replace(/,/gi, " or ");
+
+			    query = query.replace(oldQ, formatQ);
+			    return query;
+		    } else{
+			    var query = 'get ';
+			    var seriesName = target.series;
+
+			    for(var index = 0 ; index < target.metric_array.length; index++){
+				    query+= ' '+target.metric_array[index];
+				    if ( index+1 == target.metric_array.length){
+					    break;
+				    }
+				    query+=',';
+			    }
+
+			    for(var index = 0 ; index < target.metricValues_array.length; index++){
+				    query+= ', aggregate(values.'+target.metricValues_array[index];
+				    if(typeof target.bucketValue[index] ==='undefined'|| target.bucketValue[index] ==='')  query+=', $quantify, ';
+				    else query+=', '+target.bucketValue[index]+', ';
+				    if(target.aggregator[index]=="percentile") query+= target.aggregator[index]+'('+target.percentileValue[index]+'))';
+				    else query+= target.aggregator[index]+')';
+                }
+			    query+= ' between ($START,$END)';
+			    if (target.groupby_field != " ") {
+                    query += ' by ' + target.groupby_field;
+                }
         		query += ' from ' + seriesName;
 				query += " where ";
 				for(var i=0; i<target.whereClauseGroup.length; i++)
@@ -257,27 +330,27 @@ export class GenericDatasource {
 					query +=" ( ";
 					for(var j =0 ; j<target.whereClauseGroup[i].length; j++){
 						if(j>0) query = query +" "+target.inlineGroupOperator[i][j]+" ";
-     						query += target.whereClauseGroup[i][j].left+" "+target.whereClauseGroup[i][j].op+" \""+target.whereClauseGroup[i][j].right+"\"";
+                        query += target.whereClauseGroup[i][j].left+" "+target.whereClauseGroup[i][j].op+" \""+target.whereClauseGroup[i][j].right+"\"";
 					}
 					query +=" )";
 				}
 				
-			target.target = query;
-			return query;
-		}
-	}.bind(scopevar)); 
-    var index = 0;
-    var targets = _.map(options.targets, target => {
-	console.log(target);
-      return {
-        target: query[index++],
-        refId: target.refId,
-        hide: target.hide,
-        type: target.type || 'timeserie',
-	alias : target.target_alias
-      };
-    });
-    options.targets = targets;
-    return options;
-  }
+			    target.target = query;
+			    return query;
+		    }
+	    }.bind(scopevar));
+
+        var index = 0;
+        var targets = _.map(options.targets, target => {
+            return {
+                target: query[index++],
+                refId: target.refId,
+                hide: target.hide,
+                type: target.type || 'timeserie',
+	            alias : target.target_alias
+            };
+        });
+        options.targets = targets;
+        return options;
+    }
 }
