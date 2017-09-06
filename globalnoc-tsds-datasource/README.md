@@ -1,5 +1,4 @@
-<<<<<<< HEAD
-## Simple JSON Datasource - a generic backend datasource
+## GlobalNOC TSDS Datasource - a generic backend datasource
 
 More documentation about datasource plugins can be found in the [Docs](https://github.com/grafana/grafana/blob/master/docs/sources/plugins/developing/datasources.md).
 
@@ -167,7 +166,3 @@ NOTE!
 for grafana 2.6 please use [this version](https://github.com/grafana/simple-json-datasource/commit/b78720f6e00c115203d8f4c0e81ccd3c16001f94)
 
 Copy the data source you want to /public/app/plugins/datasource/. Then restart grafana-server. The new data source should now be available in the data source type dropdown in the Add Data Source View.
-=======
-# tsds-grafana
-Exploratory work to integrate grafana into tsds API
->>>>>>> bf1591a531bd8a2aad433bbbfeeec5e23ea6f256
