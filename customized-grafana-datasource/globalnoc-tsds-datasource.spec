@@ -30,8 +30,8 @@ npm run build
 %install
 rm -rf $RPM_BUILDR_ROOT
 
-%{__install} -d -p %{buildroot}%{_sharedstatedir}/grafana/plugins/customized-grafana-datasource/dist
-cp -ar %{_builddir}/dist/* %{buildroot}%{_sharedstatedir}/grafana/plugins/customized-grafana-datasource/dist
+%{__install} -d -p %{buildroot}%{_sharedstatedir}/grafana/plugins/globalnoc-tsds-datasource/dist
+cp -ar %{_builddir}/dist/* %{buildroot}%{_sharedstatedir}/grafana/plugins/globalnoc-tsds-datasource/dist
 
 %files
-%{_sharedstatedir}/grafana/plugins/customized-grafana-datasource/dist
+%{_sharedstatedir}/grafana/plugins/globalnoc-tsds-datasource/dist
