@@ -1,5 +1,5 @@
 Summary: GlobalNOC TSDS Datasource
-Name:    globalnoc-tsds-datasource
+Name:    globalnoc-tsds-datasource-handler
 Version: 0.1.0
 Release: %{_buildno}%{?dist}
 License: Apache
@@ -14,7 +14,7 @@ BuildRequires: nodejs
 
 
 %description
-GlobalNOC TSDS Datasource
+GlobalNOC TSDS Datasource Handler
 
 %prep
 rm -rf %{_builddir}
@@ -23,15 +23,12 @@ mkdir -p %{_builddir}
 cp -pr %{_sourcedir}/*  %{_builddir}
 
 %build
-npm install yarn
-yarn install
-npm run build
 
 %install
 rm -rf $RPM_BUILDR_ROOT
 
-%{__install} -d -p %{buildroot}%{_sharedstatedir}/grafana/plugins/customized-grafana-datasource/dist
-cp -ar %{_builddir}/dist/* %{buildroot}%{_sharedstatedir}/grafana/plugins/customized-grafana-datasource/dist
+%{__install} -d -p %{buildroot}%{_datarootdir}/grnoc/globalnoc-tsds-datasource-handler
+cp -ar %{_builddir}/* %{buildroot}%{_datarootdir}/grnoc/globalnoc-tsds-datasource-handler
 
 %files
-%{_sharedstatedir}/grafana/plugins/customized-grafana-datasource/dist
+%{_datarootdir}/grnoc/globalnoc-tsds-datasource-handler
