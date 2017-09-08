@@ -1,0 +1,35 @@
+{
+  "type": "datasource",
+  "name": "GlobalNOC TSDS",
+  "id": "globalnoc-tsds-datasource",
+
+  "partials": {
+    "config": "public/app/plugins/datasource/globalnoc-tsds-datasource/dist/partials/config.html"
+  },
+
+  "metrics": true,
+  "annotations": true,
+
+  "info": {
+    "description": "GlobalNOC TSDS Datasource Query Builder",
+    "author": {
+      "name": "GRNOC - Mihir Thatte",
+      "url": "https://globalnoc.iu.edu/"
+    },
+    "logos": {
+      "small": "img/simpleJson_logo.svg",
+      "large": "img/simpleJson_logo.svg"
+    },
+    "links": [
+      {"name": "Github", "url": "https://github.com/GlobalNOC/tsds-grafana/tree/master/globalnoc-tsds-datasource"},
+      {"name": "MIT License", "url": "https://github.com/grafana/simple-json-datasource/blob/master/LICENSE"}
+    ],
+    "version": "0.1.0",
+    "updated": "2017-09-06"
+  },
+
+  "dependencies": {
+    "grafanaVersion": "4.x.x",
+    "plugins": [ ]
+  }
+}
