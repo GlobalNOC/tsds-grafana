@@ -1,11 +1,11 @@
 <!-- <query-editor-row query-ctrl="ctrl" class="generic-datasource-query-row" has-text-edit-mode="true"> -->
 <query-editor-row query-ctrl="ctrl" can-collapse="false" has-text-edit-mode="true">
 
-	<div ng-if="ctrl.target.rawQuery">
-    		<div class="gf-form">
-      			<input type="text" class="gf-form-input" ng-model="ctrl.target.target" spellcheck="false" ng-blur="ctrl.panelCtrl.refresh();"></input>
-    		</div>
-        </div>
+  <div ng-if="ctrl.target.rawQuery">
+    <div class="gf-form">
+      <input type="text" class="gf-form-input" ng-model="ctrl.target.target" spellcheck="false" ng-blur="ctrl.onChangeInternal()"></input>
+    </div>
+  </div>
 
 	<div ng-if="!ctrl.target.rawQuery">
 		<div class="gf-form-inline">
@@ -120,7 +120,7 @@
 	                		                    <option value="not like">Not Like</option>
         	                		        </select>
 							
-							<input type="text"  placeholder="Type Target name" ng-model="segment.right" bs-typeahead="ctrl.getWhereFields" on-change="ctrl.panelCtrl.refresh();" ng-click="ctrl.saveIndices(parentIndex, $index)"></input>
+							<input type="text" placeholder="Type Target name" ng-model="segment.right" bs-typeahead="ctrl.getWhereFields" ng-blur="ctrl.onChangeInternal()" ng-click="ctrl.saveIndices(parentIndex, $index)"></input>
 							<button class = "btn btn-inverse gf-form-btn"  ng-click="ctrl.removeWhereClause(parentIndex,$index)"><i class="fa fa-trash"></i></button>
 							
                 	 	     		</div>
@@ -163,7 +163,7 @@
                                                             <option value="not like">Not Like</option>
                                                         </select>
 
-                                                        <input type="text"  placeholder="Type Target name" ng-model="segment.right" bs-typeahead="ctrl.getWhereFields" on-change="ctrl.panelCtrl.refresh();" ng-click="ctrl.saveIndices(parentIndex, $index)"></input>
+                                                        <input type="text" placeholder="Type Target name" ng-model="segment.right" bs-typeahead="ctrl.getWhereFields" ng-blur="ctrl.onChangeInternal()" ng-click="ctrl.saveIndices(parentIndex, $index)"></input>
                                                         <button class = "btn btn-inverse gf-form-btn"  ng-click="ctrl.removeWhereClause(parentIndex,$index)"><i class="fa fa-trash"></i></button>
 
                                                 </div>

@@ -176,15 +176,22 @@ def search():
 	elif searchType == "Search": #Searching for template variables in Drill Down report
 		url = getUrl()+"query.cgi"
 		postParameters = {"method":"query","query":inpParameter["target"]}
+
 		json_result = make_TSDS_Request(url,urlencode(postParameters))
-		for eachDict in json_result["results"]:
-			v=""
-			for key,value in eachDict.iteritems():
-				if len(v) == 0:
-					v+= key+" = \""+value+"\""
-				else:
-					v = v+" and "+key+" = \""+value+"\""
-			output.append(v)
+		for result in json_result["results"]:
+                        # Because template variables can be used in
+                        # query options for other template variables,
+                        # we restrict the query to returning a single
+                        # variable.
+                        if len(result) > 1:
+                                # TODO Error
+                                print 'Status: 400 Bad Request'
+                                print 
+                                print json.dumps({"error": "Too many values requested."}, default=serialize)
+                                exit(0)
+
+			for key, value in result.iteritems():
+                                output.append(value)
 
 	print "Content-Type: application/json" # set the HTTP response header to json data
 	print "Cache-Control: no-cache\n"
@@ -233,7 +240,7 @@ def query():
 		aggValue = max(aggValue, 86400)
 	elif time_duration >= 259200:
 		aggValue = max(aggValue, 3600) 
-	
+
         output=[]
 	q=""
 	for index in range(len(tsds_query)):
@@ -247,9 +254,6 @@ def query():
                 for i in range(len(tsds_result["results"])):
                         #Search for target name - 
                         target = findtarget_names(tsds_result, i, alias_list)
-			output_file = open("q_fail.txt","rw+")
-                      	output_file.write(json.dumps(target)+"\n")
-                       	output_file.close()
                         for eachTarget in target:
                                 dict_element={"target":eachTarget}
                                 value = tsds_result["results"][i]
