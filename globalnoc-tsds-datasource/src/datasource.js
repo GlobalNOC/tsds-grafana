@@ -84,27 +84,35 @@ export class GenericDatasource {
   }
 
    metricFindQuery(options) {
-    var target = typeof (options) === "string" ? options : options.target;
-    var interpolated = {
-        target: this.templateSrv.replace(target, null, 'regex'),
-	type:"Search"
-    };
+     var target = typeof (options) === "string" ? options : options.target;
+     var interpolated = {
+       target: this.templateSrv.replace(target, null, 'regex'),
+	   type:"Search"
+     };
 
-    var payload = {
-      url: this.url + '/search',
-      data: interpolated,
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' }
-    };
-    if (this.basicAuth || this.withCredentials) {
-      payload.withCredentials = true;
-    }
-    if (this.basicAuth) {
-      payload.headers.Authorization = self.basicAuth;
-    }
+     // Nested template variables are escaped, which tsds doesn't
+     // expect. Remove any `\` characters from the template variable
+     // query to craft a valid tsds query.
+     if (interpolated.target) {
+       interpolated.target = interpolated.target.replace(/\\/g, "");
+     }
 
-    return this.backendSrv.datasourceRequest(payload).then(this.mapToTextValue);
+     var payload = {
+       url: this.url + '/search',
+       data: interpolated,
+       method: 'POST',
+       headers: { 'Content-Type': 'application/json' }
+     };
+     if (this.basicAuth || this.withCredentials) {
+       payload.withCredentials = true;
+     }
+     if (this.basicAuth) {
+       payload.headers.Authorization = self.basicAuth;
+     }
+
+     return this.backendSrv.datasourceRequest(payload).then(this.mapToTextValue);
   }
+
   metricFindTables(options) {
     var target = typeof (options) === "string" ? options : "Find tables";
     var interpolated = {
@@ -334,7 +342,12 @@ export class GenericDatasource {
 					}
 					query +=" )";
 				}
-				
+
+                query = t.templateSrv.replace(query, scopevar);
+                var oldQ = query.substr(query.indexOf("{"), query.length);
+                var formatQ = oldQ.replace(/,/gi, " or ");
+                query = query.replace(oldQ, formatQ);
+
 			    target.target = query;
 			    return query;
 		    }
