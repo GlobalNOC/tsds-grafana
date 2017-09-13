@@ -97,6 +97,12 @@ export class GenericDatasource {
        interpolated.target = interpolated.target.replace(/\\/g, "");
      }
 
+     // By default the dashboard's selected time range is not passed
+     // to metricFindQuery.
+     if (typeof angular !== 'undefined') {
+       interpolated.range = angular.element('grafana-app').injector().get('timeSrv').timeRange();
+     }
+
      var payload = {
        url: this.url + '/search',
        data: interpolated,

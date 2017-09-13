@@ -174,6 +174,31 @@ def search():
 		output = [eachDict["value"] for eachDict in json_result["results"]]
 
 	elif searchType == "Search": #Searching for template variables in Drill Down report
+
+                if "range" in inpParameter:
+                        value = inpParameter["range"]
+                        start_time = value["from"]
+                        end_time = value["to"]
+
+                        time = extract_time(start_time, end_time)
+                        start_time = time[0]
+                        end_time = time[1]
+                        time_duration = time[2]
+                        maxDataPoints = 1
+                        aggValue = int(time_duration/maxDataPoints)
+
+                        if time_duration >= 7776000:
+                                aggValue = max(aggValue, 86400)
+                        elif time_duration >= 259200:
+                                aggValue = max(aggValue, 3600)
+
+                        inpParameter["target"] = replaceQuery(
+                                inpParameter["target"],
+                                start_time,
+                                end_time,
+                                aggValue
+                        )
+
 		url = getUrl()+"query.cgi"
 		postParameters = {"method":"query","query":inpParameter["target"]}
 
