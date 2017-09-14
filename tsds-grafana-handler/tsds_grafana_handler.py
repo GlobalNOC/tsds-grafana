@@ -24,6 +24,19 @@ def atoi(text):
 def natural_keys(text):
     return [ atoi(c) for c in re.split('(\d+)', text) ]
 
+def get_timeframe(seconds):
+        if seconds >= 86400:
+                # day
+                return "{0}d".format(seconds / 86400)
+        elif seconds >= 3600:
+                # hour
+                return "{0}h".format(seconds / 3600)
+        elif seconds >= 60:
+                # minute
+                return "{0}m".format(seconds / 60)
+
+        return "{0}s".format(seconds)
+
 def findtarget_names(tsds_result, alias_list):
         returnname = []
 
@@ -32,11 +45,27 @@ def findtarget_names(tsds_result, alias_list):
                 if not isinstance(value, list):
                         continue
 
-                _, name, number, aggregation, _ = re.split('[(,)]', key)
-                name = name.replace('values.', '')
-                name = string.capitalize(name)
+                target = 'unknown'
+                if 'percentile' in key:
+                        _, measurement, seconds, aggregation, percentile, _, _ = re.split('[(,)]', key)
+                        measurement = measurement.replace('values.', '')
+                        measurement = string.capitalize(measurement)
+                        timeframe = get_timeframe(int(seconds))
+                        if aggregation.strip() == 'max': aggregation = 'maxe'
 
-                targetname = [name]
+                        # Output (1h 90th percentiles)
+                        target = "{0} ({1} {2}th {3}s)".format(measurement, timeframe, percentile, aggregation)
+                else:
+                        _, measurement, seconds, aggregation, _ = re.split('[(,)]', key)
+                        measurement = measurement.replace('values.', '')
+                        measurement = string.capitalize(measurement)
+                        timeframe = get_timeframe(int(seconds))
+                        if aggregation.strip() == 'max': aggregation = 'maxe'
+
+                        # Output (58s averages)
+                        target = "{0} ({1} {2}s)".format(measurement, timeframe, aggregation)
+
+                targetname = [target]
 
                 if len(alias_list) > 0:
                         # Look for $ sign in alias_list and replace it
@@ -45,7 +74,9 @@ def findtarget_names(tsds_result, alias_list):
                                 alias = alias.strip('$')
                                 if alias in tsds_result:
                                         targetname.append(tsds_result[alias])
-                        returnname.append({'name': key, 'target': " | ".join(targetname)})
+                                elif alias == 'VALUE':
+                                        targetname.pop(0)
+                                        targetname.append(target)
                 else:
                         # Get all keys without a value of type list to
                         # populate as the target name.
@@ -58,7 +89,8 @@ def findtarget_names(tsds_result, alias_list):
                         # May need to handle utf8 conversions here?
                         for nV in nonValues:
                                 if nV in tsds_result: targetname.append(tsds_result[nV])
-                        returnname.append({'name': key, 'target': " | ".join(targetname)})
+
+                returnname.append({'name': key, 'target': " ".join(targetname)})
 
 	return returnname
 
@@ -278,18 +310,16 @@ def query():
 
 
                 for result in tsds_result["results"]:
-                        # Generate target names for each tsds series
-                        # name.
+                        # Generate target name for each datapoint set
                         targets = findtarget_names(result, alias_list)
 
-                        for target in targets:
+                        for target in sorted(targets, key=lambda x: x['target']):
                                 # Format the data received from tsds
                                 # to grafana compatible data
                                 datapoints = result[target['name']]
                                 target['datapoints'] = convert(datapoints)
                                 output.append(target)
 
-	#output = sorted(output, key=lambda k : k["target"])
         print "Content-Type: application/json" # set the HTTP response header to json data
         print "Cache-Control: no-cache\n"
         print json.dumps(output)
