@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 # enable debugging
+import string
 import sys
 import json
 from urllib import urlencode
@@ -23,43 +24,42 @@ def atoi(text):
 def natural_keys(text):
     return [ atoi(c) for c in re.split('(\d+)', text) ]
 
-def findtarget_names(tsds_result,i, alias_list):
+def findtarget_names(tsds_result, alias_list):
         returnname = []
-        results_dict = tsds_result["results"][i]
-	if len(alias_list) == 0:
-        	for key,value in results_dict.iteritems():
-                	targetname = []
-                	if isinstance(value, list): #when value is a list append its key with all the other non-list key-value pair
-                        	#targetname.append(key)
-				targetname.append(key[key.find("values")+7:key.find(",")])
-                        	nonValues = []
-                        	for k , v in results_dict.iteritems():
-                                	if not isinstance(v, list):
-                                        	nonValues.append(k)
-                        	nonValues.sort(key=natural_keys)
-                        	for nV in nonValues:
-					if results_dict[nV] == None:
-						targetname.append("| "+str(results_dict[nV]))
-					else:
-						data = results_dict[nV].encode('utf-8') #Code to handle UTF-8 encoeed strings
- 						targetname.append("| "+data.decode('utf-8'))
-                        	returnname.append(" ".join(targetname))
 
-	else:
-		for key,value in results_dict.iteritems():
-                        targetname = []
-                        if isinstance(value, list):
-                                #targetname.append(key)
-				targetname.append(key[key.find("values")+7:key.find(",")])
-                                nonValues = list(alias_list) #deep copy to counter alias_list values getting modified due to references
-                               	for i in range(0,len(nonValues)):
-        				if '$' in nonValues[i]: #Look for $ sign in alias_list and replace it with its correpsonding value from results
-						v = nonValues[i][1:]
-          					nonValues[i] = str(results_dict[v])
-						#nonValues[i] = results_dict[v].encode('utf-8')
-				targetname.append(" "+" ".join(nonValues))
-                                returnname.append(" ".join(targetname))
-					
+        for key, value in tsds_result.iteritems():
+                # Ignores keys describing requested metrics
+                if not isinstance(value, list):
+                        continue
+
+                _, name, number, aggregation, _ = re.split('[(,)]', key)
+                name = name.replace('values.', '')
+                name = string.capitalize(name)
+
+                targetname = [name]
+
+                if len(alias_list) > 0:
+                        # Look for $ sign in alias_list and replace it
+                        # with its correpsonding value from results.
+                        for alias in filter(lambda alias: '$' in alias, alias_list):
+                                alias = alias.strip('$')
+                                if alias in tsds_result:
+                                        targetname.append(tsds_result[alias])
+                        returnname.append({'name': key, 'target': " | ".join(targetname)})
+                else:
+                        # Get all keys without a value of type list to
+                        # populate as the target name.
+                        nonValues = []
+                        for k, v in tsds_result.iteritems():
+                                if not isinstance(v, list):
+                                        nonValues.append(k)
+                        nonValues.sort(key=natural_keys)
+
+                        # May need to handle utf8 conversions here?
+                        for nV in nonValues:
+                                if nV in tsds_result: targetname.append(tsds_result[nV])
+                        returnname.append({'name': key, 'target': " | ".join(targetname)})
+
 	return returnname
 
 def match(key,targetname):
@@ -275,18 +275,20 @@ def query():
 		postParameters = {"method":"query","query":tsds_query[index]}
 		tsds_result = make_TSDS_Request(url,urlencode(postParameters))
                 #Prepare output for grafana
-                #Format the data received from tsds to grafana compatible data -
-                for i in range(len(tsds_result["results"])):
-                        #Search for target name - 
-                        target = findtarget_names(tsds_result, i, alias_list)
-                        for eachTarget in target:
-                                dict_element={"target":eachTarget}
-                                value = tsds_result["results"][i]
 
-                                for innerKey,innerValue in value.iteritems():
-                                	if isinstance(innerValue,list) and match(innerKey,eachTarget):
-                                        	dict_element["datapoints"] = convert(innerValue)
-                                output.append(dict_element)
+
+                for result in tsds_result["results"]:
+                        # Generate target names for each tsds series
+                        # name.
+                        targets = findtarget_names(result, alias_list)
+
+                        for target in targets:
+                                # Format the data received from tsds
+                                # to grafana compatible data
+                                datapoints = result[target['name']]
+                                target['datapoints'] = convert(datapoints)
+                                output.append(target)
+
 	#output = sorted(output, key=lambda k : k["target"])
         print "Content-Type: application/json" # set the HTTP response header to json data
         print "Cache-Control: no-cache\n"
