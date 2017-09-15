@@ -14,7 +14,7 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
     this.target.groupby_field = this.target.groupby_field ||' ';
     this.target.metric_array = this.target.metric_array||['Select Metric'];
     this.target.metricValues_array = this.target.metricValues_array || ['Select Metric Value'];
-    this.target.metricValueAliases = this.target.metricValueAliases || [];
+    this.target.metricValueAliases = this.target.metricValueAliases || [''];
     this.target.aggregator = this.target.aggregator ||['average'];
     this.target.target_alias = this.target.target_alias||"";
     this.target.whereClauseGroup = this.target.whereClauseGroup||[[{'left':'Select Metric','op':'','right':''}]];

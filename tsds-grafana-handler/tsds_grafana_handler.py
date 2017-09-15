@@ -267,71 +267,54 @@ def search():
 def query():
         inpParameter = json.loads(sys.stdin.read())
 
-        #get to the target field of json : 
-        tsds_query=[]
-        start_time=""
-        end_time=""
-        maxDataPoints=1
-	target_alias =""
-	alias_list = []
-        target_aliases = {}
+        end_time   = ""
+        start_time = ""
+        max_data_points = 1
+        output          = []
+        target_aliases  = {}
 
-        for key,value in inpParameter.iteritems():
-                if key == "targets":
-                        for eachElement in value:
-                                tsds_query.append(eachElement["target"])
-				if "alias" in eachElement and eachElement['alias'] != "":
-					target_alias = eachElement["alias"]
-                                if "targetAliases" in eachElement:
-                                        target_aliases = eachElement["targetAliases"]
-                if key =="range":
-                        start_time = value["from"]
-                        end_time = (value["to"])
-                if key =="maxDataPoints":
-                        maxDataPoints = value
+        if 'range' in inpParameter:
+                end_time   = inpParameter['range']['to']
+                start_time = inpParameter['range']['from']
 
-	if target_alias != "":
-		alias_list = target_alias.split(' ')
+        if 'max_data_points' in inpParameter:
+                max_data_points = inpParameter['max_data_points']
 
-	time = extract_time(start_time,end_time)
-	start_time = time[0]
-	end_time = time[1]
-	time_duration = time[2]
-        aggValue = int(time_duration/maxDataPoints)
-	'''
-        if time_duration > 172800  and time_duration <= 604800:#Time between 2 and 7 days
-                aggValue = max(aggValue, int(86400/maxDataPoints))
-        elif time_duration > 604800 and time_duration <= 2592000 : #Time between 7 and 30 days
-                aggValue = max(aggValue, 3600)
-        elif time_duration > 2592000: #Time greater than 30 days
-                aggValue = max(aggValue, 86400)
-	'''
-	if time_duration >= 7776000:
-		aggValue = max(aggValue, 86400)
-	elif time_duration >= 259200:
-		aggValue = max(aggValue, 3600) 
+        target_start, target_end, target_duration = extract_time(start_time, end_time)
+        target_aggregation = int(target_duration / max_data_points)
 
-        output=[]
-	q=""
-	for index in range(len(tsds_query)):
-                tsds_query[index] = replaceQuery(tsds_query[index],start_time,end_time,aggValue)
-                #Request data from tsds - 
-		url= getUrl()+"query.cgi"
-		postParameters = {"method":"query","query":tsds_query[index]}
-		tsds_result = make_TSDS_Request(url,urlencode(postParameters))
-                #Prepare output for grafana
+        if target_duration >= 7776000:
+                target_aggregation = max(target_aggregation, 86400)
+        elif target_duration >= 259200:
+                target_aggregation = max(target_aggregation, 3600)
 
+        for target in inpParameter['targets']:
+                target_aliases       = target['targetAliases']
+                target_name_template = target['alias'].split(' ') if target['alias'] != '' else None
 
-                for result in tsds_result["results"]:
+                query = replaceQuery(
+                        target['target'],
+                        target_start,
+                        target_end,
+                        target_aggregation
+                )
+                url = getUrl() + 'query.cgi'
+                params = {
+                        'method': 'query',
+                        'query': query
+                }
+
+                res = make_TSDS_Request(url, urlencode(params))
+                for result in res['results']:
                         # Generate target name for each datapoint set
-                        targets = findtarget_names(result, alias_list, target_aliases)
 
-                        for target in sorted(targets, key=lambda x: x['target']):
+                        target_results = findtarget_names(result, target_name_template, target_aliases)
+                        for target_result in sorted(target_results, key=lambda x: x['target']):
                                 # Format the data received from tsds
                                 # to grafana compatible data
-                                datapoints = result[target['name']]
-                                target['datapoints'] = convert(datapoints)
-                                output.append(target)
+                                datapoints = result[target_result['name']]
+                                target_result['datapoints'] = convert(datapoints)
+                                output.append(target_result)
 
         print "Content-Type: application/json" # set the HTTP response header to json data
         print "Cache-Control: no-cache\n"
