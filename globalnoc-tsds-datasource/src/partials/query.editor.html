@@ -41,6 +41,9 @@
           <button class="btn btn-inverse gf-form-btn query-keyword"  ng-click="ctrl.addBucket($index)" bs-tooltip="'Change bucketing size'"><i class="fa fa-bitbucket" aria-hidden="true"></i></button>
 		  <input type="text" ng-if="ctrl.target.bucket[$index]=='bucket'" class="gf-form-input max-width-5" placeholder="Bucket Size" ng-model="ctrl.target.bucketValue[$index]"/>
 
+          <label class="gf-form-label query-keyword width-3">AS</label>
+		  <input type="text" class="gf-form-input width=7" placeholder="alias" ng-model="ctrl.target.metricValueAliases[$index]"/>
+
           <button class = "btn btn-inverse gf-form-btn"  ng-click="ctrl.removeValueSegment($index)"><i class="fa fa-trash"></i></button>
         </div>
         <div class="gf-form">

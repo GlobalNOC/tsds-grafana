@@ -37,7 +37,12 @@ def get_timeframe(seconds):
 
         return "{0}s".format(seconds)
 
-def findtarget_names(tsds_result, alias_list):
+def findtarget_names(tsds_result, alias_list, target_aliases):
+        '''
+        tsds_result tsds result containing datapoints and metric names
+        alias_list List of template variables to be populated
+        target_aliases Hash of datapoint names to datapoint name aliases
+        '''
         returnname = []
 
         for key, value in tsds_result.iteritems():
@@ -76,7 +81,11 @@ def findtarget_names(tsds_result, alias_list):
                                         targetname.append(tsds_result[alias])
                                 elif alias == 'VALUE':
                                         targetname.pop(0)
-                                        targetname.append(target)
+
+                                        if key in target_aliases and target_aliases[key] != '':
+                                                targetname.append(target_aliases[key])
+                                        else:
+                                                targetname.append(target)
                 else:
                         # Get all keys without a value of type list to
                         # populate as the target name.
@@ -265,12 +274,16 @@ def query():
         maxDataPoints=1
 	target_alias =""
 	alias_list = []
+        target_aliases = {}
+
         for key,value in inpParameter.iteritems():
                 if key == "targets":
                         for eachElement in value:
                                 tsds_query.append(eachElement["target"])
 				if "alias" in eachElement and eachElement['alias'] != "":
 					target_alias = eachElement["alias"]
+                                if "targetAliases" in eachElement:
+                                        target_aliases = eachElement["targetAliases"]
                 if key =="range":
                         start_time = value["from"]
                         end_time = (value["to"])
@@ -311,7 +324,7 @@ def query():
 
                 for result in tsds_result["results"]:
                         # Generate target name for each datapoint set
-                        targets = findtarget_names(result, alias_list)
+                        targets = findtarget_names(result, alias_list, target_aliases)
 
                         for target in sorted(targets, key=lambda x: x['target']):
                                 # Format the data received from tsds
