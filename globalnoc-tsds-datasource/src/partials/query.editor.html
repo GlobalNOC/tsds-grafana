@@ -1,4 +1,3 @@
-<!-- <query-editor-row query-ctrl="ctrl" class="generic-datasource-query-row" has-text-edit-mode="true"> -->
 <query-editor-row query-ctrl="ctrl" can-collapse="false" has-text-edit-mode="true">
 
   <div ng-if="ctrl.target.rawQuery">
@@ -20,52 +19,39 @@
 	  </div>
 	</div>
 
+    <!-- GET -->
+    <div ng-repeat="segment in ctrl.target.metricValues_array track by $index">
+      <div class="gf-form-inline">
+        <div class="gf-form">
+          <label ng-if="$index == 0" class="gf-form-label query-keyword width-7">GET</label>
+          <div ng-if="$index != 0" style="padding-left: 97px;"></div>
 
-	<div class="gf-form-inline">
+          <span class="gf-form-select-wrapper">
+            <select class="gf-form-input width-8" style="width : 100px;" name="aggregator" ng-model ="ctrl.target.aggregator[$index]" bs-tooltip="'Select an Aggregator'">
+              <option "style = background: #292929" value="average">average</option>
+              <option "style = background: #292929" value="max">max</option>
+              <option "style = background: #292929" value="min">min</option>
+              <option "style = background: #292929" value="percentile">percentile</option>
+            </select>
+          </span>
 
-      <div class="gf-form">
-        <label class="gf-form-label query-keyword width-7">get Values</label>
-        <select style = "width : 100px;" name="aggregator" ng-model ="ctrl.target.aggregator[0]" bs-tooltip="'Select an Aggregator'">
-          <option "style = background: #292929" value="average">average</option>
-          <option "style = background: #292929" value="max">max</option>
-          <option "style = background: #292929" value="min">min</option>
-          <option "style = background: #292929" value="percentile">percentile</option>
-        </select>
-        <input type="text" ng-if ="ctrl.target.aggregator[0]=='percentile'"class="gf-form-input" style="width:80px;" placeholder = "Enter Value" ng-model="ctrl.target.percentileValue[0]"/>
-        <metric-segment-model property = "ctrl.target.metricValues_array[0]" get-options = "ctrl.getMetricValues()"></metric-segment-model>
-        <button class = "btn btn-inverse gf-form-btn query-keyword"  ng-click="ctrl.addBucket(0)" bs-tooltip="'Change bucketing size'"><i class="fa fa-bitbucket" aria-hidden="true"></i></button>
-		<input type="text" ng-if ="ctrl.target.bucket[0]=='bucket'"class="gf-form-input" style="width:70px;" placeholder = "Bucket Size" ng-model="ctrl.target.bucketValue[0]"/>
-        <button class = "btn btn-inverse gf-form-btn"  ng-click="ctrl.removeValueSegment(0)"><i class="fa fa-trash"></i></button>
-      </div>
-      <div class="gf-form">
-        <button class = "btn btn-inverse gf-form-btn query-keyword"  ng-click="ctrl.addValueSegments()"><i class="fa fa-plus"></i></button>
-      </div>
-	  <div class="gf-form gf-form--grow">
-        <div class="gf-form-label gf-form-label--grow"></div>
+          <input type="text" ng-if="ctrl.target.aggregator[$index]=='percentile'" class="gf-form-input width-7" placeholder="85" ng-model="ctrl.target.percentileValue[$index]"/>
+          <metric-segment-model css-class="width-10" property="ctrl.target.metricValues_array[$index]" get-options="ctrl.getMetricValues()"></metric-segment-model>
+
+          <button class="btn btn-inverse gf-form-btn query-keyword"  ng-click="ctrl.addBucket($index)" bs-tooltip="'Change bucketing size'"><i class="fa fa-bitbucket" aria-hidden="true"></i></button>
+		  <input type="text" ng-if="ctrl.target.bucket[$index]=='bucket'" class="gf-form-input max-width-5" placeholder="Bucket Size" ng-model="ctrl.target.bucketValue[$index]"/>
+
+          <button class = "btn btn-inverse gf-form-btn"  ng-click="ctrl.removeValueSegment($index)"><i class="fa fa-trash"></i></button>
+        </div>
+        <div class="gf-form">
+          <button class = "btn btn-inverse gf-form-btn query-keyword"  ng-click="ctrl.addValueSegments()"><i class="fa fa-plus"></i></button>
+        </div>
+	    <div class="gf-form gf-form--grow">
+          <div class="gf-form-label gf-form-label--grow"></div>
+        </div>
       </div>
     </div>
-	
-	<div ng-repeat = "segment in ctrl.target.metricValues_array track by $index">
-	  <div style="padding-left:95px;" ng-if = "$index > 0"class="gf-form-inline">
-	  <select style = "width : 100px;" name="aggregator" ng-model ="ctrl.target.aggregator[$index]" bs-tooltip="'Select an Aggregator'">
-        <option "style = background: #292929" value="average">average</option>
-        <option "style = background: #292929" value="max">max</option>
-        <option "style = background: #292929" value="min">min</option>
-		<option "style = background: #292929" value="percentile">percentile</option>
-	  </select>
-	  <input type="text" ng-if ="ctrl.target.aggregator[$index]=='percentile'"class="gf-form-input" style="width:80px;" placeholder = "Enter Value" ng-model="ctrl.target.percentileValue[$index]"/>
-	  <metric-segment-model property = "ctrl.target.metricValues_array[$index]" get-options = "ctrl.getMetricValues()"></metric-segment-model>
-      <button class = "btn btn-inverse gf-form-btn query-keyword"  ng-click="ctrl.addBucket($index)" bs-tooltip="'Change bucketing size'"><i class="fa fa-bitbucket" aria-hidden="true"></i></button>
-	  <input type="text" ng-if ="ctrl.target.bucket[$index]=='bucket'"class="gf-form-input" style="width:60px;" placeholder = "Bucket Size" ng-model="ctrl.target.bucketValue[$index]"/>
-	  <button class = "btn btn-inverse gf-form-btn"  ng-click="ctrl.removeValueSegment($index)"><i class="fa fa-trash"></i></button>
-	  <div class="gf-form">
-        <button class = "btn btn-inverse gf-form-btn query-keyword"  ng-click="ctrl.addValueSegments()"><i class="fa fa-plus"></i></button>
-      </div>
-	  <div class="gf-form gf-form--grow">
-        <div class="gf-form-label gf-form-label--grow"></div>
-      </div>
-	  </div>
-	</div>
+
 	<div class="gf-form-inline">
 	  <div class="gf-form">
         <label class="gf-form-label query-keyword width-7">get metric</label>

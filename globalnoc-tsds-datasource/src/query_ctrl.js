@@ -11,7 +11,6 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
     this.target.series = this.target.series||'select table';
     this.target.type = this.target.type || 'timeserie';
     this.target.condition = this.target.condition||[];
-    //this.target.groupby_field = this.target.groupby_field||[]; 
     this.target.groupby_field = this.target.groupby_field ||' ';
     this.target.metric_array = this.target.metric_array||['Select Metric'];
     this.target.metricValues_array = this.target.metricValues_array ||['Select Metric Value'];
