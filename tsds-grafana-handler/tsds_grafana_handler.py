@@ -12,10 +12,23 @@ from ast import literal_eval
 from copy import deepcopy
 
 
+location = None
+username = None
+password = None
+
+def loadConfiguration(config_file):
+        with open(config_file, 'r') as f:
+                config = json.load(f)
+
+        global location
+        location = config['tsds_url']
+        global username
+        username = config['username']
+        global password
+        password = config['password']
+
 def getUrl():
-	#tsds_url = "https://tsds.bldc.grnoc.iu.edu/i2/services/"
-	config_file = open("datasource_config.txt","r")
-	return literal_eval(config_file.read())["tsds_url"]
+        return location
 
 def atoi(text):
     return int(text) if text.isdigit() else text
@@ -92,9 +105,6 @@ def extract_time(start_time,end_time):
         return (start_time, end_time, oend-ostart) 
 
 def auth_Connection(url):
-	config_file = literal_eval(open("datasource_config.txt","r").read())
-	username = config_file["username"]
-        password = config_file["password"]
         passman = HTTPPasswordMgrWithDefaultRealm() # creating a password manager
         passman.add_password(None, url, username, password)
         authhandler = HTTPBasicAuthHandler(passman)
@@ -414,6 +424,8 @@ def drilldown():
                 generateDB(postParam)
 
 if __name__ == "__main__":
+        loadConfiguration("/etc/grnoc/globalnoc-tsds-datasource-handler/config.json")
+
 	print "Cache-Control: no-cache"
 	inpUrl  = os.environ["PATH_INFO"]
 	if len(inpUrl) == 0:
