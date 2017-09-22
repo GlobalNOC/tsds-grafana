@@ -49,7 +49,107 @@ export class GenericDatasource {
       if (response.status === 200) {
         return { status: "success", message: "Data source is working", title: "Success" };
       }
+
+      return { error: "Data source isn't working" };
     });
+  }
+
+  // getMeasurementType returns the TSDS measurement type to use when
+  // looking up measurement type values and metadata. The result of
+  // this function defaults to 'interface', but may be overridden by
+  // defining the name of an adhoc template variable. If multiple
+  // adhoc template variables are defined the name of the first is
+  // used.
+  getMeasurementType() {
+    var target = 'interface';
+    if (typeof this.templateSrv.variables !== 'undefined') {
+      var adhocVariables = this.templateSrv.variables.filter(filter => filter.type === 'adhoc');
+      target = adhocVariables[0].name;
+    }
+    return target;
+  }
+
+  // getParentmetaFields returns the parent meta fields of fieldName
+  // as an array.
+  //
+  // TODO parentMetaFields should only be fields defined to the right
+  // of fieldName.
+  getParentMetaFields(fieldName) {
+    var fields = [];
+
+    this.templateSrv.variables.forEach(function(element) {
+      if (element.type === 'adhoc') {
+        return;
+      }
+
+      fields.push({
+        key:   element.name,
+        value: element.current.value
+      });
+    });
+
+    if (typeof this.templateSrv.getAdhocFilters === 'undefined') {
+      return fields;
+    }
+
+    this.templateSrv.getAdhocFilters(this.name).map(function(element) {
+      if (element.key === fieldName) {
+        return;
+      }
+
+      fields.push({
+        key:   element.key,
+        value: element.value
+      });
+    });
+
+    return fields;
+  }
+
+  getTagKeys(options) {
+    var payload = {
+      url: this.url + '/search',
+      data: { type: 'Column', target: this.getMeasurementType() },
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    };
+    if (this.basicAuth || this.withCredentials) {
+      payload.withCredentials = true;
+    }
+    if (this.basicAuth) {
+      payload.headers.Authorization = self.basicAuth;
+    }
+
+    return this.backendSrv.datasourceRequest(payload).then(this.mapToTextValue);
+  }
+
+  getTagValues(options) {
+    var like = '';
+    if (typeof this.templateSrv.getAdhocFilters !== 'undefined') {
+      // TODO Update like field as user types
+      // console.log(this.templateSrv.getAdhocFilters(this.name));
+    }
+
+    var payload = {
+      url: this.url + '/search',
+      data: {
+        target: this.getMeasurementType(),
+        parent_meta_fields: this.getParentMetaFields(options.key),
+        meta_field: options.key,
+        like_field: like,
+	    type: 'Where_Related'
+      },
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    };
+    if (this.basicAuth || this.withCredentials) {
+      payload.withCredentials = true;
+    }
+    if (this.basicAuth) {
+      payload.headers.Authorization = self.basicAuth;
+    }
+
+    return this.backendSrv.datasourceRequest(payload).then(this.mapToTextValue);
   }
 
   annotationQuery(options) {
@@ -299,6 +399,27 @@ export class GenericDatasource {
     }
 
     buildQueryParameters(options, t) {
+
+      function getAdhocFilters() {
+        if (typeof t.templateSrv.getAdhocFilters === 'undefined') {
+          return '';
+        }
+
+        // [{ key: "intf", operator: "=", value: "xe-0/2/0.433" }]
+        var filters = t.templateSrv.getAdhocFilters(t.name);
+        if (filters.length === 0) {
+          return '';
+        }
+
+        var whereComps = filters.map(function(filter) {
+          return `${filter.key}${filter.operator}"${filter.value}"`;
+        });
+
+        return whereComps.join(' and ');
+      }
+
+      console.log(getAdhocFilters());
+
         var scopevar = options.scopedVars;
 	    var query = _.map(options.targets, function(target) {
 
@@ -355,7 +476,13 @@ export class GenericDatasource {
 						if(j>0) query = query +" "+target.inlineGroupOperator[i][j]+" ";
                         query += target.whereClauseGroup[i][j].left+" "+target.whereClauseGroup[i][j].op+" \""+target.whereClauseGroup[i][j].right+"\"";
 					}
-					query +=" )";
+
+                    var adhocFilters = getAdhocFilters();
+                    if (adhocFilters === '') {
+					  query +=" )";
+                    } else {
+                      query +=" and " + adhocFilters + " )";
+                    }
 				}
 
                 query = t.templateSrv.replace(query, scopevar);
