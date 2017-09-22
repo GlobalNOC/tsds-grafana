@@ -233,7 +233,7 @@ export class GenericDatasource {
  }
 
     generateDashboard(options, timeFrom, timeTo, DB_title, datasource, type) {
-        var target = typeof (options) === "string" ? options : options.target
+        var target = typeof (options) === "string" ? options : options.target;
         var interpolated = {
             query: this.templateSrv.replace(target, null, 'regex'),
 	        drill : options.drillDownValue,
@@ -284,7 +284,7 @@ export class GenericDatasource {
 
     mapToArray(result){
 	    if (result.data.length == 0) {
-		    result.data = ["No results found"]
+		    result.data = ["No results found"];
 	    }
 	    return result.data;
 	}
@@ -325,12 +325,21 @@ export class GenericDatasource {
 				    query+=',';
 			    }
 
-			    for(var index = 0 ; index < target.metricValues_array.length; index++){
-				    query+= ', aggregate(values.'+target.metricValues_array[index];
-				    if(typeof target.bucketValue[index] ==='undefined'|| target.bucketValue[index] ==='')  query+=', $quantify, ';
-				    else query+=', '+target.bucketValue[index]+', ';
-				    if(target.aggregator[index]=="percentile") query+= target.aggregator[index]+'('+target.percentileValue[index]+'))';
-				    else query+= target.aggregator[index]+')';
+                target.metricValueAliasMappings = {};
+			    for (var index=0; index < target.metricValues_array.length; index++) {
+
+                  var aggregation = 'aggregate(values.' + target.metricValues_array[index];
+				  if (typeof target.bucketValue[index] === 'undefined' || target.bucketValue[index] ==='') aggregation += ', $quantify, ';
+				  else aggregation += ', ' + target.bucketValue[index] + ', ';
+				  if (target.aggregator[index] == "percentile") aggregation += target.aggregator[index]+'('+target.percentileValue[index]+'))';
+				  else aggregation += target.aggregator[index]+')';
+
+                  if (typeof target.metricValueAliases[index] === 'undefined' || target.metricValueAliases[index] === null) {
+                    target.metricValueAliases[index] = '';
+                  }
+                  target.metricValueAliasMappings[aggregation.toString()] = target.metricValueAliases[index];
+
+				  query+= ', ' + aggregation;
                 }
 			    query+= ' between ($START,$END)';
 			    if (target.groupby_field != " ") {
@@ -363,12 +372,14 @@ export class GenericDatasource {
         var targets = _.map(options.targets, target => {
             return {
                 target: query[index++],
+                targetAliases: target.metricValueAliasMappings,
                 refId: target.refId,
                 hide: target.hide,
                 type: target.type || 'timeserie',
 	            alias : target.target_alias
             };
         });
+
         options.targets = targets;
         return options;
     }

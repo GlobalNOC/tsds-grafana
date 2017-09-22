@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 # enable debugging
+import string
 import sys
 import json
 from urllib import urlencode
@@ -36,43 +37,83 @@ def atoi(text):
 def natural_keys(text):
     return [ atoi(c) for c in re.split('(\d+)', text) ]
 
-def findtarget_names(tsds_result,i, alias_list):
-        returnname = []
-        results_dict = tsds_result["results"][i]
-	if len(alias_list) == 0:
-        	for key,value in results_dict.iteritems():
-                	targetname = []
-                	if isinstance(value, list): #when value is a list append its key with all the other non-list key-value pair
-                        	#targetname.append(key)
-				targetname.append(key[key.find("values")+7:key.find(",")])
-                        	nonValues = []
-                        	for k , v in results_dict.iteritems():
-                                	if not isinstance(v, list):
-                                        	nonValues.append(k)
-                        	nonValues.sort(key=natural_keys)
-                        	for nV in nonValues:
-					if results_dict[nV] == None:
-						targetname.append("| "+str(results_dict[nV]))
-					else:
-						data = results_dict[nV].encode('utf-8') #Code to handle UTF-8 encoeed strings
- 						targetname.append("| "+data.decode('utf-8'))
-                        	returnname.append(" ".join(targetname))
+def get_timeframe(seconds):
+        if seconds >= 86400:
+                # day
+                return "{0}d".format(seconds / 86400)
+        elif seconds >= 3600:
+                # hour
+                return "{0}h".format(seconds / 3600)
+        elif seconds >= 60:
+                # minute
+                return "{0}m".format(seconds / 60)
 
-	else:
-		for key,value in results_dict.iteritems():
-                        targetname = []
-                        if isinstance(value, list):
-                                #targetname.append(key)
-				targetname.append(key[key.find("values")+7:key.find(",")])
-                                nonValues = list(alias_list) #deep copy to counter alias_list values getting modified due to references
-                               	for i in range(0,len(nonValues)):
-        				if '$' in nonValues[i]: #Look for $ sign in alias_list and replace it with its correpsonding value from results
-						v = nonValues[i][1:]
-          					nonValues[i] = str(results_dict[v])
-						#nonValues[i] = results_dict[v].encode('utf-8')
-				targetname.append(" "+" ".join(nonValues))
-                                returnname.append(" ".join(targetname))
-					
+        return "{0}s".format(seconds)
+
+def findtarget_names(tsds_result, alias_list, target_aliases):
+        '''
+        tsds_result tsds result containing datapoints and metric names
+        alias_list List of template variables to be populated
+        target_aliases Hash of datapoint names to datapoint name aliases
+        '''
+        returnname = []
+
+        for key, value in tsds_result.iteritems():
+                # Ignores keys describing requested metrics
+                if not isinstance(value, list):
+                        continue
+
+                target = 'unknown'
+                if 'percentile' in key:
+                        _, measurement, seconds, aggregation, percentile, _, _ = re.split('[(,)]', key)
+                        measurement = measurement.replace('values.', '')
+                        measurement = string.capitalize(measurement)
+                        timeframe = get_timeframe(int(seconds))
+                        if aggregation.strip() == 'max': aggregation = 'maxe'
+
+                        # Output (1h 90th percentiles)
+                        target = "{0} ({1} {2}th {3}s)".format(measurement, timeframe, percentile, aggregation)
+                else:
+                        _, measurement, seconds, aggregation, _ = re.split('[(,)]', key)
+                        measurement = measurement.replace('values.', '')
+                        measurement = string.capitalize(measurement)
+                        timeframe = get_timeframe(int(seconds))
+                        if aggregation.strip() == 'max': aggregation = 'maxe'
+
+                        # Output (58s averages)
+                        target = "{0} ({1} {2}s)".format(measurement, timeframe, aggregation)
+
+                targetname = [target]
+
+                if len(alias_list) > 0:
+                        # Look for $ sign in alias_list and replace it
+                        # with its correpsonding value from results.
+                        for alias in filter(lambda alias: '$' in alias, alias_list):
+                                alias = alias.strip('$')
+                                if alias in tsds_result:
+                                        targetname.append(tsds_result[alias])
+                                elif alias == 'VALUE':
+                                        targetname.pop(0)
+
+                                        if key in target_aliases and target_aliases[key] != '':
+                                                targetname.append(target_aliases[key])
+                                        else:
+                                                targetname.append(target)
+                else:
+                        # Get all keys without a value of type list to
+                        # populate as the target name.
+                        nonValues = []
+                        for k, v in tsds_result.iteritems():
+                                if not isinstance(v, list):
+                                        nonValues.append(k)
+                        nonValues.sort(key=natural_keys)
+
+                        # May need to handle utf8 conversions here?
+                        for nV in nonValues:
+                                if nV in tsds_result: targetname.append(tsds_result[nV])
+
+                returnname.append({'name': key, 'target': " ".join(targetname)})
+
 	return returnname
 
 def match(key,targetname):
@@ -236,68 +277,55 @@ def search():
 def query():
         inpParameter = json.loads(sys.stdin.read())
 
-        #get to the target field of json : 
-        tsds_query=[]
-        start_time=""
-        end_time=""
-        maxDataPoints=1
-	target_alias =""
-	alias_list = []
-        for key,value in inpParameter.iteritems():
-                if key == "targets":
-                        for eachElement in value:
-                                tsds_query.append(eachElement["target"])
-				if "alias" in eachElement and eachElement['alias'] != "":
-					target_alias = eachElement["alias"]
-                if key =="range":
-                        start_time = value["from"]
-                        end_time = (value["to"])
-                if key =="maxDataPoints":
-                        maxDataPoints = value
+        end_time   = ""
+        start_time = ""
+        max_data_points = 1
+        output          = []
+        target_aliases  = {}
 
-	if target_alias != "":
-		alias_list = target_alias.split(' ')
+        if 'range' in inpParameter:
+                end_time   = inpParameter['range']['to']
+                start_time = inpParameter['range']['from']
 
-	time = extract_time(start_time,end_time)
-	start_time = time[0]
-	end_time = time[1]
-	time_duration = time[2]
-        aggValue = int(time_duration/maxDataPoints)
-	'''
-        if time_duration > 172800  and time_duration <= 604800:#Time between 2 and 7 days
-                aggValue = max(aggValue, int(86400/maxDataPoints))
-        elif time_duration > 604800 and time_duration <= 2592000 : #Time between 7 and 30 days
-                aggValue = max(aggValue, 3600)
-        elif time_duration > 2592000: #Time greater than 30 days
-                aggValue = max(aggValue, 86400)
-	'''
-	if time_duration >= 7776000:
-		aggValue = max(aggValue, 86400)
-	elif time_duration >= 259200:
-		aggValue = max(aggValue, 3600) 
+        if 'max_data_points' in inpParameter:
+                max_data_points = inpParameter['max_data_points']
 
-        output=[]
-	q=""
-	for index in range(len(tsds_query)):
-                tsds_query[index] = replaceQuery(tsds_query[index],start_time,end_time,aggValue)
-                #Request data from tsds - 
-		url= getUrl()+"query.cgi"
-		postParameters = {"method":"query","query":tsds_query[index]}
-		tsds_result = make_TSDS_Request(url,urlencode(postParameters))
-                #Prepare output for grafana
-                #Format the data received from tsds to grafana compatible data -
-                for i in range(len(tsds_result["results"])):
-                        #Search for target name - 
-                        target = findtarget_names(tsds_result, i, alias_list)
-                        for eachTarget in target:
-                                dict_element={"target":eachTarget}
-                                value = tsds_result["results"][i]
+        target_start, target_end, target_duration = extract_time(start_time, end_time)
+        target_aggregation = int(target_duration / max_data_points)
 
-                                for innerKey,innerValue in value.iteritems():
-                                	if isinstance(innerValue,list) and match(innerKey,eachTarget):
-                                        	dict_element["datapoints"] = convert(innerValue)
-                                output.append(dict_element)
-	#output = sorted(output, key=lambda k : k["target"])
+        if target_duration >= 7776000:
+                target_aggregation = max(target_aggregation, 86400)
+        elif target_duration >= 259200:
+                target_aggregation = max(target_aggregation, 3600)
+
+        for target in inpParameter['targets']:
+                target_aliases       = target['targetAliases']
+                target_name_template = target['alias'].split(' ') if target['alias'] != '' else None
+
+                query = replaceQuery(
+                        target['target'],
+                        target_start,
+                        target_end,
+                        target_aggregation
+                )
+                url = getUrl() + 'query.cgi'
+                params = {
+                        'method': 'query',
+                        'query': query
+                }
+
+                res = make_TSDS_Request(url, urlencode(params))
+                for result in res['results']:
+                        # Generate target name for each datapoint set
+
+                        target_results = findtarget_names(result, target_name_template, target_aliases)
+                        for target_result in sorted(target_results, key=lambda x: x['target']):
+                                # Format the data received from tsds
+                                # to grafana compatible data
+                                datapoints = result[target_result['name']]
+                                target_result['datapoints'] = convert(datapoints)
+                                output.append(target_result)
+
         print "Content-Type: application/json" # set the HTTP response header to json data
         print "Cache-Control: no-cache\n"
         print json.dumps(output)

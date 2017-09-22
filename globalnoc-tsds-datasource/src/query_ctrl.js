@@ -11,10 +11,10 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
     this.target.series = this.target.series||'select table';
     this.target.type = this.target.type || 'timeserie';
     this.target.condition = this.target.condition||[];
-    //this.target.groupby_field = this.target.groupby_field||[]; 
     this.target.groupby_field = this.target.groupby_field ||' ';
     this.target.metric_array = this.target.metric_array||['Select Metric'];
-    this.target.metricValues_array = this.target.metricValues_array ||['Select Metric Value'];
+    this.target.metricValues_array = this.target.metricValues_array || ['Select Metric Value'];
+    this.target.metricValueAliases = this.target.metricValueAliases || [''];
     this.target.aggregator = this.target.aggregator ||['average'];
     this.target.target_alias = this.target.target_alias||"";
     this.target.whereClauseGroup = this.target.whereClauseGroup||[[{'left':'Select Metric','op':'','right':''}]];
@@ -62,15 +62,17 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
 	}
 
   addValueSegments(){
-                this.target.metricValues_array.push('Select Metric Value');
-		this.target.aggregator.push('average');
-		this.target.percentileValue.push('');
-        } 
+    this.target.metricValues_array.push('Select Metric Value');
+    this.target.metricValueAliases.push('');
+	this.target.aggregator.push('average');
+	this.target.percentileValue.push('');
+  }
 
  removeValueSegment(index){
-		this.target.metricValues_array.splice(index,1);
+   this.target.metricValues_array.splice(index, 1);
+   this.target.metricValueAliases.splice(index, 1);
+ }
 
-	}
  addGroupBy(){
 		this.target.groupby_field.push('Select Column');
 		console.log(this.target.groupby_field);
