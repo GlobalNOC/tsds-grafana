@@ -37,17 +37,55 @@ def get_timeframe(seconds):
 
         return "{0}s".format(seconds)
 
-def findtarget_names(tsds_result, alias_list, target_aliases):
+def is_metric(key):
+        ''' Returns true if key is a metric
         '''
+
+        if 'values.' in key:
+                return False
+        else:
+                return True
+
+def metric_label(tsds_result):
+        ''' Builds a graph label based on a tsds result
+
+        tsds_result tsds result containing datapoints and metric names
+        '''
+        # Get all metric names to populate as the target name.
+        targetname = []
+        nonValues  = []
+        for k, v in tsds_result.iteritems():
+                if is_metric(k):
+                        nonValues.append(k)
+        nonValues.sort(key=natural_keys)
+
+        # May need to handle utf8 conversions here?
+        for nV in nonValues:
+                if nV in tsds_result: targetname.append(tsds_result[nV])
+
+        return targetname
+
+def findtarget_names(tsds_result, alias_list, target_aliases):
+        ''' Builds a list of datapoint set names and their graph label
+
         tsds_result tsds result containing datapoints and metric names
         alias_list List of template variables to be populated
         target_aliases Hash of datapoint names to datapoint name aliases
+
+        ex. aggregate(values.input, 300, average) => Input (5m averages)
         '''
         returnname = []
 
         for key, value in tsds_result.iteritems():
                 # Ignores keys describing requested metrics
-                if not isinstance(value, list):
+                if is_metric(key):
+                        continue
+
+                datapoint_args = map(lambda x: x.strip(), re.split('[(,)]', key))
+
+                # [u'sum', u'aggregate', u'values.output', u'300', u'average', u'', u'']
+                if not datapoint_args[0] == u'aggregate':
+                        returnname.append({'name': key, 'target': " ".join(metric_label(tsds_result))})
                         continue
 
                 target = 'unknown'
@@ -72,7 +110,7 @@ def findtarget_names(tsds_result, alias_list, target_aliases):
 
                 targetname = [target]
 
-                if len(alias_list) > 0:
+                if not alias_list is None and len(alias_list) > 0:
                         # Look for $ sign in alias_list and replace it
                         # with its correpsonding value from results.
                         for alias in filter(lambda alias: '$' in alias, alias_list):
@@ -87,17 +125,7 @@ def findtarget_names(tsds_result, alias_list, target_aliases):
                                         else:
                                                 targetname.append(target)
                 else:
-                        # Get all keys without a value of type list to
-                        # populate as the target name.
-                        nonValues = []
-                        for k, v in tsds_result.iteritems():
-                                if not isinstance(v, list):
-                                        nonValues.append(k)
-                        nonValues.sort(key=natural_keys)
-
-                        # May need to handle utf8 conversions here?
-                        for nV in nonValues:
-                                if nV in tsds_result: targetname.append(tsds_result[nV])
+                        targetname = targetname + metric_label(tsds_result)
 
                 returnname.append({'name': key, 'target': " ".join(targetname)})
 
@@ -297,8 +325,8 @@ def query():
                 end_time   = inpParameter['range']['to']
                 start_time = inpParameter['range']['from']
 
-        if 'max_data_points' in inpParameter:
-                max_data_points = inpParameter['max_data_points']
+        if 'maxDataPoints' in inpParameter:
+                max_data_points = inpParameter['maxDataPoints']
 
         target_start, target_end, target_duration = extract_time(start_time, end_time)
         target_aggregation = int(target_duration / max_data_points)
@@ -333,7 +361,12 @@ def query():
                                 # Format the data received from tsds
                                 # to grafana compatible data
                                 datapoints = result[target_result['name']]
-                                target_result['datapoints'] = convert(datapoints)
+
+                                if isinstance(datapoints, list):
+                                        target_result['datapoints'] = convert(datapoints)
+                                else:
+                                        target_result['datapoints'] = [[datapoints, target_end]]
+
                                 output.append(target_result)
 
         print "Content-Type: application/json" # set the HTTP response header to json data
