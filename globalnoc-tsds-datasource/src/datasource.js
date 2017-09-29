@@ -69,11 +69,10 @@ export class GenericDatasource {
     return target;
   }
 
-  // getParentmetaFields returns the parent meta fields of fieldName
-  // as an array.
-  //
-  // TODO parentMetaFields should only be fields defined to the right
-  // of fieldName.
+  // getParentMetaFields returns the parent meta fields of fieldName
+  // as an array. getParentMetaFields should only return adhoc filters
+  // defined to the left of fieldName, and all other template
+  // variables.
   getParentMetaFields(fieldName) {
     var fields = [];
 
@@ -92,16 +91,17 @@ export class GenericDatasource {
       return fields;
     }
 
-    this.templateSrv.getAdhocFilters(this.name).map(function(element) {
-      if (element.key === fieldName) {
-        return;
+    var adhocFilters = this.templateSrv.getAdhocFilters(this.name);
+    for (var i = 0; i < adhocFilters.length; i++) {
+      if (adhocFilters[i].key === fieldName) {
+        break;
       }
 
       fields.push({
-        key:   element.key,
-        value: element.value
+        key:   adhocFilters[i].key,
+        value: adhocFilters[i].value
       });
-    });
+    }
 
     return fields;
   }
