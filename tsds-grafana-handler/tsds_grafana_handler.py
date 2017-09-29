@@ -47,30 +47,21 @@ def is_metric(key):
                 return True
 
 def metric_label(tsds_result):
-        ''' Builds a graph label based on a tsds result
+        ''' Builds a graph label based on a tsds result's metric values
 
         tsds_result tsds result containing datapoints and metric names
         '''
-        # Get all metric names to populate as the target name.
-        targetname = []
-        nonValues  = []
-        for k, v in tsds_result.iteritems():
-                if is_metric(k):
-                        nonValues.append(k)
-        nonValues.sort(key=natural_keys)
+        keys = tsds_result.keys()
+        keys.sort(key=natural_keys)
 
-        # May need to handle utf8 conversions here?
-        for nV in nonValues:
-                if nV in tsds_result: targetname.append(tsds_result[nV])
+        return [tsds_result[key] for key in filter(lambda x: is_metric(x), keys)]
 
-        return targetname
-
-def findtarget_names(tsds_result, alias_list, target_aliases):
+def findtarget_names(tsds_result, alias_list, datapoint_aliases):
         ''' Builds a list of datapoint set names and their graph label
 
         tsds_result tsds result containing datapoints and metric names
         alias_list List of template variables to be populated
-        target_aliases Hash of datapoint names to datapoint name aliases
+        datapoint_aliases Hash of datapoint names to datapoint name aliases
 
         ex. aggregate(values.input, 300, average) => Input (5m averages)
         '''
@@ -81,36 +72,40 @@ def findtarget_names(tsds_result, alias_list, target_aliases):
                 if is_metric(key):
                         continue
 
+                # ex. [u'sum', u'aggregate', u'values.output', u'300', u'average', u'', u'']
                 datapoint_args = map(lambda x: x.strip(), re.split('[(,)]', key))
+                name = None
 
-                # [u'sum', u'aggregate', u'values.output', u'300', u'average', u'', u'']
-                if not datapoint_args[0] == u'aggregate':
-                        returnname.append({'name': key, 'target': " ".join(metric_label(tsds_result))})
-                        continue
-
-                target = 'unknown'
-                if 'percentile' in key:
-                        _, measurement, seconds, aggregation, percentile, _, _ = re.split('[(,)]', key)
+                if datapoint_args[0] != 'aggregate':
+                        # If the tsds query isn't a simple aggregate
+                        # just return the datapoints name.
+                        name = key
+                elif key in datapoint_aliases and datapoint_aliases[key] != '':
+                        # Use an alias if one was defined for this
+                        # datapoints' name.
+                        name = datapoint_aliases[key]
+                elif 'percentile' in key:
+                        _, measurement, seconds, aggregation, percentile, _, _ = datapoint_args
                         measurement = measurement.replace('values.', '')
                         measurement = string.capitalize(measurement)
                         timeframe = get_timeframe(int(seconds))
                         if aggregation.strip() == 'max': aggregation = 'maxe'
 
                         # Output (1h 90th percentiles)
-                        target = "{0} ({1} {2}th {3}s)".format(measurement, timeframe, percentile, aggregation)
+                        name = "{0} ({1} {2}th {3}s)".format(measurement, timeframe, percentile, aggregation)
                 else:
-                        _, measurement, seconds, aggregation, _ = re.split('[(,)]', key)
+                        _, measurement, seconds, aggregation, _ = datapoint_args
                         measurement = measurement.replace('values.', '')
                         measurement = string.capitalize(measurement)
                         timeframe = get_timeframe(int(seconds))
                         if aggregation.strip() == 'max': aggregation = 'maxe'
 
                         # Output (58s averages)
-                        target = "{0} ({1} {2}s)".format(measurement, timeframe, aggregation)
+                        name = "{0} ({1} {2}s)".format(measurement, timeframe, aggregation)
 
-                targetname = [target]
+                targetname = [name]
 
-                if not alias_list is None and len(alias_list) > 0:
+                if alias_list:
                         # Look for $ sign in alias_list and replace it
                         # with its correpsonding value from results.
                         for alias in filter(lambda alias: '$' in alias, alias_list):
@@ -119,11 +114,7 @@ def findtarget_names(tsds_result, alias_list, target_aliases):
                                         targetname.append(tsds_result[alias])
                                 elif alias == 'VALUE':
                                         targetname.pop(0)
-
-                                        if key in target_aliases and target_aliases[key] != '':
-                                                targetname.append(target_aliases[key])
-                                        else:
-                                                targetname.append(target)
+                                        targetname.append(name)
                 else:
                         targetname = targetname + metric_label(tsds_result)
 
@@ -358,13 +349,22 @@ def query():
 
                         target_results = findtarget_names(result, target_name_template, target_aliases)
                         for target_result in sorted(target_results, key=lambda x: x['target']):
-                                # Format the data received from tsds
-                                # to grafana compatible data
                                 datapoints = result[target_result['name']]
-
                                 if isinstance(datapoints, list):
+                                        # Format the data received
+                                        # from tsds to grafana
+                                        # compatible data.
                                         target_result['datapoints'] = convert(datapoints)
                                 else:
+                                        # It's possible that a user
+                                        # may request something like
+                                        # sum(aggregate(...)) which
+                                        # will result in a single
+                                        # datapoint being
+                                        # returned. Grafana expects
+                                        # all data in time series
+                                        # format, so we must convert
+                                        # before returning.
                                         target_result['datapoints'] = [[datapoints, target_end]]
 
                                 output.append(target_result)
