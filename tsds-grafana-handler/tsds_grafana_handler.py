@@ -76,14 +76,14 @@ def findtarget_names(tsds_result, alias_list, datapoint_aliases):
                 datapoint_args = map(lambda x: x.strip(), re.split('[(,)]', key))
                 name = None
 
-                if datapoint_args[0] != 'aggregate':
-                        # If the tsds query isn't a simple aggregate
-                        # just return the datapoints name.
-                        name = key
-                elif key in datapoint_aliases and datapoint_aliases[key] != '':
+                if key in datapoint_aliases and datapoint_aliases[key] != '':
                         # Use an alias if one was defined for this
                         # datapoints' name.
                         name = datapoint_aliases[key]
+                elif datapoint_args[0] != 'aggregate':
+                        # If the tsds query isn't a simple aggregate
+                        # just return the datapoints name.
+                        name = key
                 elif 'percentile' in key:
                         _, measurement, seconds, aggregation, percentile, _, _ = datapoint_args
                         measurement = measurement.replace('values.', '')
