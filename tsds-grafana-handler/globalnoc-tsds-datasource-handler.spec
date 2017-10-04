@@ -44,3 +44,5 @@ rm -rf $RPM_BUILDR_ROOT
 %files
 %{_datarootdir}/grnoc/globalnoc-tsds-datasource-handler
 %{_sysconfdir}/grnoc/globalnoc-tsds-datasource-handler
+
+%config(noreplace) %{_sysconfdir}/grnoc/globalnoc-tsds-datasource-handler/config.json
