@@ -1,6 +1,5 @@
 {
-	"tsds_url":"https://netsage-archive.grnoc.iu.edu/tsds/services-basic/",
-	"#COMMENT": "tsds.bldc.grnoc.iu.edu/i2/services/",
+	"tsds_url":"https://some.server.com/tsds/services/",
 	"username":"test_user",
 	"password":"testpass123"		
 }
