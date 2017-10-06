@@ -131,6 +131,14 @@ def findtarget_names(tsds_result, alias_list, datapoint_aliases):
                 else:
                         targetname = targetname + metric_label(tsds_result)
 
+
+                # It's possible that some fields came back as null, in order to not
+                # break the .join below cast them to empty string instead
+                for i in range(len(targetname)):
+                        if targetname[i] is None:
+                                targetname[i] = ""
+                        
+
                 returnname.append({'name': key, 'target': " ".join(targetname)})
 
 	return returnname
@@ -338,7 +346,7 @@ def query():
                 target_aggregation = max(target_aggregation, 3600)
 
         for target in inpParameter['targets']:
-                target_aliases       = target['targetAliases']
+                target_aliases       = target.get('targetAliases', {}) 
                 target_name_template = target['alias'].split(' ') if target['alias'] != '' else None
 
                 query = replaceQuery(
