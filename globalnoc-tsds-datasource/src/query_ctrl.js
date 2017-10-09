@@ -1,5 +1,5 @@
 import {QueryCtrl} from 'app/plugins/sdk';
-import './css/query-editor.css!'
+import './css/query-editor.css!';
 
 export class GenericDatasourceQueryCtrl extends QueryCtrl {
 
@@ -21,8 +21,7 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
     this.target.inlineGroupOperator = this.target.inlineGroupOperator||[['']];
     this.target.outerGroupOperator = this.target.outerGroupOperator || [''];
     this.target.percentileValue = this.target.percentileValue||[''];
-    this.target.bucket = this.target.bucket||[];
-    this.target.bucketValue = this.target.bucketValue||[];
+    this.target.bucket = this.target.bucket || [];
     this.target.drillDownAlias = "";
     this.index="";
     this.parentIndex="";
@@ -65,13 +64,17 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
     this.target.metricValues_array.push('Select Metric Value');
     this.target.metricValueAliases.push('');
 	this.target.aggregator.push('average');
+    this.target.bucket.push('');
 	this.target.percentileValue.push('');
   }
 
- removeValueSegment(index){
-   this.target.metricValues_array.splice(index, 1);
-   this.target.metricValueAliases.splice(index, 1);
- }
+  removeValueSegment(index){
+    this.target.metricValues_array.splice(index, 1);
+    this.target.metricValueAliases.splice(index, 1);
+    this.target.aggregator.splice(index, 1);
+    this.target.bucket.splice(index, 1);
+    this.target.percentileValue.splice(index, 1);
+  }
 
  addGroupBy(){
 		this.target.groupby_field.push('Select Column');
@@ -80,13 +83,6 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
 
  removeGroupBy(index){
 		this.target.groupby_field.splice(index,1);
-	}
-
-
-
- addBucket(index){
-		this.target.bucket.splice(index,0,'bucket');
-		this.target.bucketValue.splice(index,0,'');
 	}
 
   getColumns() {

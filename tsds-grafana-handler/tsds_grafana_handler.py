@@ -152,8 +152,22 @@ def convert(innerValue):
         return [[element[0],element[1]*1000] for element in IV]
 
 #Replace $START, $END, and $quantify variables in query with its corresponding value
-def replaceQuery(query,start_time,end_time, aggValue):
-        replace = {"$START":start_time,"$END":end_time, "$quantify":str(aggValue), "{":" ", "}":" "}
+def replaceQuery(query,start_time,end_time, duration, buckets):
+
+        def bucket_size(size):
+                if size == "": size = 0
+                if duration >= 7776000:
+                        size = max(86400, size)
+                elif duration >= 259200:
+                        size = max(3600, size)
+                else:
+                        size = max(60, size)
+                return size
+
+        while "$quantify" in query:
+                query = query.replace("$quantify", str(bucket_size(buckets.pop(0))), 1)
+
+        replace = {"$START":start_time,"$END":end_time, "{":" ", "}":" "}
         replace = dict((re.escape(key),value) for key, value in replace.iteritems())
         pattern = re.compile("|".join(replace.keys()))
         return pattern.sub(lambda m: replace[re.escape(m.group(0))], query)
@@ -282,19 +296,13 @@ def search():
                         start_time = time[0]
                         end_time = time[1]
                         time_duration = time[2]
-                        maxDataPoints = 1
-                        aggValue = int(time_duration/maxDataPoints)
-
-                        if time_duration >= 7776000:
-                                aggValue = max(aggValue, 86400)
-                        elif time_duration >= 259200:
-                                aggValue = max(aggValue, 3600)
 
                         inpParameter["target"] = replaceQuery(
                                 inpParameter["target"],
                                 start_time,
                                 end_time,
-                                aggValue
+                                time_duration,
+                                []
                         )
 
 		url = getUrl()+"query.cgi"
@@ -338,12 +346,6 @@ def query():
                 max_data_points = inpParameter['maxDataPoints']
 
         target_start, target_end, target_duration = extract_time(start_time, end_time)
-        target_aggregation = int(target_duration / max_data_points)
-
-        if target_duration >= 7776000:
-                target_aggregation = max(target_aggregation, 86400)
-        elif target_duration >= 259200:
-                target_aggregation = max(target_aggregation, 3600)
 
         for target in inpParameter['targets']:
                 target_aliases       = target.get('targetAliases', {}) 
@@ -353,7 +355,8 @@ def query():
                         target['target'],
                         target_start,
                         target_end,
-                        target_aggregation
+                        target_duration,
+                        target.get('targetBuckets')
                 )
                 url = getUrl() + 'query.cgi'
                 params = {

@@ -418,47 +418,45 @@ export class GenericDatasource {
         return whereComps.join(' and ');
       }
 
-      console.log(getAdhocFilters());
+      var scopevar = options.scopedVars;
+	  var query = _.map(options.targets, function(target) {
+        // Returns target when not formated as a tsds query
+        // object.
+        if (typeof(target) === "string") { return target; }
 
-        var scopevar = options.scopedVars;
-	    var query = _.map(options.targets, function(target) {
+		if(target.rawQuery){
+		  var query = t.templateSrv.replace(target.target, scopevar);
+		  var oldQ = query.substr(query.indexOf("{"), query.length);
+		  var formatQ = oldQ.replace(/,/gi, " or ");
 
-            // Returns target when not formated as a tsds query
-            // object.
-            if (typeof(target) === "string") { return target; }
+		  query = query.replace(oldQ, formatQ);
+		  return query;
+		} else{
 
-		    if(target.rawQuery){
-			    var query = t.templateSrv.replace(target.target, scopevar);
-			    var oldQ = query.substr(query.indexOf("{"), query.length);
-			    var formatQ = oldQ.replace(/,/gi, " or ");
+		  var query = 'get ';
+		  var seriesName = target.series;
 
-			    query = query.replace(oldQ, formatQ);
-			    return query;
-		    } else{
-			    var query = 'get ';
-			    var seriesName = target.series;
+		  for(var index = 0 ; index < target.metric_array.length; index++){
+			query+= ' '+target.metric_array[index];
+			if ( index+1 == target.metric_array.length){
+			  break;
+			}
+			query+=',';
+		  }
 
-			    for(var index = 0 ; index < target.metric_array.length; index++){
-				    query+= ' '+target.metric_array[index];
-				    if ( index+1 == target.metric_array.length){
-					    break;
-				    }
-				    query+=',';
-			    }
+          target.metricValueAliasMappings = {};
+		  for (var index=0; index < target.metricValues_array.length; index++) {
 
-                target.metricValueAliasMappings = {};
-			    for (var index=0; index < target.metricValues_array.length; index++) {
+            var aggregation = 'aggregate(values.' + target.metricValues_array[index];
+            aggregation += ', $quantify, ';
 
-                  var aggregation = 'aggregate(values.' + target.metricValues_array[index];
-				  if (typeof target.bucketValue[index] === 'undefined' || target.bucketValue[index] ==='') aggregation += ', $quantify, ';
-				  else aggregation += ', ' + target.bucketValue[index] + ', ';
-				  if (target.aggregator[index] == "percentile") aggregation += target.aggregator[index]+'('+target.percentileValue[index]+'))';
-				  else aggregation += target.aggregator[index]+')';
+			if (target.aggregator[index] == "percentile") aggregation += target.aggregator[index]+'('+target.percentileValue[index]+'))';
+			else aggregation += target.aggregator[index]+')';
 
-                  if (typeof target.metricValueAliases[index] === 'undefined' || target.metricValueAliases[index] === null) {
-                    target.metricValueAliases[index] = '';
-                  }
-                  target.metricValueAliasMappings[aggregation.toString()] = target.metricValueAliases[index];
+            if (typeof target.metricValueAliases[index] === 'undefined' || target.metricValueAliases[index] === null) {
+              target.metricValueAliases[index] = '';
+            }
+            target.metricValueAliasMappings[aggregation.toString()] = target.metricValueAliases[index];
 
 				  query+= ', ' + aggregation;
                 }
@@ -493,13 +491,14 @@ export class GenericDatasource {
 			    target.target = query;
 			    return query;
 		    }
-	    }.bind(scopevar));
+	  }.bind(scopevar));
 
         var index = 0;
         var targets = _.map(options.targets, target => {
             return {
                 target: query[index++],
                 targetAliases: target.metricValueAliasMappings,
+                targetBuckets: target.bucket,
                 refId: target.refId,
                 hide: target.hide,
                 type: target.type || 'timeserie',
