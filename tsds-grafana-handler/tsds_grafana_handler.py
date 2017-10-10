@@ -152,10 +152,12 @@ def convert(innerValue):
         return [[element[0],element[1]*1000] for element in IV]
 
 #Replace $START, $END, and $quantify variables in query with its corresponding value
-def replaceQuery(query,start_time,end_time, duration, buckets):
+def replaceQuery(query, start, end, buckets, max_data_points=1):
+        start, end, duration = extract_time(start, end)
+        default_bucket_size  = int(duration / max_data_points)
 
         def bucket_size(size):
-                if size == "": size = 0
+                if size == "": size = default_bucket_size
                 if duration >= 7776000:
                         size = max(86400, size)
                 elif duration >= 259200:
@@ -167,7 +169,7 @@ def replaceQuery(query,start_time,end_time, duration, buckets):
         while "$quantify" in query:
                 query = query.replace("$quantify", str(bucket_size(buckets.pop(0))), 1)
 
-        replace = {"$START":start_time,"$END":end_time, "{":" ", "}":" "}
+        replace = {"$START":start, "$END":end, "{":" ", "}":" "}
         replace = dict((re.escape(key),value) for key, value in replace.iteritems())
         pattern = re.compile("|".join(replace.keys()))
         return pattern.sub(lambda m: replace[re.escape(m.group(0))], query)
@@ -289,21 +291,10 @@ def search():
 
                 if "range" in inpParameter:
                         value = inpParameter["range"]
-                        start_time = value["from"]
-                        end_time = value["to"]
+                        start = value["from"]
+                        end = value["to"]
 
-                        time = extract_time(start_time, end_time)
-                        start_time = time[0]
-                        end_time = time[1]
-                        time_duration = time[2]
-
-                        inpParameter["target"] = replaceQuery(
-                                inpParameter["target"],
-                                start_time,
-                                end_time,
-                                time_duration,
-                                []
-                        )
+                        inpParameter["target"] = replaceQuery(inpParameter["target"], start, end, [])
 
 		url = getUrl()+"query.cgi"
 		postParameters = {"method":"query","query":inpParameter["target"]}
@@ -332,32 +323,26 @@ def search():
 def query():
         inpParameter = json.loads(sys.stdin.read())
 
-        end_time   = ""
-        start_time = ""
+        end   = ""
+        start = ""
         max_data_points = 1
         output          = []
-        target_aliases  = {}
+        aliases  = {}
 
         if 'range' in inpParameter:
-                end_time   = inpParameter['range']['to']
-                start_time = inpParameter['range']['from']
+                end   = inpParameter['range']['to']
+                start = inpParameter['range']['from']
 
         if 'maxDataPoints' in inpParameter:
                 max_data_points = inpParameter['maxDataPoints']
 
-        target_start, target_end, target_duration = extract_time(start_time, end_time)
-
         for target in inpParameter['targets']:
-                target_aliases       = target.get('targetAliases', {}) 
-                target_name_template = target['alias'].split(' ') if target['alias'] != '' else None
+                aliases  = target.get('targetAliases', {})
+                buckets  = target.get('targetBuckets', [])
+                template = target['alias'].split(' ') if target['alias'] != '' else None
 
-                query = replaceQuery(
-                        target['target'],
-                        target_start,
-                        target_end,
-                        target_duration,
-                        target.get('targetBuckets')
-                )
+                query = replaceQuery(target['target'], start, end, buckets, max_data_points=max_data_points)
+
                 url = getUrl() + 'query.cgi'
                 params = {
                         'method': 'query',
@@ -368,7 +353,7 @@ def query():
                 for result in res['results']:
                         # Generate target name for each datapoint set
 
-                        target_results = findtarget_names(result, target_name_template, target_aliases)
+                        target_results = findtarget_names(result, template, aliases)
                         for target_result in sorted(target_results, key=lambda x: x['target']):
                                 datapoints = result[target_result['name']]
                                 if isinstance(datapoints, list):
@@ -386,7 +371,8 @@ def query():
                                         # all data in time series
                                         # format, so we must convert
                                         # before returning.
-                                        target_result['datapoints'] = [[datapoints, target_end]]
+                                        _, end, _ = extract_time(start, end)
+                                        target_result['datapoints'] = [[datapoints, end]]
 
                                 output.append(target_result)
 
