@@ -169,7 +169,7 @@ def replaceQuery(query, start, end, buckets, max_data_points=1):
         while "$quantify" in query:
                 query = query.replace("$quantify", str(bucket_size(buckets.pop(0))), 1)
 
-        replace = {"$START":start, "$END":end, "{":" ", "}":" "}
+        replace = {"$START":start, "$END":end, "$TIMESPAN":str(int(duration)), "{":" ", "}":" "}
         replace = dict((re.escape(key),value) for key, value in replace.iteritems())
         pattern = re.compile("|".join(replace.keys()))
         return pattern.sub(lambda m: replace[re.escape(m.group(0))], query)
@@ -371,8 +371,8 @@ def query():
                                         # all data in time series
                                         # format, so we must convert
                                         # before returning.
-                                        _, end, _ = extract_time(start, end)
-                                        target_result['datapoints'] = [[datapoints, end]]
+                                        _, tmp_end, _ = extract_time(start, end)
+                                        target_result['datapoints'] = [[datapoints, tmp_end]]
 
                                 output.append(target_result)
 
