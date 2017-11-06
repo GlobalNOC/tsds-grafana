@@ -12,6 +12,7 @@ import datetime
 from ast import literal_eval
 from copy import deepcopy
 
+DEBUG_MODE = 0
 
 location = None
 username = None
@@ -121,7 +122,11 @@ def findtarget_names(tsds_result, alias_list, datapoint_aliases):
                 if alias_list:
                         # Look for $ sign in alias_list and replace it
                         # with its correpsonding value from results.
-                        for alias in filter(lambda alias: '$' in alias, alias_list):
+                        for alias in alias_list:
+                                if not alias.startswith('$'):
+                                        targetname.append(alias)
+                                        continue
+
                                 alias = alias.strip('$')
                                 if alias in tsds_result:
                                         targetname.append(tsds_result[alias])
@@ -152,12 +157,13 @@ def convert(innerValue):
         return [[element[0],element[1]*1000] for element in IV]
 
 #Replace $START, $END, and $quantify variables in query with its corresponding value
-def replaceQuery(query, start, end, buckets, max_data_points=1):
+def replaceQuery(query, start, end, buckets, max_data_points=1, aliases={}):
         start, end, duration = extract_time(start, end)
         default_bucket_size  = int(duration / max_data_points)
 
         def bucket_size(size):
-                if size == "": size = default_bucket_size
+                if size == "": size = default_bucket_size                
+                size = int(size)
                 if duration >= 7776000:
                         size = max(86400, size)
                 elif duration >= 259200:
@@ -166,8 +172,45 @@ def replaceQuery(query, start, end, buckets, max_data_points=1):
                         size = max(60, size)
                 return size
 
+        debug('query is \"%s\"' % query)
+        debug('buckets are %s' % buckets)
+
+
+        # figure out what order the aliases represent in the query
+        # so that buckets[0] == aliases[0], any alias involving
+        # "$quantify" isn't going to have that string in it when
+        # it gets back from TSDS. Aliases really should be changed
+        # to be an array and paired off w/ buckets
+        positions = {}
+        debug('aliases are %s' % aliases)
+        for alias in aliases.keys():
+                if alias not in query:
+                        continue
+                index = query.index(alias)
+                positions[index] = alias
+        indexes = positions.keys()
+        indexes.sort()
+
+        debug('positions are %s' % positions)
+
         while "$quantify" in query:
-                query = query.replace("$quantify", str(bucket_size(buckets.pop(0))), 1)
+                if len(buckets) == 0:
+                        val = ""
+                else:
+                        val = buckets.pop(0)
+                replace_val = str(bucket_size(val))
+
+                alias = positions[indexes.pop(0)]
+                swap  = aliases[alias]
+                del aliases[alias]
+                alias = alias.replace('$quantify', replace_val)
+                aliases[alias] = swap
+
+                debug('calculated bucket from %s to %s with duration %s' % (val, replace_val, duration))
+                query = query.replace("$quantify", replace_val, 1)
+
+
+        debug('query after quantify replace = \"%s\"' % query)
 
         replace = {"$START":start, "$END":end, "$TIMESPAN":str(int(duration)), "{":" ", "}":" "}
         replace = dict((re.escape(key),value) for key, value in replace.iteritems())
@@ -339,9 +382,10 @@ def query():
         for target in inpParameter['targets']:
                 aliases  = target.get('targetAliases', {})
                 buckets  = target.get('targetBuckets', [])
+
                 template = target['alias'].split(' ') if target['alias'] != '' else None
 
-                query = replaceQuery(target['target'], start, end, buckets, max_data_points=max_data_points)
+                query = replaceQuery(target['target'], start, end, buckets, max_data_points=max_data_points, aliases=aliases)
 
                 url = getUrl() + 'query.cgi'
                 params = {
@@ -500,6 +544,11 @@ def drilldown():
 
 		postParam = {"dashboard":db,"overwrite": True }
                 generateDB(postParam)
+
+
+def debug(string):
+        if DEBUG_MODE:
+                sys.stderr.write(string + "\n")
 
 if __name__ == "__main__":
         loadConfiguration("/etc/grnoc/globalnoc-tsds-datasource-handler/config.json")
