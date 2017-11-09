@@ -11,7 +11,8 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
     this.target.series = this.target.series||'select table';
     this.target.type = this.target.type || 'timeserie';
     this.target.condition = this.target.condition||[];
-    this.target.groupby_field = this.target.groupby_field ||' ';
+    this.target.groupby_field = this.target.groupby_field ||'';
+    this.target.orderby_field = this.target.orderby_field || '';
     this.target.metric_array = this.target.metric_array||['Select Metric'];
     this.target.metricValues_array = this.target.metricValues_array || ['Select Metric Value'];
     this.target.metricValueAliases = this.target.metricValueAliases || [''];
@@ -81,9 +82,19 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
 		console.log(this.target.groupby_field);
 	}
 
+ addOrderBy(){
+		this.target.orderby_field.push('Select Column');
+		console.log(this.target.orderby_field);
+}
+
  removeGroupBy(index){
 		this.target.groupby_field.splice(index,1);
 	}
+
+ removeOrderBy(index){
+		this.target.orderby_field.splice(index,1);
+	}
+
 
   getColumns() {
     return this.datasource.findMetric(this.target,"Column")
