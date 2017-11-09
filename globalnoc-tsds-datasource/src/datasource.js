@@ -461,7 +461,7 @@ export class GenericDatasource {
 				  query+= ', ' + aggregation;
                 }
 			    query+= ' between ($START,$END)';
-			    if (target.groupby_field != " ") {
+			    if (target.groupby_field) {
                     query += ' by ' + target.groupby_field;
                 }
         		query += ' from ' + seriesName;
@@ -474,6 +474,8 @@ export class GenericDatasource {
 						if(j>0) query = query +" "+target.inlineGroupOperator[i][j]+" ";
                         query += target.whereClauseGroup[i][j].left+" "+target.whereClauseGroup[i][j].op+" \""+target.whereClauseGroup[i][j].right+"\"";
 					}
+				
+		
 
                     var adhocFilters = getAdhocFilters();
                     if (adhocFilters === '') {
@@ -483,12 +485,19 @@ export class GenericDatasource {
                     }
 				}
 
+		if(target.orderby_field){
+					query+= ' ordered by '+target.orderby_field; 
+				}
+
+
+
                 query = t.templateSrv.replace(query, scopevar);
                 var oldQ = query.substr(query.indexOf("{"), query.length);
                 var formatQ = oldQ.replace(/,/gi, " or ");
                 query = query.replace(oldQ, formatQ);
 
 			    target.target = query;
+			    console.log(query);
 			    return query;
 		    }
 	  }.bind(scopevar));

@@ -200,8 +200,14 @@
 
 </div>
   -->
+  <div class = "gf-form-inline">
+    <div class="gf-form">
+      <label class="gf-form-label query-keyword">Order by column</label>
+      <input type="text" class="gf-form-input" ng-model="ctrl.target.orderby_field" bs-tooltip="'Add an order by column or leave blank'"
+             placeholder="column" spellcheck="false" bs-typeahead="listColumns" data-min-length=0 ></input>
+	</div>
+  </div>
 
-  
   <div class="gf-form-inline">
     <div class="gf-form">
       <label class="gf-form-label query-keyword">Target Naming</label>
