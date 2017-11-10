@@ -473,16 +473,22 @@ export class GenericDatasource {
 				//console.log(target.aggregator[index]+ ": " + target.templateVariableValue[index]);	
 				//_.forEach(template_variables, (value, key) => console.log(`Key: ${key}, Value: ${value}`));
 				let template = target.templateVariableValue[index];
-        			aggregation += template_variables[template.slice(1,template.length)]+')';
+				template = template.slice(1,template.length);
+        			aggregation += template_variables[template]+')';
 	    		} else aggregation += target.aggregator[index]+')';
 	  
             if (typeof target.metricValueAliases[index] === 'undefined' || target.metricValueAliases[index] === null) {
               target.metricValueAliases[index] = '';
             }
 	    let alias_var = target.metricValueAliases[index];
-	    let alias = template_variables[alias_var.slice(1, alias_var.length)];
+	    let alias_key = alias_var.slice(1,alias_var.length); 
+	    if(alias_key in template_variables){ 
+	    	let alias = template_variables[alias_key];
+	    	target.metricValueAliasMappings[aggregation.toString()] = alias;
+	    } else{
+ 		target.metricValueAliasMappings[aggregation.toString()] = alias_var;
+	    } 
             //console.log("Alias: ", alias);
-	    target.metricValueAliasMappings[aggregation.toString()] = alias;
 	    //console.log('Mapping: ',target.metricValueAliasMappings[aggregation.toString()]);
 				  query+= ', ' + aggregation;
                 }
