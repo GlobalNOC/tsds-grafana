@@ -36,7 +36,7 @@
             </select>
           </span>
 
-	  <input type="text" ng-if="ctrl.target.aggregator[$index]=='template'" class="gf-form-input width-21" placeholder="$Variable" ng-model="ctrl.target.templateVariableValue[$index]"/>
+	  <input type="text" ng-if="ctrl.target.aggregator[$index]=='template'" class="gf-form-input width-21" placeholder="$<variable_name>" ng-model="ctrl.target.templateVariableValue[$index]"/>
 
           <input type="text" ng-if="ctrl.target.aggregator[$index]=='percentile'" class="gf-form-input width-7" placeholder="85" ng-model="ctrl.target.percentileValue[$index]"/>
           <metric-segment-model css-class="width-10" property="ctrl.target.metricValues_array[$index]" get-options="ctrl.getMetricValues()"></metric-segment-model>

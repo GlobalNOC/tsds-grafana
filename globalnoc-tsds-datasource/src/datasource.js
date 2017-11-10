@@ -409,9 +409,7 @@ export class GenericDatasource {
       function getVariableDetails(){
     	let varDetails = {};
     	t.templateSrv.variables.forEach(function(item){
-      	  if(item.type === "custom"){
-	    varDetails[item.name] = item.current.value;
-      	  }	  
+	  varDetails[item.name] = item.current.value;
        });
        return varDetails;
      }
@@ -468,10 +466,10 @@ export class GenericDatasource {
 
             var aggregation = 'aggregate(values.' + target.metricValues_array[index];
             aggregation += ', $quantify, ';
-
+			let template_variables = getVariableDetails();
 			if (target.aggregator[index] == "percentile") aggregation += target.aggregator[index]+'('+target.percentileValue[index]+'))';
 			else if(target.aggregator[index] === "template") {
-				let template_variables = getVariableDetails();
+
 				//console.log(target.aggregator[index]+ ": " + target.templateVariableValue[index]);	
 				//_.forEach(template_variables, (value, key) => console.log(`Key: ${key}, Value: ${value}`));
 				let template = target.templateVariableValue[index];
@@ -481,8 +479,11 @@ export class GenericDatasource {
             if (typeof target.metricValueAliases[index] === 'undefined' || target.metricValueAliases[index] === null) {
               target.metricValueAliases[index] = '';
             }
-            target.metricValueAliasMappings[aggregation.toString()] = target.metricValueAliases[index];
-
+	    let alias_var = target.metricValueAliases[index];
+	    let alias = template_variables[alias_var.slice(1, alias_var.length)];
+            //console.log("Alias: ", alias);
+	    target.metricValueAliasMappings[aggregation.toString()] = alias;
+	    //console.log('Mapping: ',target.metricValueAliasMappings[aggregation.toString()]);
 				  query+= ', ' + aggregation;
                 }
 			    query+= ' between ($START,$END)';
@@ -503,7 +504,7 @@ export class GenericDatasource {
 		
 
                     var adhocFilters = getAdhocFilters();
-         	    console.log("Adhoc Filters: ",adhocFilters);
+         	    //console.log("Adhoc Filters: ",adhocFilters);
 		           if (adhocFilters === '') {
 					  query +=" )";
                     } else {
@@ -527,7 +528,7 @@ export class GenericDatasource {
 
 	 //	console.log("metric values: ",test_arr);	
 			    target.target = query;
-			    console.log(query);
+	//		    console.log(query);
 			    return query;
 		    }
 	  }.bind(scopevar));
