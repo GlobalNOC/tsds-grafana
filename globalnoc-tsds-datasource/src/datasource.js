@@ -6,11 +6,15 @@ export class GenericDatasource {
     this.type = instanceSettings.type;
     this.url = instanceSettings.url;
     this.name = instanceSettings.name;
+    console.log("Name: ", this.name);
     this.q = $q;
     this.basicAuth = instanceSettings.basicAuth;
     this.withCredentials = instanceSettings.withCredentials;
     this.backendSrv = backendSrv;
     this.templateSrv = templateSrv;
+    // console.log("TemplateSrv: ", this.templateSrv);
+    this.variables = this.templateSrv.variables;
+    console.log("Vars: ", this.variables);
     this.selectMenu = ['=','>','<'];
     this.metricValue = this.metricValue||[];
     this.metricColumn =this.metricColumn||[];
@@ -64,11 +68,12 @@ export class GenericDatasource {
     var target = 'interface';
     if (typeof this.templateSrv.variables !== 'undefined') {
       var adhocVariables = this.templateSrv.variables.filter(filter => filter.type === 'adhoc');
+      console.log("adhocVariables: ",adhocVariables[0]);
       target = adhocVariables[0].name;
     }
     return target;
   }
-
+  
   // getParentMetaFields returns the parent meta fields of fieldName
   // as an array. getParentMetaFields should only return adhoc filters
   // defined to the left of fieldName, and all other template
@@ -399,8 +404,19 @@ export class GenericDatasource {
     }
 
     buildQueryParameters(options, t) {
+	
+      // function returns template variables and its selected value i.e. {'metric':'average', 'example': 'another_metric'}
+      function getVariableDetails(){
+    	let varDetails = {};
+    	t.templateSrv.variables.forEach(function(item){
+	  varDetails[item.name] = item.current.value;
+       });
+       return varDetails;
+     }
+
 
       function getAdhocFilters() {
+        //console.log("Inside buildQP: ", t.templateSrv.variables);
         if (typeof t.templateSrv.getAdhocFilters === 'undefined') {
           return '';
         }
@@ -410,7 +426,8 @@ export class GenericDatasource {
         if (filters.length === 0) {
           return '';
         }
-
+        //var temp = t.templateSrv.getVariableName(t.name);
+        //console.log("var: ",temp);
         var whereComps = filters.map(function(filter) {
           return `${filter.key}${filter.operator}"${filter.value}"`;
         });
@@ -449,15 +466,30 @@ export class GenericDatasource {
 
             var aggregation = 'aggregate(values.' + target.metricValues_array[index];
             aggregation += ', $quantify, ';
-
+			let template_variables = getVariableDetails();
 			if (target.aggregator[index] == "percentile") aggregation += target.aggregator[index]+'('+target.percentileValue[index]+'))';
-			else aggregation += target.aggregator[index]+')';
+			else if(target.aggregator[index] === "template") {
 
+				//console.log(target.aggregator[index]+ ": " + target.templateVariableValue[index]);	
+				//_.forEach(template_variables, (value, key) => console.log(`Key: ${key}, Value: ${value}`));
+				let template = target.templateVariableValue[index];
+				template = template.slice(1,template.length);
+        			aggregation += template_variables[template]+')';
+	    		} else aggregation += target.aggregator[index]+')';
+	  
             if (typeof target.metricValueAliases[index] === 'undefined' || target.metricValueAliases[index] === null) {
               target.metricValueAliases[index] = '';
             }
-            target.metricValueAliasMappings[aggregation.toString()] = target.metricValueAliases[index];
-
+	    let alias_var = target.metricValueAliases[index];
+	    let alias_key = alias_var.slice(1,alias_var.length); 
+	    if(alias_key in template_variables){ 
+	    	let alias = template_variables[alias_key];
+	    	target.metricValueAliasMappings[aggregation.toString()] = alias;
+	    } else{
+ 		target.metricValueAliasMappings[aggregation.toString()] = alias_var;
+	    } 
+            //console.log("Alias: ", alias);
+	    //console.log('Mapping: ',target.metricValueAliasMappings[aggregation.toString()]);
 				  query+= ', ' + aggregation;
                 }
 			    query+= ' between ($START,$END)';
@@ -478,7 +510,8 @@ export class GenericDatasource {
 		
 
                     var adhocFilters = getAdhocFilters();
-                    if (adhocFilters === '') {
+         	    //console.log("Adhoc Filters: ",adhocFilters);
+		           if (adhocFilters === '') {
 					  query +=" )";
                     } else {
                       query +=" and " + adhocFilters + " )";
@@ -491,13 +524,17 @@ export class GenericDatasource {
 
 
 
+		//var test = t.templateSrv.getVariableName(t);
+		//console.log("test: ", test);
                 query = t.templateSrv.replace(query, scopevar);
                 var oldQ = query.substr(query.indexOf("{"), query.length);
                 var formatQ = oldQ.replace(/,/gi, " or ");
                 query = query.replace(oldQ, formatQ);
+	  //	let test_arr = getMetricTemplateValues();
 
+	 //	console.log("metric values: ",test_arr);	
 			    target.target = query;
-			    console.log(query);
+	//		    console.log(query);
 			    return query;
 		    }
 	  }.bind(scopevar));

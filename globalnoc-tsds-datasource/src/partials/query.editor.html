@@ -32,8 +32,11 @@
               <option "style = background: #292929" value="max">max</option>
               <option "style = background: #292929" value="min">min</option>
               <option "style = background: #292929" value="percentile">percentile</option>
+	      <option "style = background: #292929" value="template">template</option>
             </select>
           </span>
+
+	  <input type="text" ng-if="ctrl.target.aggregator[$index]=='template'" class="gf-form-input width-21" placeholder="$<variable_name>" ng-model="ctrl.target.templateVariableValue[$index]"/>
 
           <input type="text" ng-if="ctrl.target.aggregator[$index]=='percentile'" class="gf-form-input width-7" placeholder="85" ng-model="ctrl.target.percentileValue[$index]"/>
           <metric-segment-model css-class="width-10" property="ctrl.target.metricValues_array[$index]" get-options="ctrl.getMetricValues()"></metric-segment-model>
@@ -204,7 +207,7 @@
     <div class="gf-form">
       <label class="gf-form-label query-keyword">Order by column</label>
       <input type="text" class="gf-form-input" ng-model="ctrl.target.orderby_field" bs-tooltip="'Add an order by column or leave blank'"
-             placeholder="column" spellcheck="false" bs-typeahead="listColumns" data-min-length=0 ></input>
+             placeholder="column" spellcheck="false" data-min-length=0 ></input>
 	</div>
   </div>
 
