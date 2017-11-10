@@ -22,6 +22,7 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
     this.target.inlineGroupOperator = this.target.inlineGroupOperator||[['']];
     this.target.outerGroupOperator = this.target.outerGroupOperator || [''];
     this.target.percentileValue = this.target.percentileValue||[''];
+    this.target.templateVariableValue = this.target.templateVariableValue || [''];   
     this.target.bucket = this.target.bucket || [];
     this.target.drillDownAlias = "";
     this.index="";
