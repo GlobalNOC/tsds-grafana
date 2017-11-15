@@ -1,6 +1,69 @@
 import {QueryCtrl} from 'app/plugins/sdk';
 import './css/query-editor.css!';
 
+
+class GenericFunction {
+  constructor(type, title) {
+    this.type = type;
+    this.title = title;
+    this.wrapper = undefined;
+
+    this.onClickDelete = undefined;
+
+    this.addWrapper = this.addWrapper.bind(this);
+    this.delWrapper = this.delWrapper.bind(this);
+    this.clickDeleteHandler = this.clickDeleteHandler.bind(this);
+  }
+
+  addWrapper() {
+    this.wrapper = new GenericFunction('Singleton', 'Average');
+    this.wrapper.onClickDelete = this.delWrapper.bind(this);
+
+    console.log(this);
+  }
+
+  delWrapper(f) {
+    delete(this.wrapper);
+
+    let func = f;
+
+    if (typeof func.wrapper !== 'undefined') {
+      this.wrapper = func.wrapper;
+      this.wrapper.onClickDelete = this.delWrapper.bind(this);
+    }
+
+    // console.log('Removed wrapper ' + f.title + ' from ' + this.title + '. Linked now to ' + this.wrapper.title);
+    console.log(this);
+  }
+
+  clickDeleteHandler(e) {
+    if (typeof this.onClickDelete !== 'undefined') {
+      this.onClickDelete(this);
+    }
+  }
+
+  changeTitleHandler() {
+    if (this.title === 'Average') {
+      this.type = 'Singleton';
+    } else if (this.title === 'Count') {
+      this.type = 'Singleton';
+    } else if (this.title === 'Percentile') {
+      this.type = 'Percentile';
+    } else if (this.title === 'Sum') {
+      this.type = 'Singleton';
+    } else if (this.title === 'Max') {
+      this.type = 'Singleton';
+    } else if (this.title === 'Min') {
+      this.type = 'Singleton';
+    } else if (this.title === 'Aggregate') {
+      this.type = 'Aggregate';
+    } else {
+      // Remove this function
+      this.clickDeleteHandler();
+    }
+  }
+}
+
 export class GenericDatasourceQueryCtrl extends QueryCtrl {
 
   constructor($scope, $injector, uiSegmentSrv)  {
@@ -24,6 +87,9 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
     this.target.percentileValue = this.target.percentileValue||[''];
     this.target.templateVariableValue = this.target.templateVariableValue || [''];   
     this.target.bucket = this.target.bucket || [];
+
+    this.target.function = this.target.function || [new GenericFunction('Aggregate', 'Aggregate')];
+
     this.target.drillDownAlias = "";
     this.index="";
     this.parentIndex="";
