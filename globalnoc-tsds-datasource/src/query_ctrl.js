@@ -61,6 +61,26 @@ class GenericFunction {
       this.whenDeleteSelected(this);
     }
   }
+
+  tsdsQuery(parentQuery) {
+    let query = '';
+    if (this.type === 'Singleton') {
+      query = `${this.title}(${parentQuery})`;
+    } else if (this.type === 'Percentile') {
+      let percentile = this.percentile || 85;
+      query = `percentile(${percentile}, ${parentQuery})`;
+    } else {
+      let bucket = this.bucket || 300;
+      let method = this.method || 'average';
+      let target = this.target || 'input';
+      query = `aggregate(values.${target}, ${method}, ${bucket})`;
+    }
+
+    if (this.wrapper.length === 0) {
+      return query;
+    }
+    return this.wrapper[0].tsdsQuery(query);
+  }
 }
 
 export class GenericDatasourceQueryCtrl extends QueryCtrl {
@@ -90,7 +110,7 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
     // Creates an array of GenericFunctions from existing data, or if
     // the data doesn't exist, setups a single GenericFunction.
     this.target.function = this.target.function.map((f) => new GenericFunction(f.type, f.title, f.wrapper)) || [new GenericFunction('Aggregate', 'Aggregate')];
-    console.log(this.target.function);
+    console.log(this.target.function[0].tsdsQuery(''));
 
     this.target.drillDownAlias = "";
     this.index="";
