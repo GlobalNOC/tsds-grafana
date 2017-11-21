@@ -1,12 +1,14 @@
 <query-editor-row query-ctrl="ctrl" can-collapse="false" has-text-edit-mode="true">
 
+  <!-- BEGIN - Get Template -->
   <script type="text/ng-template" id="categoryTree">
-    <div class="gf-form" ng-if="function.wrapper" ng-include="'categoryTree'" ng-init="function = function.wrapper"></div>
+
+    <div class="gf-form" ng-repeat="function in function.wrapper" ng-include="'categoryTree'"></div>
 
     <button class="btn btn-inverse gf-form-btn query-keyword" ng-click="function.addWrapper()"><i class="fa fa-plus"></i></button>
 
     <span class="gf-form-select-wrapper">
-      <select class="gf-form-input width-8" ng-model="function.title" ng-change="function.changeTitleHandler()">
+      <select class="gf-form-input width-8" ng-model="function.title" ng-change="function.changeTitle()">
         <option value="Aggregate">Aggregate</option>
         <option value="Average">Average</option>
         <option value="Count">Count</option>
@@ -49,6 +51,7 @@
     </div>
 
   </script>
+  <!-- END - Get Template -->
 
   <div ng-if="ctrl.target.rawQuery">
     <div class="gf-form">

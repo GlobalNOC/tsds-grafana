@@ -3,46 +3,45 @@ import './css/query-editor.css!';
 
 
 class GenericFunction {
-  constructor(type, title) {
+  constructor(type, title, wrapper) {
     this.type = type;
     this.title = title;
-    this.wrapper = undefined;
 
-    this.onClickDelete = undefined;
+    this.deleteWrapper = this.deleteWrapper.bind(this);
+    this.changeTitle = this.changeTitle.bind(this);
 
-    this.addWrapper = this.addWrapper.bind(this);
-    this.delWrapper = this.delWrapper.bind(this);
-    this.clickDeleteHandler = this.clickDeleteHandler.bind(this);
+    if (wrapper === undefined || wrapper.length === 0) {
+      this.wrapper = [];
+    } else {
+      let f = wrapper[0];
+      this.wrapper = [new GenericFunction(f.type, f.title, f.wrapper)];
+      this.wrapper[0].whenDeleteSelected = this.deleteWrapper;
+    }
+    this.whenDeleteSelected = function(e) { };
   }
 
   addWrapper() {
-    this.wrapper = new GenericFunction('Singleton', 'Average');
-    this.wrapper.onClickDelete = this.delWrapper.bind(this);
+    console.log(`A new wrapper funtion was added to ${this.type} ${this.title}`);
+    let base = new GenericFunction('Singleton', 'Average');
 
-    console.log(this);
-  }
-
-  delWrapper(f) {
-    delete(this.wrapper);
-
-    let func = f;
-
-    if (typeof func.wrapper !== 'undefined') {
-      this.wrapper = func.wrapper;
-      this.wrapper.onClickDelete = this.delWrapper.bind(this);
+    if (this.wrapper.length > 0) {
+      base.wrapper = this.wrapper;
+      this.wrapper[0].whenDeleteSelected = base.deleteWrapper;
     }
 
-    // console.log('Removed wrapper ' + f.title + ' from ' + this.title + '. Linked now to ' + this.wrapper.title);
-    console.log(this);
+    this.wrapper = [base];
+    base.whenDeleteSelected = this.deleteWrapper;
   }
 
-  clickDeleteHandler(e) {
-    if (typeof this.onClickDelete !== 'undefined') {
-      this.onClickDelete(this);
+  deleteWrapper(wrapper) {
+    this.wrapper = this.wrapper[0].wrapper;
+
+    if (this.wrapper.length > 0) {
+      this.wrapper[0].whenDeleteSelected = this.deleteWrapper;
     }
   }
 
-  changeTitleHandler() {
+  changeTitle() {
     if (this.title === 'Average') {
       this.type = 'Singleton';
     } else if (this.title === 'Count') {
@@ -58,8 +57,8 @@ class GenericFunction {
     } else if (this.title === 'Aggregate') {
       this.type = 'Aggregate';
     } else {
-      // Remove this function
-      this.clickDeleteHandler();
+      // this.title === 'Delete'
+      this.whenDeleteSelected(this);
     }
   }
 }
@@ -88,7 +87,10 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
     this.target.templateVariableValue = this.target.templateVariableValue || [''];   
     this.target.bucket = this.target.bucket || [];
 
-    this.target.function = this.target.function || [new GenericFunction('Aggregate', 'Aggregate')];
+    // Creates an array of GenericFunctions from existing data, or if
+    // the data doesn't exist, setups a single GenericFunction.
+    this.target.function = this.target.function.map((f) => new GenericFunction(f.type, f.title, f.wrapper)) || [new GenericFunction('Aggregate', 'Aggregate')];
+    console.log(this.target.function);
 
     this.target.drillDownAlias = "";
     this.index="";
@@ -134,6 +136,8 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
 	this.target.aggregator.push('average');
     this.target.bucket.push('');
 	this.target.percentileValue.push('');
+
+    this.target.function.push(new GenericFunction('Aggregate', 'Aggregate'));
   }
 
   removeValueSegment(index){
@@ -142,6 +146,8 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
     this.target.aggregator.splice(index, 1);
     this.target.bucket.splice(index, 1);
     this.target.percentileValue.splice(index, 1);
+
+    this.target.function.splice(index, 1);
   }
 
  addGroupBy(){
