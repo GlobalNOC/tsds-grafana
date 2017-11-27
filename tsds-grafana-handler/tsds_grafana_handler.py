@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#/usr/bin/python
 
 # enable debugging
 import string
@@ -199,12 +199,13 @@ def replaceQuery(query, start, end, buckets, max_data_points=1, aliases={}):
                 else:
                         val = buckets.pop(0)
                 replace_val = str(bucket_size(val))
-
-                alias = positions[indexes.pop(0)]
-                swap  = aliases[alias]
-                del aliases[alias]
-                alias = alias.replace('$quantify', replace_val)
-                aliases[alias] = swap
+		
+		if len(indexes) > 0:
+                	alias = positions[indexes.pop(0)]
+                	swap  = aliases[alias]
+                	del aliases[alias]
+                	alias = alias.replace('$quantify', replace_val)
+                	aliases[alias] = swap
 
                 debug('calculated bucket from %s to %s with duration %s' % (val, replace_val, duration))
                 query = query.replace("$quantify", replace_val, 1)
