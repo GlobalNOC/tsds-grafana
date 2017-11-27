@@ -142,7 +142,7 @@ def findtarget_names(tsds_result, alias_list, datapoint_aliases):
                 for i in range(len(targetname)):
                         if targetname[i] is None:
                                 targetname[i] = ""
-                        
+
 
                 returnname.append({'name': key, 'target': " ".join(targetname)})
 
@@ -162,7 +162,7 @@ def replaceQuery(query, start, end, buckets, max_data_points=1, aliases={}):
         default_bucket_size  = int(duration / max_data_points)
 
         def bucket_size(size):
-                if size == "": size = default_bucket_size                
+                if size == "": size = default_bucket_size
                 size = int(size)
                 if duration >= 7776000:
                         size = max(86400, size)
@@ -199,13 +199,13 @@ def replaceQuery(query, start, end, buckets, max_data_points=1, aliases={}):
                 else:
                         val = buckets.pop(0)
                 replace_val = str(bucket_size(val))
-
-                if len(indexes) > 0:
-                        alias = positions[indexes.pop(0)]
-                        swap  = aliases[alias]
-                        del aliases[alias]
-                        alias = alias.replace('$quantify', replace_val)
-                        aliases[alias] = swap
+		
+		if len(indexes) > 0:
+                	alias = positions[indexes.pop(0)]
+                	swap  = aliases[alias]
+                	del aliases[alias]
+                	alias = alias.replace('$quantify', replace_val)
+                	aliases[alias] = swap
 
                 debug('calculated bucket from %s to %s with duration %s' % (val, replace_val, duration))
                 query = query.replace("$quantify", replace_val, 1)
@@ -227,10 +227,10 @@ def extract_time(start_time,end_time):
 
 	end_time = datetime.datetime.strptime(end_time, "%Y-%m-%dT%H:%M:%S.%fZ")
         oend = (end_time - datetime.datetime(1970, 1, 1)).total_seconds()
-        end_time= str(end_time.strftime("%m-%d-%Y %H:%M:%S.%fZ")).replace("-","/") #Replace '-' with '/' 
+        end_time= str(end_time.strftime("%m-%d-%Y %H:%M:%S.%fZ")).replace("-","/") #Replace '-' with '/'
         end_time =  '"'+end_time[:end_time.index(".")]+' UTC"' #Adding quotes before and after
-	
-        return (start_time, end_time, oend-ostart) 
+
+        return (start_time, end_time, oend-ostart)
 
 def auth_Connection(url):
         passman = HTTPPasswordMgrWithDefaultRealm() # creating a password manager
@@ -261,12 +261,12 @@ def make_TSDS_Request(url,postParam = None):
                                 raise Exception(response['error_text'])
                         else:
                                 return response
-			
+
         except Exception as e:
-		print 'Status: 412 Precondition failed'
-		print 
-		print json.dumps([{"Error Text":e}], default=serialize)
-		exit(0)
+		print 'Status: 412 Precondition Failed'
+		print
+        print json.dumps({"error":e, "data": None}, default=serialize)
+        exit(0)
 
 def testDataSource():
 	url = tsds_url+"query.cgi"
@@ -274,7 +274,7 @@ def testDataSource():
 	if len(json_result) > 0:
         	print "Content-Type: application/json" # set the HTTP response header to json data
         	print "Cache-Control: no-cache\n"
-        	print json.dumps(json_result) #HTTP response
+                print json.dumps({"data": json_result})
 
 
 def search():
@@ -293,12 +293,12 @@ def search():
 
 	elif searchType == "Value": # Searching for Values
 		url = getUrl()+"metadata.cgi?method=get_measurement_type_values;measurement_type="+inpParameter['target']
-		json_result = make_TSDS_Request(url)	
+		json_result = make_TSDS_Request(url)
 		output = [eachDict["name"] for eachDict in json_result["results"] if "name" in eachDict]
 
 	elif searchType == "Table": # Searching for Tables
 		url = getUrl()+"metadata.cgi?method=get_measurement_types"
-                json_result = make_TSDS_Request(url)    
+                json_result = make_TSDS_Request(url)
                 output = [eachDict["name"] for eachDict in json_result["results"] if "name" in eachDict]
 
 	elif searchType == "Where": # Searching for where clause
@@ -352,7 +352,7 @@ def search():
                         if len(result) > 1:
                                 # TODO Error
                                 print 'Status: 400 Bad Request'
-                                print 
+                                print
                                 print json.dumps({"error": "Too many values requested."}, default=serialize)
                                 exit(0)
 
@@ -361,8 +361,8 @@ def search():
 
 	print "Content-Type: application/json" # set the HTTP response header to json data
 	print "Cache-Control: no-cache\n"
-	print json.dumps(output) #HTTP response
-		
+        print json.dumps({"error": None, "data": output}) #HTTP response
+
 
 def query():
         inpParameter = json.loads(sys.stdin.read())
@@ -423,7 +423,7 @@ def query():
 
         print "Content-Type: application/json" # set the HTTP response header to json data
         print "Cache-Control: no-cache\n"
-        print json.dumps(output)
+        print json.dumps({"error": None, "data": output}) #HTTP response
 
 def parseDrillDownQuery(query, drill_down_on, timeFrom, timeTo):
 	q = "get "+drill_down_on+" "+ query[query.find('between'): query.find("by")]+" by "+ drill_down_on +" " + query[query.find('from'):]
@@ -459,8 +459,8 @@ def drilldown():
 
 	time = extract_time(start_time,end_time)
         start_time = time[0]
-        end_time = time[1]	
-	
+        end_time = time[1]
+
 	DB_title = inpParameter["DB_title"]
 	Data_source = inpParameter["Data_source"]
 	alias = inpParameter["alias"]
@@ -484,17 +484,17 @@ def drilldown():
 		else:
 			db["rows"][0]["panels"][0]["links"] = [] #If Drill down link already exists, then remove the older one and add updated one to it
 			db["rows"][0]["panels"][0]["links"].append({"dashUri":"db/Drill_Down_on_"+DB_title,"dashboard":"Drill_Down_on_"+DB_title,"title":"Drill_Down_on_"+DB_title,"type":"dashboard"})
-	
+
 		postParam = {"dashboard":db,"overwrite": True }
 		generateDB(postParam) #Generating same dashboard with a Drill Down report in it
-	
+
 	#Create a new dashboard with templates
 
 		templateQuery = parseDrillDownQuery(query, drill_down_on, start_time, end_time) #Extract query for creating templating variables
 		if len(db["templating"]["list"]) == 0:#If template variable doesn't exist, then add it to the list
 			db["templating"]["list"].append({ "allValue": None, "current": { "text": "", "value": [ ] },"datasource": Data_source, "hide": 0, "includeAll": True, "label": None, "multi": True, "name": alias, "options": [], "query": templateQuery, "refresh": 2, "regex": "", "sort": 0,   "tagValuesQuery": "", "tags": [], "tagsQuery": "", "type": "query", "useTags": False })
 		else: #If template variable exists, then remove it and then add new upadated variables to the list
-			db["templating"]["list"] = [] 
+			db["templating"]["list"] = []
 			db["templating"]["list"].append({ "allValue": None, "current": { "text": "", "value": [ ] },"datasource": Data_source, "hide": 0, "includeAll": True, "label": None, "multi": True, "name": alias, "options": [], "query": templateQuery, "refresh": 2, "regex": "", "sort": 0,   "tagValuesQuery": "", "tags": [], "tagsQuery": "", "type": "query", "useTags": False })
 
 
@@ -507,10 +507,10 @@ def drilldown():
 		db["rows"][0]["panels"][0]["minSpan"] = 12
 		if "yaxes" not in  db["rows"][0]["panels"][0]:
 			db["rows"][0]["panels"][0]["yaxes"] = [{"format":"bps","show":True},{"format":"bps","show":True}] #Setting Y-axis unit to bps
-		
+
 		else:
 			db["rows"][0]["panels"][0]["yaxes"][0]["format"] = "bps"
-		db["rows"][0]["panels"][0]["type"] = "graph"	
+		db["rows"][0]["panels"][0]["type"] = "graph"
 		db["rows"][0]["panels"][0]["title"] = "$"+str(alias)
 		if "transparent" in db["rows"][0]["panels"][0]:
 			db["rows"][0]["panels"][0]["transparent"] = True
@@ -521,7 +521,7 @@ def drilldown():
 		postParam = {"dashboard":db,"overwrite": True }
 		generateDB(postParam)
 
-	#When graph type is table - 
+	#When graph type is table -
 	if graph_type == "table":
 		templateQuery = "get "+drill_down_on+" between("+start_time+","+end_time+") by "+ drill_down_on+" "+query[query.find("from"):]
 		if len(db["templating"]["list"]) == 0:#If template variable doesn't exist, then add it to the list
@@ -529,11 +529,11 @@ def drilldown():
                 else: #If template variable exists, then remove it and then add new upadated variables to the list
                         db["templating"]["list"] = []
                         db["templating"]["list"].append({ "allValue": None, "current": { "text": "", "value": [ ] },"datasource": Data_source, "hide": 0, "includeAll": True, "label": None, "multi": True, "name": alias, "options": [], "query": templateQuery, "refresh": 2, "regex": "", "sort": 0,   "tagValuesQuery": "", "tags": [], "tagsQuery": "", "type": "query", "useTags": False })
-		#Create new drill down dashboards - 
+		#Create new drill down dashboards -
 		db["rows"][0]["panels"][0]["targets"][0]["rawQuery"] = True
 		db["rows"][0]["panels"][0]["targets"][0]["target"] = query + " and ($"+str(alias)+")"
-		
-		#Create another graphical panel - 
+
+		#Create another graphical panel -
 		db["rows"].append(deepcopy(db["rows"][0]))
 		db["rows"][1]["panels"][0]["targets"][0]["rawQuery"] = True
 		db["rows"][1]["panels"][0]["id"]+=1
@@ -541,7 +541,7 @@ def drilldown():
 		db["rows"][1]["panels"][0]["targets"][0]["target"] = query + " and ($"+str(alias)+")"
 		db["rows"][1]["panels"][0]["xaxis"]={"mode": "time","name": None,"show": True,"values": []}
 		db["rows"][1]["panels"][0]["yaxes"]=[{ "format": "short", "label": None,"logBase": 1, "max": None,"min": None, "show": True},{"format": "short","label": None,"logBase": 1,"max": None,"min": None,"show": True }]
-		
+
 
 		postParam = {"dashboard":db,"overwrite": True }
                 generateDB(postParam)
