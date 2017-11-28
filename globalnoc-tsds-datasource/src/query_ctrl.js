@@ -3,9 +3,32 @@ import './css/query-editor.css!';
 
 
 class GenericFunction {
-  constructor(type, title, wrapper) {
+  /**
+   * Create a GenericFunction
+   *
+   * @param {string} type - Visual type of this Object. May be
+   * Aggregate, Percentile, or Singleton
+   * @param {string} title - Logical type of this Object. May be
+   * Average, Count, Percentile, Sum, Max, Min, or Aggregate.
+   * @param {GenericFunction[]} wrapper - Array of wrapper functions;
+   * May be an empty array.
+   * @param {Object} options - An object describing any non-default
+   * function parameters. May be an empty Object.
+   */
+  constructor(type, title, wrapper, options) {
     this.type = type;
     this.title = title;
+
+    this.root = (typeof options.root === 'undefined') ? false : options.root;
+
+    this.method = (typeof options.method === 'undefined') ? 'average' : options.method;
+    this.target = (typeof options.target === 'undefined') ? 'input' : options.target;
+    this.bucket = (typeof options.bucket === 'undefined') ? '' : options.bucket;
+    this.alias = (typeof options.alias === 'undefined') ? '' : options.alias;
+
+    this.percentile = (typeof options.percentile === 'undefined') ? '85' : options.percentile;
+
+    this.template = (typeof options.template === 'undefined') ? '' : options.template;
 
     this.deleteWrapper = this.deleteWrapper.bind(this);
     this.changeTitle = this.changeTitle.bind(this);
@@ -14,15 +37,22 @@ class GenericFunction {
       this.wrapper = [];
     } else {
       let f = wrapper[0];
-      this.wrapper = [new GenericFunction(f.type, f.title, f.wrapper)];
+      this.wrapper = [new GenericFunction(f.type, f.title, f.wrapper, f)];
       this.wrapper[0].whenDeleteSelected = this.deleteWrapper;
     }
     this.whenDeleteSelected = function(e) { };
   }
 
+  /**
+   * Create a new wrapper around this GenericFunction; The wrapper
+   * defaults to the Average Singleton. The new wrapper will be placed
+   * between this GenericFunction and any existing wrapper functions.
+   *
+   * Sets wrapper.whenDeleteSelected to this.deleteWrapper.
+   */
   addWrapper() {
     console.log(`A new wrapper funtion was added to ${this.type} ${this.title}`);
-    let base = new GenericFunction('Singleton', 'Average');
+    let base = new GenericFunction('Singleton', 'Average', [], {});
 
     if (this.wrapper.length > 0) {
       base.wrapper = this.wrapper;
@@ -33,6 +63,14 @@ class GenericFunction {
     base.whenDeleteSelected = this.deleteWrapper;
   }
 
+  /**
+   * Delete this GenericFunction's immediate wrapper while preserving
+   * the wrapper function's wrappers. This GenericFunction's new
+   * wrapper will be the deleted wrapper's wrappers (assuming any
+   * exist).
+   *
+   * This function must be registered with all immediate wrappers.
+   */
   deleteWrapper(wrapper) {
     this.wrapper = this.wrapper[0].wrapper;
 
@@ -41,6 +79,10 @@ class GenericFunction {
     }
   }
 
+  /**
+   * Called when this title changes. If the title is set to Delete,
+   * call whatever function is set as this.whenDeleteSelected.
+   */
   changeTitle() {
     if (this.title === 'Average') {
       this.type = 'Singleton';
@@ -60,26 +102,6 @@ class GenericFunction {
       // this.title === 'Delete'
       this.whenDeleteSelected(this);
     }
-  }
-
-  tsdsQuery(parentQuery) {
-    let query = '';
-    if (this.type === 'Singleton') {
-      query = `${this.title}(${parentQuery})`;
-    } else if (this.type === 'Percentile') {
-      let percentile = this.percentile || 85;
-      query = `percentile(${percentile}, ${parentQuery})`;
-    } else {
-      let bucket = this.bucket || 300;
-      let method = this.method || 'average';
-      let target = this.target || 'input';
-      query = `aggregate(values.${target}, ${method}, ${bucket})`;
-    }
-
-    if (this.wrapper.length === 0) {
-      return query;
-    }
-    return this.wrapper[0].tsdsQuery(query);
   }
 }
 
@@ -109,8 +131,11 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
 
     // Creates an array of GenericFunctions from existing data, or if
     // the data doesn't exist, setups a single GenericFunction.
-    this.target.function = this.target.function.map((f) => new GenericFunction(f.type, f.title, f.wrapper)) || [new GenericFunction('Aggregate', 'Aggregate')];
-    console.log(this.target.function[0].tsdsQuery(''));
+    if (this.target.func === undefined) {
+      this.target.func = [new GenericFunction('Aggregate', 'Aggregate', [], {root: true})];
+    } else {
+      this.target.func = this.target.func.map((f) => new GenericFunction(f.type, f.title, f.wrapper, f));
+    }
 
     this.target.drillDownAlias = "";
     this.index="";
@@ -122,33 +147,32 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
   }
 
   addWhereClause(index){
-		this.target.whereClauseGroup[index].push({'left':'Select Metric','op':'=','right':''});
-  	}
+	this.target.whereClauseGroup[index].push({'left':'Select Metric','op':'=','right':''});
+  }
 
- removeWhereClause(parentIndex,index){
-		this.target.whereClauseGroup[parentIndex].splice(index,1);
-		if (this.target.whereClauseGroup[parentIndex].length ==0 && parentIndex > 0){
-			this.target.whereClauseGroup.splice(parentIndex,1);
-		}
-
+  removeWhereClause(parentIndex,index){
+	this.target.whereClauseGroup[parentIndex].splice(index,1);
+	if (this.target.whereClauseGroup[parentIndex].length ==0 && parentIndex > 0){
+	  this.target.whereClauseGroup.splice(parentIndex,1);
 	}
+  }
 
   addWhereClauseGroup(){
-                this.target.whereClauseGroup.push([{'left':'Select Metric','op':'','right':''}]);
-		this.target.inlineGroupOperator.push(['']);
-        }
+    this.target.whereClauseGroup.push([{'left':'Select Metric','op':'','right':''}]);
+	this.target.inlineGroupOperator.push(['']);
+  }
 
-    getOperator(){              
-       return this.datasource.findOperator();
-	
-	}	
+  getOperator(){
+    return this.datasource.findOperator();
+  }
+
   addSegments(){
-		this.target.metric_array.push('Select Metric');
-	}
+	this.target.metric_array.push('Select Metric');
+  }
 
- removeSegment(index){
-			this.target.metric_array.splice(index,1);
-	}
+  removeSegment(index){
+	this.target.metric_array.splice(index,1);
+  }
 
   addValueSegments(){
     this.target.metricValues_array.push('Select Metric Value');
@@ -157,7 +181,7 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
     this.target.bucket.push('');
 	this.target.percentileValue.push('');
 
-    this.target.function.push(new GenericFunction('Aggregate', 'Aggregate'));
+    this.target.func.push(new GenericFunction('Aggregate', 'Aggregate', [], {root: true}));
   }
 
   removeValueSegment(index){
@@ -167,25 +191,26 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
     this.target.bucket.splice(index, 1);
     this.target.percentileValue.splice(index, 1);
 
-    this.target.function.splice(index, 1);
+    this.target.func.splice(index, 1);
   }
 
- addGroupBy(){
-		this.target.groupby_field.push('Select Column');
-		console.log(this.target.groupby_field);
-	}
- addOrderBy(){
-		this.target.orderby_field.push('Select Column');
-		console.log(this.target.orderby_field);
-}
+  addGroupBy(){
+	this.target.groupby_field.push('Select Column');
+	console.log(this.target.groupby_field);
+  }
 
- removeGroupBy(index){
-		this.target.groupby_field.splice(index,1);
-	}
+  addOrderBy(){
+	this.target.orderby_field.push('Select Column');
+	console.log(this.target.orderby_field);
+  }
 
- removeOrderBy(index){
-		this.target.orderby_field.splice(index,1);
-	}
+  removeGroupBy(index){
+	this.target.groupby_field.splice(index,1);
+  }
+
+  removeOrderBy(index){
+	this.target.orderby_field.splice(index,1);
+  }
 
 
   getColumns() {
@@ -194,47 +219,42 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
   }
 
   getMetricValues() {
-    	return this.datasource.findMetric(this.target,"Value")
+    return this.datasource.findMetric(this.target,"Value")
       .then(this.uiSegmentSrv.transformToSegments(false));
-       }
+  }
 
- 
-
- getTableNames() {
-    	return  this.datasource.metricFindTables(this.target)
+  getTableNames() {
+    return  this.datasource.metricFindTables(this.target)
       .then(this.uiSegmentSrv.transformToSegments(false));
-        }
+  }
 
- getWhereFields(){
-    	return self.datasource.findWhereFields(self.target,self.parentIndex, self.index, arguments[0], arguments[1]);
-        }
+  getWhereFields(){
+    return self.datasource.findWhereFields(self.target,self.parentIndex, self.index, arguments[0], arguments[1]);
+  }
 
-generateDrillDown(){
+  generateDrillDown(){
 	this.target.drillDown.splice(0,0,'Drill');
-}
+  }
 
 
-createDashboard(){
+  createDashboard(){
 	var r = this.datasource.generateDashboard(this.target, this.panelCtrl.$scope.ctrl.range.from.toISOString(), this.panelCtrl.$scope.ctrl.range.to.toISOString(),  this.panelCtrl.dashboard.title, this.datasource.name, this.panel.type);
 	window.location.reload();
 	return r;
+  }
 
-}
- saveIndices(parentIndex, index){
-        this.parentIndex = parentIndex;
+  saveIndices(parentIndex, index){
+    this.parentIndex = parentIndex;
 	this.index = index;
-	}
-
-
+  }
 
   toggleEditorMode() {
     this.target.rawQuery = !this.target.rawQuery;
   }
 
- onChangeInternal() {
+  onChangeInternal() {
 	this.panelCtrl.refresh();
-     }
+  }
 }
 
 GenericDatasourceQueryCtrl.templateUrl = 'partials/query.editor.html';
-
