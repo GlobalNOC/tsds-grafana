@@ -275,7 +275,6 @@ export class GenericDatasource {
             target: this.templateSrv.replace(target, null, 'regex'),
             type:metric
         };
-        console.log(interpolated);
 
         var payload = {
             url: this.url + '/search',
@@ -397,7 +396,19 @@ export class GenericDatasource {
     }
 
     mapToTextValue(result) {
-        var a =  _.map(result.data, (d, i) => {
+        let isTestData = _.isArray(result.data) || typeof result.data.data === 'undefined';
+        let data = result.data;
+
+        if (!isTestData) {
+            if (result.data.error) {
+                console.log(result.data.error);
+                return [];
+            }
+
+            data = result.data.data;
+        }
+
+        var a =  _.map(data, (d, i) => {
             if (d && d.text && d.value) {
                 return { text: d.text, value: d.value };
             } else if (_.isObject(d)) {
