@@ -120,14 +120,11 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
     this.target.metric_array = this.target.metric_array||['Select Metric'];
     this.target.metricValues_array = this.target.metricValues_array || ['Select Metric Value'];
     this.target.metricValueAliases = this.target.metricValueAliases || [''];
-    this.target.aggregator = this.target.aggregator ||['average'];
     this.target.target_alias = this.target.target_alias||"";
     this.target.whereClauseGroup = this.target.whereClauseGroup||[[{'left':'Select Metric','op':'','right':''}]];
     this.target.inlineGroupOperator = this.target.inlineGroupOperator||[['']];
     this.target.outerGroupOperator = this.target.outerGroupOperator || [''];
-    this.target.percentileValue = this.target.percentileValue||[''];
     this.target.templateVariableValue = this.target.templateVariableValue || [''];   
-    this.target.bucket = this.target.bucket || [];
 
     // Creates an array of GenericFunctions from existing data, or if
     // the data doesn't exist, setups a single GenericFunction.
@@ -177,9 +174,6 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
   addValueSegments(){
     this.target.metricValues_array.push('Select Metric Value');
     this.target.metricValueAliases.push('');
-	this.target.aggregator.push('average');
-    this.target.bucket.push('');
-	this.target.percentileValue.push('');
 
     this.target.func.push(new GenericFunction('Aggregate', 'Aggregate', [], {root: true}));
   }
@@ -187,9 +181,6 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
   removeValueSegment(index){
     this.target.metricValues_array.splice(index, 1);
     this.target.metricValueAliases.splice(index, 1);
-    this.target.aggregator.splice(index, 1);
-    this.target.bucket.splice(index, 1);
-    this.target.percentileValue.splice(index, 1);
 
     this.target.func.splice(index, 1);
   }

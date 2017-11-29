@@ -9,13 +9,13 @@
 
     <span class="gf-form-select-wrapper">
       <select class="gf-form-input width-8" ng-model="func.title" ng-change="func.changeTitle()">
-        <option value="Aggregate">Aggregate</option>
-        <option value="Average">Average</option>
-        <option value="Count">Count</option>
-        <option value="Max">Max</option>
-        <option value="Min">Min</option>
-        <option value="Percentile">Percentile</option>
-        <option value="Sum">Sum</option>
+        <option value="Aggregate" ng-if="func.root">Aggregate</option>
+        <option value="Average" ng-if="!func.root">Average</option>
+        <option value="Count" ng-if="!func.root">Count</option>
+        <option value="Max" ng-if="!func.root">Max</option>
+        <option value="Min" ng-if="!func.root">Min</option>
+        <option value="Percentile" ng-if="!func.root">Percentile</option>
+        <option value="Sum" ng-if="!func.root">Sum</option>
         <option value="Delete" ng-if="!func.root">-- Delete --</option>
       </select>
     </span>
