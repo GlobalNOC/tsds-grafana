@@ -265,8 +265,8 @@ def make_TSDS_Request(url,postParam = None):
         except Exception as e:
 		print 'Status: 412 Precondition Failed'
 		print
-        print json.dumps({"error":e, "data": None}, default=serialize)
-        exit(0)
+                print json.dumps({"error":e, "data": None}, default=serialize)
+                exit(0)
 
 def testDataSource():
 	url = tsds_url+"query.cgi"

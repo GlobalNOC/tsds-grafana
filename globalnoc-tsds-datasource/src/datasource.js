@@ -33,7 +33,7 @@ export class GenericDatasource {
             data:query,
             method: 'POST',
             headers: {'Content-Type': 'application/json'}
-        }
+        };
 
         return this.post(query.targets, ops).then(function(response){
             // post resolved, check for errors in the response.
