@@ -1,5 +1,5 @@
 import _ from "lodash";
-import {ResponseHandler} from './response_handler'
+import {ResponseHandler} from './response_handler';
 
 export class GenericDatasource {
 
@@ -33,7 +33,7 @@ export class GenericDatasource {
             data:query,
             method: 'POST',
             headers: {'Content-Type': 'application/json'}
-        }
+        };
 
         return this.post(query.targets, ops).then(function(response){
             // post resolved, check for errors in the response.
@@ -165,7 +165,7 @@ export class GenericDatasource {
                 parent_meta_fields: this.getParentMetaFields(options.key),
                 meta_field: options.key,
                 like_field: like,
-	            type: 'Where_Related'
+                type: 'Where_Related'
             },
             method: 'POST',
             headers: { 'Content-Type': 'application/json' }
@@ -215,7 +215,7 @@ export class GenericDatasource {
         var target = typeof (options) === "string" ? options : options.target;
         var interpolated = {
             target: this.templateSrv.replace(target, null, 'regex'),
-	        type:"Search"
+            type:"Search"
         };
 
         // Nested template variables are escaped, which tsds doesn't
@@ -251,7 +251,7 @@ export class GenericDatasource {
         var target = typeof (options) === "string" ? options : "Find tables";
         var interpolated = {
             target: this.templateSrv.replace(target, null, 'regex'),
-	        type: "Table"
+            type: "Table"
         };
 
         var payload = {
@@ -273,9 +273,8 @@ export class GenericDatasource {
         var target = typeof (options) === "string" ? options : options.series;
         var interpolated = {
             target: this.templateSrv.replace(target, null, 'regex'),
-	        type:metric
+            type:metric
         };
-        console.log(interpolated);
 
         var payload = {
             url: this.url + '/search',
@@ -293,28 +292,28 @@ export class GenericDatasource {
     }
 
     findWhereFields(options,parentIndex,index, like_field, callback){
-	    var target = typeof (options) === "string" ? options : options.series;
-	    if(options.whereClauseGroup[parentIndex].length >1){
-		    var whereList = options.whereClauseGroup[parentIndex];
-		    var flag = true;
-		    var meta_field = "";
-		    var parent_meta_field ="";
-		    var parent_meta_field_value="";
-		    for(var i = 0; i<whereList.length && flag; i++){
-			    if(i != index && typeof whereList[i] != 'undefined'){
-				    meta_field = whereList[index].left;
-				    parent_meta_field = whereList[i].left;
-				    parent_meta_field_value = whereList[i].right;
-				    flag = false;
-			    }
-		    }
-		    var interpolated = {
+        var target = typeof (options) === "string" ? options : options.series;
+        if(options.whereClauseGroup[parentIndex].length >1){
+            var whereList = options.whereClauseGroup[parentIndex];
+            var flag = true;
+            var meta_field = "";
+            var parent_meta_field ="";
+            var parent_meta_field_value="";
+            for(var i = 0; i<whereList.length && flag; i++){
+                if(i != index && typeof whereList[i] != 'undefined'){
+                    meta_field = whereList[index].left;
+                    parent_meta_field = whereList[i].left;
+                    parent_meta_field_value = whereList[i].right;
+                    flag = false;
+                }
+            }
+            var interpolated = {
                 target: this.templateSrv.replace(target, null, 'regex'),
                 meta_field: this.templateSrv.replace(meta_field, null, 'regex'),
                 like_field: this.templateSrv.replace(like_field, null, 'regex'),
-		        parent_meta_field: this.templateSrv.replace(parent_meta_field, null, 'regex'),
-		        parent_meta_field_value: this.templateSrv.replace(parent_meta_field_value, null, 'regex'),
-		        type:"Where_Related"
+                parent_meta_field: this.templateSrv.replace(parent_meta_field, null, 'regex'),
+                parent_meta_field_value: this.templateSrv.replace(parent_meta_field_value, null, 'regex'),
+                type:"Where_Related"
             };
 
             var payload = {
@@ -330,16 +329,16 @@ export class GenericDatasource {
                 payload.headers.Authorization = self.basicAuth;
             }
 
-	        return  this.backendSrv.datasourceRequest(payload).then(this.mapToArray).then(callback);
-	    }
-	    else {
-		    var meta_field = options.whereClauseGroup[parentIndex][index].left;
-    		var interpolated = {
-        	    target: this.templateSrv.replace(target, null, 'regex'),
-		        meta_field: this.templateSrv.replace(meta_field, null, 'regex'),
-		        like_field: this.templateSrv.replace(like_field, null, 'regex'),
-		        type:"Where"
-    		};
+            return  this.backendSrv.datasourceRequest(payload).then(this.mapToArray).then(callback);
+        }
+        else {
+            var meta_field = options.whereClauseGroup[parentIndex][index].left;
+            var interpolated = {
+                target: this.templateSrv.replace(target, null, 'regex'),
+                meta_field: this.templateSrv.replace(meta_field, null, 'regex'),
+                like_field: this.templateSrv.replace(like_field, null, 'regex'),
+                type:"Where"
+            };
 
             var payload = {
                 url: this.url + '/search',
@@ -362,13 +361,13 @@ export class GenericDatasource {
         var target = typeof (options) === "string" ? options : options.target;
         var interpolated = {
             query: this.templateSrv.replace(target, null, 'regex'),
-	        drill : options.drillDownValue,
-	        timeFrom : timeFrom,
-	        timeTo: timeTo,
-	        DB_title : DB_title,
-	        Data_source : datasource,
-	        alias: options.drillDownAlias,
-	        graph_type : type
+            drill : options.drillDownValue,
+            timeFrom : timeFrom,
+            timeTo: timeTo,
+            DB_title : DB_title,
+            Data_source : datasource,
+            alias: options.drillDownAlias,
+            graph_type : type
         };
 
         var payload = {
@@ -390,14 +389,26 @@ export class GenericDatasource {
     }
 
     findOperator(){
-	    return  new Promise(function(resolve, reject) {
-		    var a = {"data":['=','<','>'], "status":200, "statusText":"OK"};
-	        resolve(a);
-	    }).then(this.mapToTextValue);
-	}
+        return  new Promise(function(resolve, reject) {
+            var a = {"data":['=','<','>'], "status":200, "statusText":"OK"};
+            resolve(a);
+        }).then(this.mapToTextValue);
+    }
 
     mapToTextValue(result) {
-        var a =  _.map(result.data, (d, i) => {
+        let isTestData = _.isArray(result.data) || typeof result.data.data === 'undefined';
+        let data = result.data;
+
+        if (!isTestData) {
+            if (result.data.error) {
+                console.log(result.data.error);
+                return [];
+            }
+
+            data = result.data.data;
+        }
+
+        var a =  _.map(data, (d, i) => {
             if (d && d.text && d.value) {
                 return { text: d.text, value: d.value };
             } else if (_.isObject(d)) {
@@ -405,15 +416,15 @@ export class GenericDatasource {
             }
             return { text: d, value: d };
         });
-	    return a;
+        return a;
     }
 
     mapToArray(result){
-	    if (result.data.length == 0) {
-		    result.data = ["No results found"];
-	    }
-	    return result.data;
-	}
+        if (result.data.length == 0) {
+            result.data = ["No results found"];
+        }
+        return result.data;
+    }
 
     mapToListValue(result) {
         this.metricValue = result.data;
@@ -427,130 +438,165 @@ export class GenericDatasource {
     buildQueryParameters(options, t) {
 
       // returns template variables and its selected value i.e. {'metric':'average', 'example': 'another_metric'}
-        function getVariableDetails(){
-            let varDetails = {};
-    	    t.templateSrv.variables.forEach(function(item){
-	            varDetails[item.name] = item.current.value;
-            });
-            return varDetails;
+      function getVariableDetails(){
+        let varDetails = {};
+        t.templateSrv.variables.forEach(function(item){
+          varDetails[item.name] = item.current.value;
+        });
+        return varDetails;
+      }
+
+      function getAdhocFilters() {
+        if (typeof t.templateSrv.getAdhocFilters === 'undefined') {
+          return '';
         }
 
-        function getAdhocFilters() {
-            if (typeof t.templateSrv.getAdhocFilters === 'undefined') {
-                return '';
-            }
-
-            // [{ key: "intf", operator: "=", value: "xe-0/2/0.433" }]
-            var filters = t.templateSrv.getAdhocFilters(t.name);
-            if (filters.length === 0) {
-                return '';
-            }
-            var whereComps = filters.map(function(filter) {
-                return `${filter.key}${filter.operator}"${filter.value}"`;
-            });
-
-            return whereComps.join(' and ');
+        // [{ key: "intf", operator: "=", value: "xe-0/2/0.433" }]
+        var filters = t.templateSrv.getAdhocFilters(t.name);
+        if (filters.length === 0) {
+          return '';
         }
-
-        var scopevar = options.scopedVars;
-        // console.log("Options.targets :",options.targets);
-	    var query = _.map(options.targets, function(target) {
-            if (typeof(target) === "string") { return target; }
-		        if(target.rawQuery){
-		            var query = t.templateSrv.replace(target.target, scopevar);
-		            var oldQ = query.substr(query.indexOf("{"), query.length);
-		            var formatQ = oldQ.replace(/,/gi, " or ");
-		            query = query.replace(oldQ, formatQ);
-		            return query;
-		        } else{
-		            var query = 'get ';
-		            var seriesName = target.series;
-
-		            for(var index = 0 ; index < target.metric_array.length; index++){
-			            query+= ' '+target.metric_array[index];
-			            if ( index+1 == target.metric_array.length){
-			                break;
-			            }
-			            query+=',';
-		            }
-                    target.metricValueAliasMappings = {};
-		            for (var index=0; index < target.metricValues_array.length; index++) {
-                        var aggregation = 'aggregate(values.' + target.metricValues_array[index];
-                        aggregation += ', $quantify, ';
-			            let template_variables = getVariableDetails();
-			            if (target.aggregator[index] == "percentile") aggregation += target.aggregator[index]+'('+target.percentileValue[index]+'))';
-			            else if(target.aggregator[index] === "template") {
-
-				            let template = target.templateVariableValue[index];
-				            template = template.slice(1,template.length);
-        			        aggregation += template_variables[template]+')';
-	    		        } else aggregation += target.aggregator[index]+')';
-
-                        if (typeof target.metricValueAliases[index] === 'undefined' || target.metricValueAliases[index] === null) {
-                            target.metricValueAliases[index] = '';
-                        }
-	                    let alias_var = target.metricValueAliases[index];
-	                    let alias_key = alias_var.slice(1,alias_var.length);
-	                    if(alias_key in template_variables){
-	    	                let alias = template_variables[alias_key];
-	    	                target.metricValueAliasMappings[aggregation.toString()] = alias;
-	                    } else{
- 		                    target.metricValueAliasMappings[aggregation.toString()] = alias_var;
-	                    }
-				        query+= ', ' + aggregation;
-                    }
-			        query+= ' between ($START,$END)';
-		            if (target.groupby_field) {
-                        query += ' by ' + target.groupby_field;
-                    }
-
-        	        query += ' from ' + seriesName;
-			        query += " where ";
-			        for(var i=0; i<target.whereClauseGroup.length; i++) {
-			            if(i>0) query +=" "+ target.outerGroupOperator[i]+" ";
-				        query +=" ( ";
-				        for(var j =0 ; j<target.whereClauseGroup[i].length; j++){
-				            if(j>0) query = query +" "+target.inlineGroupOperator[i][j]+" ";
-                            query += target.whereClauseGroup[i][j].left+" "+target.whereClauseGroup[i][j].op+" \""+target.whereClauseGroup[i][j].right+"\"";
-				        }
-
-                        var adhocFilters = getAdhocFilters();
-         	            //console.log("Adhoc Filters: ",adhocFilters);
-		                if (adhocFilters === '') {
-				            query +=" )";
-                        } else {
-                            query +=" and " + adhocFilters + " )";
-                        }
-			        }
-
-		            if(target.orderby_field){
-			            query+= ' ordered by '+target.orderby_field;
-			        }
-
-                    query = t.templateSrv.replace(query, scopevar);
-                    var oldQ = query.substr(query.indexOf("{"), query.length);
-                    var formatQ = oldQ.replace(/,/gi, " or ");
-                    query = query.replace(oldQ, formatQ);
-			        target.target = query;
-			        return query;
-		        }
-	    }.bind(scopevar));
-
-        var index = 0;
-        var targets = _.map(options.targets, target => {
-
-            return {
-                target: query[index++],
-                targetAliases: target.metricValueAliasMappings,
-                targetBuckets: target.bucket,
-                refId: target.refId,
-                hide: target.hide,
-                type: target.type || 'timeserie',
-	            alias : target.target_alias
-            };
+        var whereComps = filters.map(function(filter) {
+          return `${filter.key}${filter.operator}"${filter.value}"`;
         });
 
-        options.targets = targets;
-        return options;
+        return whereComps.join(' and ');
+      }
+
+      // Builds a TSDS query string from target.func
+      function TSDSQuery(func, parentQuery) {
+        let query = '';
+        if (func.type === 'Singleton') {
+          query = `${func.title.toLowerCase()}(${parentQuery})`;
+        } else if (func.type === 'Percentile') {
+          let percentile = func.percentile || 85;
+          query = `percentile(${parentQuery}, ${percentile})`;
+        } else {
+          let bucket = func.bucket || '$quantify';
+          let method = func.method || 'average';
+          let target = func.target || 'input';
+
+          if (method == 'percentile') {
+            method = `percentile(${func.percentile})`;
+          } else if (method == 'template') {
+            let template_variables = getVariableDetails();
+            console.log(template_variables);
+            method = template_variables[func.template.replace('$', '')];
+          }
+          query = `aggregate(values.${target}, ${bucket}, ${method})`;
+        }
+
+        if (func.wrapper.length === 0) {
+          return query;
+        }
+        return TSDSQuery(func.wrapper[0], query);
+      }
+
+      var scopevar = options.scopedVars;
+      var query = _.map(options.targets, function(target) {
+
+        // Returns target when not formated as a tsds query
+        // object.
+        if (typeof(target) === "string") { return target; }
+
+        if (target.rawQuery) {
+          var query = t.templateSrv.replace(target.target, scopevar);
+          var oldQ = query.substr(query.indexOf("{"), query.length);
+          var formatQ = oldQ.replace(/,/gi, " or ");
+          query = query.replace(oldQ, formatQ);
+          return query;
+        } else {
+
+          var query = 'get ';
+          var seriesName = target.series;
+
+          for (var index = 0 ; index < target.metric_array.length; index++) {
+            query+= ' '+target.metric_array[index];
+            if (index + 1 == target.metric_array.length) {
+              break;
+            }
+            query+=',';
+          }
+          target.metricValueAliasMappings = {};
+
+          let functions = target.func.map((f) => {
+            let aggregation = TSDSQuery(f);
+
+            let start = Date.parse(options.range.from);
+            let end   = Date.parse(options.range.to);
+            let duration = (end - start) / 1000;
+
+            let defaultBucket = duration / options.maxDataPoints;
+            let size = (f.bucket === '') ? defaultBucket : parseInt(f.bucket);
+
+            if (duration >= 7776000) {
+              size = Math.max(86400, size);
+            } else if (duration >= 259200) {
+              size = Math.max(3600, size);
+            } else {
+              size = Math.max(60, size);
+            }
+
+            aggregation = aggregation.replace('$quantify', size.toString());
+            target.metricValueAliasMappings[aggregation] = f.alias;
+
+            return aggregation;
+          }).join(', ');
+
+          query += ', ' + functions;
+          query += ' between ($START,$END)';
+
+          if (target.groupby_field) {
+            query += ' by ' + target.groupby_field;
+          }
+
+          query += ' from ' + seriesName;
+          query += " where ";
+
+          for(var i=0; i<target.whereClauseGroup.length; i++) {
+            if(i>0) query +=" "+ target.outerGroupOperator[i]+" ";
+            query +=" ( ";
+            for(var j =0 ; j<target.whereClauseGroup[i].length; j++){
+              if(j>0) query = query +" "+target.inlineGroupOperator[i][j]+" ";
+              query += target.whereClauseGroup[i][j].left+" "+target.whereClauseGroup[i][j].op+" \""+target.whereClauseGroup[i][j].right+"\"";
+            }
+
+            var adhocFilters = getAdhocFilters();
+            //console.log("Adhoc Filters: ",adhocFilters);
+            if (adhocFilters === '') {
+              query +=" )";
+            } else {
+              query +=" and " + adhocFilters + " )";
+            }
+          }
+
+          if(target.orderby_field){
+            query+= ' ordered by '+target.orderby_field;
+          }
+
+          query = t.templateSrv.replace(query, scopevar);
+          var oldQ = query.substr(query.indexOf("{"), query.length);
+          var formatQ = oldQ.replace(/,/gi, " or ");
+          query = query.replace(oldQ, formatQ);
+          target.target = query;
+          return query;
+        }
+      }.bind(scopevar));
+
+      var index = 0;
+      var targets = _.map(options.targets, target => {
+        return {
+          target: query[index++],
+          targetAliases: target.metricValueAliasMappings,
+          targetBuckets: target.bucket,
+          refId: target.refId,
+          hide: target.hide,
+          type: target.type || 'timeserie',
+          alias : target.target_alias
+        };
+      });
+
+      options.targets = targets;
+      return options;
     }
 }

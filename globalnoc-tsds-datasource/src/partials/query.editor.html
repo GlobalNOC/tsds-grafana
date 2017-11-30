@@ -1,5 +1,58 @@
 <query-editor-row query-ctrl="ctrl" can-collapse="false" has-text-edit-mode="true">
 
+  <!-- BEGIN - Get Template -->
+  <script type="text/ng-template" id="categoryTree">
+
+    <div class="gf-form" ng-repeat="func in func.wrapper" ng-include="'categoryTree'"></div>
+
+    <button class="btn btn-inverse gf-form-btn query-keyword" ng-click="func.addWrapper()"><i class="fa fa-plus"></i></button>
+
+    <span class="gf-form-select-wrapper">
+      <select class="gf-form-input width-8" ng-model="func.title" ng-change="func.changeTitle()">
+        <option value="Aggregate" ng-if="func.root">Aggregate</option>
+        <option value="Average" ng-if="!func.root">Average</option>
+        <option value="Count" ng-if="!func.root">Count</option>
+        <option value="Max" ng-if="!func.root">Max</option>
+        <option value="Min" ng-if="!func.root">Min</option>
+        <option value="Percentile" ng-if="!func.root">Percentile</option>
+        <option value="Sum" ng-if="!func.root">Sum</option>
+        <option value="Delete" ng-if="!func.root">-- Delete --</option>
+      </select>
+    </span>
+
+    <!-- Singleton function -->
+    <div class="gf-form" ng-if="funct.type=='Singleton'">
+    </div>
+
+    <!-- Percentile function -->
+    <div class="gf-form" ng-if="func.type=='Percentile'">
+      <input type="text" class="gf-form-input width-3" ng-model="func.percentile"/>
+    </div>
+
+    <!-- Aggregate function -->
+    <div class="gf-form" ng-if="func.type=='Aggregate'">
+      <span class="gf-form-select-wrapper">
+        <select class="gf-form-input width-8" name="aggregator" ng-model="func.method" bs-tooltip="'Select an Aggregator'">
+          <option "style = background: #292929" value="average">average</option>
+          <option "style = background: #292929" value="max">max</option>
+          <option "style = background: #292929" value="min">min</option>
+          <option "style = background: #292929" value="percentile">percentile</option>
+          <option "style = background: #292929" value="template">template</option>
+        </select>
+      </span>
+
+      <input type="text" ng-if="func.method=='percentile'" class="gf-form-input width-7" ng-model="func.percentile"/>
+      <input type="text" ng-if="func.method=='template'" class="gf-form-input width-10" placeholder="$<variable_name>" ng-model="func.template"/>
+
+      <metric-segment-model css-class="width-10" property="func.target" ng-model="func.target" get-options="ctrl.getMetricValues()"></metric-segment-model>
+
+      <label class="gf-form-label query-keyword width-3"><i class="fa fa-bitbucket" aria-hidden="true"></i></label>
+      <input type="text" class="gf-form-input width-5" placeholder="300" ng-model="func.bucket" bs-tooltip="'Bucket Size'"/>
+    </div>
+
+  </script>
+  <!-- END - Get Template -->
+
   <div ng-if="ctrl.target.rawQuery">
     <div class="gf-form">
       <input type="text" class="gf-form-input" ng-model="ctrl.target.target" spellcheck="false" ng-blur="ctrl.onChangeInternal()"></input>
@@ -26,32 +79,18 @@
           <label ng-if="$index == 0" class="gf-form-label query-keyword width-7">GET</label>
           <div ng-if="$index != 0" style="padding-left: 97px;"></div>
 
-          <span class="gf-form-select-wrapper">
-            <select class="gf-form-input width-8" style="width : 100px;" name="aggregator" ng-model="ctrl.target.aggregator[$index]" bs-tooltip="'Select an Aggregator'">
-              <option "style = background: #292929" value="average">average</option>
-              <option "style = background: #292929" value="max">max</option>
-              <option "style = background: #292929" value="min">min</option>
-              <option "style = background: #292929" value="percentile">percentile</option>
-	      <option "style = background: #292929" value="template">template</option>
-            </select>
-          </span>
-
-	  <input type="text" ng-if="ctrl.target.aggregator[$index]=='template'" class="gf-form-input width-21" placeholder="$<variable_name>" ng-model="ctrl.target.templateVariableValue[$index]"/>
-
-          <input type="text" ng-if="ctrl.target.aggregator[$index]=='percentile'" class="gf-form-input width-7" placeholder="85" ng-model="ctrl.target.percentileValue[$index]"/>
-          <metric-segment-model css-class="width-10" property="ctrl.target.metricValues_array[$index]" get-options="ctrl.getMetricValues()"></metric-segment-model>
-
-          <label class="gf-form-label query-keyword width-3"><i class="fa fa-bitbucket" aria-hidden="true"></i></label>
-		  <input type="text" class="gf-form-input max-width-5" placeholder="300" ng-model="ctrl.target.bucket[$index]" bs-tooltip="'Bucket Size'"/>
+          <div class="gf-form" ng-include="'categoryTree'" ng-init="func = ctrl.target.func[$index]"></div>
 
           <label class="gf-form-label query-keyword width-3">AS</label>
-		  <input type="text" class="gf-form-input width=7" placeholder="alias" ng-model="ctrl.target.metricValueAliases[$index]"/>
+	      <input type="text" class="gf-form-input width=7" placeholder="alias" ng-model="ctrl.target.func[$index].alias"/>
 
-          <button class = "btn btn-inverse gf-form-btn"  ng-click="ctrl.removeValueSegment($index)"><i class="fa fa-trash"></i></button>
+          <button class="btn btn-inverse gf-form-btn" ng-click="ctrl.removeValueSegment($index)"><i class="fa fa-trash"></i></button>
         </div>
+
         <div class="gf-form">
-          <button class = "btn btn-inverse gf-form-btn query-keyword"  ng-click="ctrl.addValueSegments()"><i class="fa fa-plus"></i></button>
+          <button class="btn btn-inverse gf-form-btn query-keyword" ng-click="ctrl.addValueSegments()"><i class="fa fa-plus"></i></button>
         </div>
+
 	    <div class="gf-form gf-form--grow">
           <div class="gf-form-label gf-form-label--grow"></div>
         </div>
@@ -62,20 +101,18 @@
 	  <div class="gf-form">
         <label class="gf-form-label query-keyword width-7">get metric</label>
 	  </div>
-      <div ng-repeat = "element in ctrl.target.metric_array track by $index" class="gf-form">
+      <div ng-repeat="element in ctrl.target.metric_array track by $index" class="gf-form">
 		<metric-segment-model property="ctrl.target.metric_array[$index]" get-options = "ctrl.getColumns()"></metric-segment-model>
-		<button  class = "btn btn-inverse gf-form-btn"  ng-click="ctrl.removeSegment($index)"><i class="fa fa-trash"></i></button>
+		<button class="btn btn-inverse gf-form-btn"  ng-click="ctrl.removeSegment($index)"><i class="fa fa-trash"></i></button>
       </div>
 	  
 	  <div class="gf-form">
         <button class = "btn btn-inverse gf-form-btn query-keyword"  ng-click="ctrl.addSegments()"><i class="fa fa-plus"></i></button>
       </div>
 
-
 	  <div class="gf-form gf-form--grow">
         <div class="gf-form-label gf-form-label--grow"></div>
       </div>
-	  
 	</div>
 	
 
