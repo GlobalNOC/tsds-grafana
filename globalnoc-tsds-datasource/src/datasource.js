@@ -486,13 +486,17 @@ export class GenericDatasource {
             method = template_variables[func.template.replace('$', '')];
           }
           if(targets) {
-              query_list = targets.map(function(t) {
-              query = `aggregate(values.${t}, ${bucket}, ${method})`;
-              if(func.wrapper.length === 0) return query;
-            });
+            if(func.wrapper.length === 0) {  
+              query_list = targets.map(target => {
+                query = `aggregate(values.${target}, ${bucket}, ${method})`;
+                return query;
+              });
               if(query_list.length>0) {
                 query = query_list.map(q => q).join(', ');
               }
+            } else {
+              return targets.map(target => TSDSQuery(func.wrapper[0], `aggregate(values.${target},${bucket}, ${method})`)).join(', ');      
+            }
           } else{
 	      query = `aggregate(values.${target}, ${bucket}, ${method})`;
           }
