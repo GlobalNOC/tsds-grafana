@@ -466,6 +466,7 @@ export class GenericDatasource {
       // Builds a TSDS query string from target.func
       function TSDSQuery(func, parentQuery) {
         let query = '';
+        let query_list = [];
         if (func.type === 'Singleton') {
           query = `${func.title.toLowerCase()}(${parentQuery})`;
         } else if (func.type === 'Percentile') {
@@ -475,7 +476,8 @@ export class GenericDatasource {
           let bucket = func.bucket || '$quantify';
           let method = func.method || 'average';
           let target = func.target || 'input';
-
+          let templates = getVariableDetails();
+          let targets = templates[func.target.replace('$','')]; // array of targets; 
           if (method == 'percentile') {
             method = `percentile(${func.percentile})`;
           } else if (method == 'template') {
@@ -483,9 +485,19 @@ export class GenericDatasource {
             console.log(template_variables);
             method = template_variables[func.template.replace('$', '')];
           }
-          query = `aggregate(values.${target}, ${bucket}, ${method})`;
+          if(targets) {
+              query_list = targets.map(function(t) {
+              query = `aggregate(values.${t}, ${bucket}, ${method})`;
+              if(func.wrapper.length === 0) return query;
+            });
+              if(query_list.length>0) {
+                query = query_list.map(q => q).join(', ');
+              }
+          } else{
+	      query = `aggregate(values.${target}, ${bucket}, ${method})`;
+          }
         }
-
+	
         if (func.wrapper.length === 0) {
           return query;
         }
@@ -518,29 +530,28 @@ export class GenericDatasource {
             query+=',';
           }
           target.metricValueAliasMappings = {};
-
+          
           let functions = target.func.map((f) => {
-            let aggregation = TSDSQuery(f);
+              let aggregation = TSDSQuery(f);
+              let start = Date.parse(options.range.from);
+              let end   = Date.parse(options.range.to);
+              let duration = (end - start) / 1000;
 
-            let start = Date.parse(options.range.from);
-            let end   = Date.parse(options.range.to);
-            let duration = (end - start) / 1000;
+              let defaultBucket = duration / options.maxDataPoints;
+              let size = (f.bucket === '') ? defaultBucket : parseInt(f.bucket);
 
-            let defaultBucket = duration / options.maxDataPoints;
-            let size = (f.bucket === '') ? defaultBucket : parseInt(f.bucket);
+              if (duration >= 7776000) {
+                size = Math.max(86400, size);
+              } else if (duration >= 259200) {
+                size = Math.max(3600, size);
+              } else {
+                size = Math.max(60, size);
+              }
 
-            if (duration >= 7776000) {
-              size = Math.max(86400, size);
-            } else if (duration >= 259200) {
-              size = Math.max(3600, size);
-            } else {
-              size = Math.max(60, size);
-            }
+              aggregation = aggregation.replace(/\$quantify/g, size.toString());
+              target.metricValueAliasMappings[aggregation] = f.alias;
 
-            aggregation = aggregation.replace('$quantify', size.toString());
-            target.metricValueAliasMappings[aggregation] = f.alias;
-
-            return aggregation;
+              return aggregation;
           }).join(', ');
 
           query += ', ' + functions;
