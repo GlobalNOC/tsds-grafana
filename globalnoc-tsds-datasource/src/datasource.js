@@ -291,17 +291,21 @@ export class GenericDatasource {
         return this.backendSrv.datasourceRequest(payload).then(this.mapToTextValue);
     }
 
-    findWhereFields(options,parentIndex,index, like_field, callback){
+    findWhereFields(options, parentIndex, index, callback) {
         var target = typeof (options) === "string" ? options : options.series;
+
         if(options.whereClauseGroup[parentIndex].length >1){
             var whereList = options.whereClauseGroup[parentIndex];
             var flag = true;
             var meta_field = "";
+            var like_field = "";
             var parent_meta_field ="";
             var parent_meta_field_value="";
             for(var i = 0; i<whereList.length && flag; i++){
                 if(i != index && typeof whereList[i] != 'undefined'){
                     meta_field = whereList[index].left;
+                    like_field = whereList[index].right;
+
                     parent_meta_field = whereList[i].left;
                     parent_meta_field_value = whereList[i].right;
                     flag = false;
@@ -329,10 +333,11 @@ export class GenericDatasource {
                 payload.headers.Authorization = self.basicAuth;
             }
 
-            return  this.backendSrv.datasourceRequest(payload).then(this.mapToArray).then(callback);
+            return this.backendSrv.datasourceRequest(payload).then(this.mapToArray).then((resp) => callback(resp.data));
         }
         else {
             var meta_field = options.whereClauseGroup[parentIndex][index].left;
+            var like_field = options.whereClauseGroup[parentIndex][index].right;
             var interpolated = {
                 target: this.templateSrv.replace(target, null, 'regex'),
                 meta_field: this.templateSrv.replace(meta_field, null, 'regex'),
@@ -353,7 +358,7 @@ export class GenericDatasource {
                 payload.headers.Authorization = self.basicAuth;
             }
 
-            return  this.backendSrv.datasourceRequest(payload).then(this.mapToArray).then(callback);
+            return this.backendSrv.datasourceRequest(payload).then(this.mapToArray).then((resp) => callback(resp.data));
         }
     }
 

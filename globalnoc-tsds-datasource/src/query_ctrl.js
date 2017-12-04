@@ -121,7 +121,7 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
     this.target.metricValues_array = this.target.metricValues_array || ['Select Metric Value'];
     this.target.metricValueAliases = this.target.metricValueAliases || [''];
     this.target.target_alias = this.target.target_alias||"";
-    this.target.whereClauseGroup = this.target.whereClauseGroup||[[{'left':'Select Metric','op':'','right':''}]];
+    this.target.whereClauseGroup = this.target.whereClauseGroup || [[{'left':'Select Metric','op':'','right':''}]];
     this.target.inlineGroupOperator = this.target.inlineGroupOperator||[['']];
     this.target.outerGroupOperator = this.target.outerGroupOperator || [''];
     this.target.templateVariableValue = this.target.templateVariableValue || [''];   
@@ -135,15 +135,19 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
     }
 
     this.target.drillDownAlias = "";
-    this.index="";
-    this.parentIndex="";
     this.hiddenIndex = "";
     this.target.drillDown = [];
     this.target.drillDownValue = [];
+
+    this.index = 0;
+    this.parentIndex = 0;
+    this.whereFieldOptions = [];
+    this.getWhereFields = this.getWhereFields.bind(this);
+
     self = this;
   }
 
-  addWhereClause(index){
+  addWhereClause(index) {
 	this.target.whereClauseGroup[index].push({'left':'Select Metric','op':'=','right':''});
   }
 
@@ -203,7 +207,6 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
 	this.target.orderby_field.splice(index,1);
   }
 
-
   getColumns() {
     return this.datasource.findMetric(this.target,"Column")
       .then(this.uiSegmentSrv.transformToSegments(false));
@@ -219,8 +222,8 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
       .then(this.uiSegmentSrv.transformToSegments(false));
   }
 
-  getWhereFields(){
-    return self.datasource.findWhereFields(self.target,self.parentIndex, self.index, arguments[0], arguments[1]);
+  getWhereFields() {
+    this.datasource.findWhereFields(this.target, this.parentIndex, this.index, arguments[1]);
   }
 
   generateDrillDown(){
