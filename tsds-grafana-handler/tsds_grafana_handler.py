@@ -102,7 +102,7 @@ def findtarget_names(tsds_result, alias_list, datapoint_aliases):
             _, measurement, seconds, aggregation, percentile, _, _ = datapoint_args
             measurement = measurement.replace('values.', '')
             measurement = string.capitalize(measurement)
-            timeframe = get_timeframe(int(seconds))
+            timeframe = get_timeframe(int(float(seconds)))
             if aggregation.strip() == 'max': aggregation = 'maxe'
 
             # Output (1h 90th percentiles)
@@ -111,7 +111,7 @@ def findtarget_names(tsds_result, alias_list, datapoint_aliases):
             _, measurement, seconds, aggregation, _ = datapoint_args
             measurement = measurement.replace('values.', '')
             measurement = string.capitalize(measurement)
-            timeframe = get_timeframe(int(seconds))
+            timeframe = get_timeframe(int(float(seconds)))
             if aggregation.strip() == 'max': aggregation = 'maxe'
 
             # Output (58s averages)
@@ -251,16 +251,22 @@ def make_TSDS_Request(url,postParam = None):
     try:
         if not postParam:
             response = json.load(urlopen(Request(url)))
+
+            debug("Response from TSDS: %s" % response)
+
             if response['results']==None:
                 raise Exception(response['error_text'])
             else:
                 return response
         else:
             response = json.load(urlopen(Request(url,postParam)))
+            debug("Response from TSDS: %s" % response)
             if response['results'] == None:
                 raise Exception(response['error_text'])
             else:
                 return response
+
+
 
     except Exception as e:
         print 'Status: 412 Precondition Failed'
@@ -341,8 +347,21 @@ def search():
             print >> sys.stderr, inpParameter['target']
             inpParameter["target"] = replaceQuery(inpParameter["target"], start, end, [])
 
+        
+        text_formatter = None
+        val_formatter = None
+        query = inpParameter['target']
+
+        match = re.match("^(.+),\s*text=\"(.+)\"\s*value=\"(.+)\"\s*$", query)
+        if match:
+            query = match.group(1)
+            text_formatter = match.group(2)
+            val_formatter = match.group(3)
+            
+        debug("Parsed query = %s, parsed text_formatter = %s, parsed val_formatter = %s" % (query, text_formatter, val_formatter))
+
         url = getUrl()+"query.cgi"
-        postParameters = {"method":"query","query":inpParameter["target"]}
+        postParameters = {"method":"query","query":query}
 
         json_result = make_TSDS_Request(url,urlencode(postParameters))
         for result in json_result["results"]:
@@ -350,15 +369,38 @@ def search():
             # query options for other template variables,
             # we restrict the query to returning a single
             # variable.
-            if len(result) > 1:
+            if len(result) > 1 and not text_formatter:
                 # TODO Error
                 print 'Status: 400 Bad Request'
                 print
                 print json.dumps({"error": "Too many values requested."}, default=serialize)
                 exit(0)
 
-            for key, value in result.iteritems():
-                output.append(value)
+            text = []
+            val  = []
+            if text_formatter:                
+                pieces = text_formatter.split(" ")
+                for piece in pieces:
+                    if not piece.startswith('$'):
+                        text.append(piece)
+                        continue
+                    piece = piece.strip("$")
+                    text.append(result.get(piece) or "")
+            else:
+                text.append(result[result.keys()[0]])
+
+            if val_formatter:
+                pieces = val_formatter.split(" ")
+                for piece in pieces:
+                    if not piece.startswith('$'):
+                        val.append(piece)
+                        continue
+                    piece = piece.strip("$")
+                    val.append(result.get(piece) or "")         
+            else:
+                val.append(result[result.keys()[0]])
+
+            output.append({"value": " ".join(val), "text": " ".join(text)})
 
     print "Content-Type: application/json" # set the HTTP response header to json data
     print "Cache-Control: no-cache\n"
