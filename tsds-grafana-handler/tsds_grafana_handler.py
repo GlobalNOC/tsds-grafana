@@ -441,8 +441,36 @@ def query():
 
         res = make_TSDS_Request(url, urlencode(params))
         for result in res['results']:
-            # Generate target name for each datapoint set
 
+            # BEGIN - TSDS modifies the target expression of
+            # extrapolate functions on return, such that a request
+            # like 'extrapolate(..., 1526705726)' will return with a
+            # key of 'extrapolate(..., Date(1526705726))'; This breaks
+            # our alias mappings. Ensure the key from TSDS no longer
+            # includes the Date method.
+            newkey = None
+            newval = None
+            oldkey = None
+            for key, value in result.iteritems():
+                if 'extrapolate' in key:
+                    oldkey = key
+
+                    p = re.compile('Date\(\d+\)')
+                    iterator = p.finditer(key)
+                    for match in iterator:
+                        s = match.group()
+                        key = key.replace(s, s[5:-1])
+                        print >> sys.stderr, key
+
+                    newkey = key
+                    newval = value
+
+            if newval is not None:
+                result[newkey] = newval
+                del result[oldkey]
+            # END
+
+            # Generate target name for each datapoint set
             target_results = findtarget_names(result, template, aliases)
             for target_result in sorted(target_results, key=lambda x: x['target']):
                 datapoints = result[target_result['name']]

@@ -473,7 +473,12 @@ export class GenericDatasource {
         let query = '';
         let query_list = [];
         if (func.type === 'Singleton') {
-          query = `${func.title.toLowerCase()}(${parentQuery})`;
+          if (func.title === 'Extrapolate') {
+            let endpoint = Date.parse(options.range.to) / 1000;
+            query = `extrapolate(${parentQuery}, ${endpoint})`;
+          } else {
+            query = `${func.title.toLowerCase()}(${parentQuery})`;
+          }
         } else if (func.type === 'Percentile') {
           let percentile = func.percentile || 85;
           query = `percentile(${parentQuery}, ${percentile})`;

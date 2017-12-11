@@ -90,6 +90,8 @@ class GenericFunction {
       this.type = 'Singleton';
     } else if (this.title === 'Percentile') {
       this.type = 'Percentile';
+    } else if (this.title === 'Extrapolate') {
+      this.type = 'Singleton';
     } else if (this.title === 'Sum') {
       this.type = 'Singleton';
     } else if (this.title === 'Max') {
