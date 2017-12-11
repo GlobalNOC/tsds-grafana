@@ -550,7 +550,7 @@ export class GenericDatasource {
               let start = Date.parse(options.range.from);
               let end   = Date.parse(options.range.to);
               let duration = (end - start) / 1000;
-
+              let template_variables = getVariableDetails();
               let defaultBucket = duration / options.maxDataPoints;
               let size = (f.bucket === '') ? defaultBucket : parseInt(f.bucket);
 
@@ -563,7 +563,8 @@ export class GenericDatasource {
               }
 
               aggregation = aggregation.replace(/\$quantify/g, size.toString());
-              target.metricValueAliasMappings[aggregation] = f.alias;
+              let alias_value = template_variables[f.alias.replace('$', '')] ? template_variables[f.alias.replace('$', '')] : f.alias;
+              target.metricValueAliasMappings[aggregation] = alias_value;
 
               return aggregation;
           }).join(', ');
