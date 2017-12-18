@@ -2,7 +2,14 @@ import _ from "lodash";
 import {ResponseHandler} from './response_handler';
 
 export class GenericDatasource {
-
+    /**
+     * Create a GenericDatasource
+     *
+     * @param {Object} instanceSettings
+     * @param {Object} $q
+     * @param {Object} backendSrv
+     * @param {Object} templateSrv
+     */
     constructor(instanceSettings, $q, backendSrv, templateSrv) {
         this.type = instanceSettings.type;
         this.url = instanceSettings.url;
@@ -446,7 +453,9 @@ export class GenericDatasource {
       function getVariableDetails(){
         let varDetails = {};
         t.templateSrv.variables.forEach(function(item){
-          varDetails[item.name] = item.current.value;
+          if (item.type !== 'adhoc') {
+            varDetails[item.name] = item.current.value;
+          }
         });
         return varDetails;
       }

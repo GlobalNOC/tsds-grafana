@@ -108,7 +108,13 @@ class GenericFunction {
 }
 
 export class GenericDatasourceQueryCtrl extends QueryCtrl {
-
+  /**
+   * Create a GenericDatasourceQueryCtrl
+   *
+   * @param {Object} $scope
+   * @param {Object} $injector
+   * @param {Object} uiSegmentSrv
+   */
   constructor($scope, $injector, uiSegmentSrv)  {
     super($scope, $injector);
 
