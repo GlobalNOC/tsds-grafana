@@ -98,7 +98,6 @@ export class GenericDatasource {
         var target = 'interface';
         if (typeof this.templateSrv.variables !== 'undefined') {
             var adhocVariables = this.templateSrv.variables.filter(filter => filter.type === 'adhoc');
-            console.log("adhocVariables: ",adhocVariables[0]);
             target = adhocVariables[0].name;
         }
         return target;
@@ -471,6 +470,66 @@ export class GenericDatasource {
           return '';
         }
         var whereComps = filters.map(function(filter) {
+          // Hardcoded filter keys for now. Ideally these keys would
+          // be polled from tsds.
+          if (filter.key === '*') {
+            let tags = [
+              'intf',
+              'node',
+              'description',
+              'alternate_intf',
+              'network',
+              'max_bandwidth',
+              'parent_interface',
+              'link_name',
+              'z_endpoint.longitude',
+              'z_endpoint.latitude',
+              'z_endpoint.name',
+              'entity.contracted_bandwidth',
+              'entity.entity_id',
+              'entity.name',
+              'entity.type',
+              'node_id',
+              'node_role',
+              'tag',
+              'node_type',
+              'interface_id',
+              'a_endpoint.longitude',
+              'a_endpoint.latitude',
+              'a_endpoint.name',
+              'service.name',
+              'service.description',
+              'service.entity',
+              'service.contracted_bandwidth',
+              'service.type',
+              'service.service_id',
+              'network_id',
+              'circuit.name',
+              'circuit.description',
+              'circuit.owner',
+              'circuit.circuit_id',
+              'circuit.carrier',
+              'circuit.speed',
+              'circuit.customer',
+              'circuit.type',
+              'circuit.role',
+              'contracted_bandwidth',
+              'type',
+              'pop.owner',
+              'pop.name',
+              'pop.hands_and_eyes',
+              'pop.type',
+              'pop.pop_id',
+              'pop.role',
+              'pop.locality'
+            ];
+
+            let s = '(' + tags.map(function(v) {
+              return `${v}${filter.operator}"${filter.value}"`;
+            }).join(' or ') + ')';
+            return s;
+          }
+
           return `${filter.key}${filter.operator}"${filter.value}"`;
         });
 
