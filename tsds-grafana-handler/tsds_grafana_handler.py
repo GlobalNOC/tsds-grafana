@@ -296,7 +296,6 @@ def search():
                     output.append(eachDict["name"]+"."+field["name"])
             else:
                 output.append(eachDict["name"])
-        output.insert(0, "*")
     elif searchType == "Value": # Searching for Values
         url = getUrl()+"metadata.cgi?method=get_measurement_type_values;measurement_type="+inpParameter['target']
         json_result = make_TSDS_Request(url)
