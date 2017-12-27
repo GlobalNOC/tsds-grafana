@@ -7,9 +7,11 @@ More documentation about datasource plugins can be found in the [Docs](https://g
 
 ### Deployment
 
-Use make rpm to generate an RPM based on
+1. Use make rpm to generate an RPM based on
 `globalnoc-tsds-datasource.spec`. Set the `BUILD_NUMBER` environmnet
 variable to use a release number other than 0.
+0. In Grafana, create a new GlobalNOC TSDS Datasource.
+0. Click Save & Test to verify the Datasource is correctly configured.
 
 ### Development
 
@@ -19,4 +21,10 @@ This plugin requires node 6.10.0
 npm install -g yarn
 yarn install
 npm run build
+```
+
+Add the plugin to grafana.
+
+```
+sudo ln -s $PWD/customized-grafana-datasource /var/lib/grafana/plugins/customized-grafana-datasource
 ```
