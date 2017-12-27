@@ -1,12 +1,11 @@
 ## globalnoc-tsds-datasource-handler
 
-globalnoc-tsds-datasource-handler is a python CGI that translates
-requests from globalnoc-tsds-datasource to the configured TSDS
-backend.
+globalnoc-tsds-datasource-handler is a python based CGI that
+translates requests from globalnoc-tsds-datasource to the configured
+TSDS backend.
 
-### RPM setup
+### Deployment
 
-```
-export BUILD_NUMBER=0
-rpmbuild -bb globalnoc-tsds-datasource-handler.spec --define "_sourcedir $(pwd)" --define="_buildno ${BUILD_NUMBER}"
-```
+Use `make rpm` to generate an RPM based on
+`globalnoc-tsds-datasource-handler.spec`. Set the `BUILD_NUMBER`
+environmnet variable to use a release number other than 0.
