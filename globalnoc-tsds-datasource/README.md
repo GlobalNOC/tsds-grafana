@@ -2,9 +2,6 @@
 
 More documentation about datasource plugins can be found in the [Docs](https://github.com/grafana/grafana/blob/master/docs/sources/plugins/developing/datasources.md).
 
-### Example backend implementations
-- https://github.com/bergquist/fake-simple-json-datasource
-
 ### Deployment
 
 1. Use make rpm to generate an RPM based on

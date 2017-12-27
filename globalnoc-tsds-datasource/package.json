@@ -1,8 +1,8 @@
 {
-  "name": "grafana-simple-json",
+  "name": "globalnoc-tsds-datasource",
   "private": true,
   "version": "1.0.0",
-  "description": "More documentation about datasource plugins can be found in the [Docs](https://github.com/grafana/grafana/blob/master/docs/sources/plugins/developing/datasources.md).",
+  "description": "Grafana Datasource for GlobalNOC's TSDS Database",
   "main": "index.js",
   "scripts": {
     "build": "./node_modules/grunt-cli/bin/grunt",
@@ -10,12 +10,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/grafana/simple-json-datasource.git"
+    "url": "git+https://github.com/GlobalNOC/tsds-grafana.git"
   },
-  "author": "",
+  "author": "GlobalNOC",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/grafana/simple-json-datasource/issues"
+    "url": "https://github.com/GlobalNOC/tsds-grafana/issues"
   },
   "engines": {
     "node": "^6.10.0"
@@ -53,5 +53,5 @@
     "lodash": "~4.0.0",
     "mocha": "^2.4.5"
   },
-  "homepage": "https://github.com/grafana/simple-json-datasource#readme"
+  "homepage": "https://github.com/GlobalNOC/tsds-grafana/#readme"
 }
