@@ -64,7 +64,7 @@
   <div ng-if="!ctrl.target.rawQuery">
 	<div class="gf-form-inline">
 	  <div class="gf-form">
-        <label class="gf-form-label query-keyword width-7">FROM</label>
+        <label class="gf-form-label query-keyword width-7">From</label>
         <metric-segment-model property="ctrl.target.series" get-options = "ctrl.getTableNames()" on-change="ctrl.onChangeInternal()" >
         </metric-segment-model>
       </div>
@@ -78,7 +78,7 @@
     <div ng-repeat="segment in ctrl.target.metricValues_array track by $index">
       <div class="gf-form-inline">
         <div class="gf-form">
-          <label ng-if="$index == 0" class="gf-form-label query-keyword width-7">GET</label>
+          <label ng-if="$index == 0" class="gf-form-label query-keyword width-7">Get</label>
           <div ng-if="$index != 0" style="padding-left: 97px;"></div>
 
           <div class="gf-form" ng-include="'categoryTree'" ng-init="func = ctrl.target.func[$index]"></div>
@@ -101,7 +101,7 @@
 
 	<div class="gf-form-inline">
 	  <div class="gf-form">
-        <label class="gf-form-label query-keyword width-7">get metric</label>
+        <label class="gf-form-label query-keyword width-7">Metadata</label>
 	  </div>
       <div ng-repeat="element in ctrl.target.metric_array track by $index" class="gf-form">
 		<metric-segment-model property="ctrl.target.metric_array[$index]" get-options = "ctrl.getColumns()"></metric-segment-model>
@@ -217,7 +217,7 @@
   
   <div class = "gf-form-inline">
     <div class="gf-form" ng-class="{'has-error': !ctrl.target.groupby_field}">
-      <label class="gf-form-label query-keyword">Group by column</label>
+      <label class="gf-form-label query-keyword">Group By</label>
       <input type="text" class="gf-form-input" name="groupBy" ng-model="ctrl.target.groupby_field" required bs-tooltip="'Add a group by column'"
              placeholder="column" spellcheck="false" bs-typeahead="listColumns" data-min-length=0></input>
     </div>
@@ -244,7 +244,7 @@
   -->
   <div class = "gf-form-inline">
     <div class="gf-form">
-      <label class="gf-form-label query-keyword">Order by column</label>
+      <label class="gf-form-label query-keyword">Order By</label>
       <input type="text" class="gf-form-input" ng-model="ctrl.target.orderby_field" bs-tooltip="'Add an order by column or leave blank'"
              placeholder="column" spellcheck="false" data-min-length=0 ></input>
 	</div>
@@ -265,12 +265,6 @@
   <div class="gf-form-inline">
     <div class="gf-form">
 	  <button class="gf-form-label" style="background-color:#008CBA; border-radius: 4px; width:120px;" ng-click = "ctrl.panelCtrl.refresh();">Run</button>
-    </div>
-	<div class="gf-form">
-      <button class="gf-form-label" style="background-color:#008CBA; border-radius: 4px; width:160px;" ng-click = "ctrl.generateDrillDown();">Generate Drill Down</button>
-	  <input ng-if = "ctrl.target.drillDown[0] == 'Drill'" type="text" class="gf-form-input" style="width:120px;" placeholder = " Drill down on " ng-model="ctrl.target.drillDownValue"/>
-	  <input ng-if = "ctrl.target.drillDown[0] == 'Drill'" type="text" class="gf-form-input" style="width:120px;" placeholder = " as  " ng-model="ctrl.target.drillDownAlias" required/>
-      <button ng-if = "ctrl.target.drillDown[0] == 'Drill'" class = "gf-form-label" style="background-color:#008CBA; border-radius: 4px; width:160px;"  ng-click="ctrl.createDashboard()">Create Dashboard</button>
     </div>
   </div>
 </div>
