@@ -1,27 +1,25 @@
 import _ from "lodash";
 import {ResponseHandler} from './response_handler';
 
-export class GenericDatasource {
+class GenericDatasource {
     /**
      * Create a GenericDatasource
      *
-     * @param {Object} instanceSettings
-     * @param {Object} $q
-     * @param {Object} backendSrv
-     * @param {Object} templateSrv
+     * @param {Object} instanceSettings - A
+     * @param {Object} $q - A
+     * @param {Object} backendSrv - A
+     * @param {Object} templateSrv - A
      */
     constructor(instanceSettings, $q, backendSrv, templateSrv) {
         this.type = instanceSettings.type;
         this.url = instanceSettings.url;
         this.name = instanceSettings.name;
-        console.log("Name: ", this.name);
         this.q = $q;
         this.basicAuth = instanceSettings.basicAuth;
         this.withCredentials = instanceSettings.withCredentials;
         this.backendSrv = backendSrv;
         this.templateSrv = templateSrv;
         this.variables = this.templateSrv.variables;
-        console.log("Template Variables: ", this.variables);
         this.selectMenu = ['=','>','<'];
         this.metricValue = this.metricValue||[];
         this.metricColumn =this.metricColumn||[];
@@ -29,27 +27,55 @@ export class GenericDatasource {
     }
 
     query(options) {
-        var query = this.buildQueryParameters(options, this);
+      return this.buildQueryParameters(options, this).then((query) => {
         query.targets = query.targets.filter(t => !t.hide);
         if (query.targets.length <= 0) {
-            return this.q.when({data: []});
+          return this.q.when({data: []});
         }
 
         var ops = {
-            url: this.url + '/query',
-            data:query,
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'}
+          url: this.url + '/query',
+          data:query,
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'}
         };
 
         return this.post(query.targets, ops).then(function(response){
-            // post resolved, check for errors in the response.
-            return new ResponseHandler(query.targets, response.data).getData();
+          return new ResponseHandler(query.targets, response.data).getData();
         });
+      });
     }
 
-    // Makes a datasourceRequest and handle errors
-    // Resolves to check errors in response
+  /**
+   * getAdhocQueryString takes an adhoc filter and converts it into a
+   * 'where' component for a TSDS query. If the filter's key is '*' a
+   * request to TSDS will be made for all available metric types.
+   */
+    getAdhocQueryString(filter) {
+      return new Promise((resolve, reject) => {
+        // Replace Grafana's like operator with TSDS' equivalent
+        if (filter.operator === '=~') filter.operator = ' like ';
+
+        if (filter.key !== '*') {
+          resolve(`${filter.key}${filter.operator}"${filter.value}"`);
+        }
+
+        this.getTagKeys().then((response) => {
+          let query = response.filter(function(field) {
+            return (field.text === '*') ? false : true;
+          }).map(function(field) {
+            return `${field.text}${filter.operator}"${filter.value}"`;
+          }).join(' or ');
+
+          resolve(query);
+        });
+      });
+    }
+
+    /**
+     * Makes a datasourceRequest and handle errors Resolves to check
+     * errors in response.
+     */
     post(targets,options) {
         return this.backendSrv.datasourceRequest(options).then(function(results) {
             results.data.config = results.config;
@@ -88,26 +114,29 @@ export class GenericDatasource {
         });
     }
 
-    // getMeasurementType returns the TSDS measurement type to use when
-    // looking up measurement type values and metadata. The result of
-    // this function defaults to 'interface', but may be overridden by
-    // defining the name of an adhoc template variable. If multiple
-    // adhoc template variables are defined the name of the first is
-    // used.
+    /**
+     * getMeasurementType returns the TSDS measurement type to use
+     * when looking up measurement type values and metadata. The
+     * result of this function defaults to 'interface', but may be
+     * overridden by defining the name of an adhoc template
+     * variable. If multiple adhoc template variables are defined the
+     * name of the first is used.
+    */
     getMeasurementType() {
         var target = 'interface';
         if (typeof this.templateSrv.variables !== 'undefined') {
             var adhocVariables = this.templateSrv.variables.filter(filter => filter.type === 'adhoc');
-            console.log("adhocVariables: ",adhocVariables[0]);
             target = adhocVariables[0].name;
         }
         return target;
     }
 
-    // getParentMetaFields returns the parent meta fields of fieldName
-    // as an array. getParentMetaFields should only return adhoc filters
-    // defined to the left of fieldName, and all other template
-    // variables.
+    /**
+    * getParentMetaFields returns the parent meta fields of fieldName
+    * as an array. getParentMetaFields should only return adhoc
+    * filters defined to the left of fieldName, and all other template
+    * variables.
+    */
     getParentMetaFields(fieldName) {
         var fields = [];
 
@@ -155,7 +184,12 @@ export class GenericDatasource {
             payload.headers.Authorization = self.basicAuth;
         }
 
-        return this.backendSrv.datasourceRequest(payload).then(this.mapToTextValue);
+        return this.backendSrv.datasourceRequest(payload).then((result) => {
+            // Adding * option for generic search.
+            let mTypes = this.mapToTextValue(result);
+            mTypes.splice(0, 0, {text: "*", value: "*"});
+            return mTypes;
+        });
     }
 
     getTagValues(options) {
@@ -447,9 +481,17 @@ export class GenericDatasource {
         return templateSrv.variableExists(target.target);
     }
 
+    /**
+     * buildQueryParameters generates a TSDS database query for each
+     * Grafana target. For each new panel, there is one Grafana target
+     * by default.
+     */
     buildQueryParameters(options, t) {
 
-      // returns template variables and its selected value i.e. {'metric':'average', 'example': 'another_metric'}
+      // Returns each template variable and its selected value has a
+      // hash. i.e. {'metric':'average', 'example':
+      // 'another_metric'}. getVariableDetails excludes any adhoc
+      // variables from the the result.
       function getVariableDetails(){
         let varDetails = {};
         t.templateSrv.variables.forEach(function(item){
@@ -460,24 +502,8 @@ export class GenericDatasource {
         return varDetails;
       }
 
-      function getAdhocFilters() {
-        if (typeof t.templateSrv.getAdhocFilters === 'undefined') {
-          return '';
-        }
-
-        // [{ key: "intf", operator: "=", value: "xe-0/2/0.433" }]
-        var filters = t.templateSrv.getAdhocFilters(t.name);
-        if (filters.length === 0) {
-          return '';
-        }
-        var whereComps = filters.map(function(filter) {
-          return `${filter.key}${filter.operator}"${filter.value}"`;
-        });
-
-        return whereComps.join(' and ');
-      }
-
-      // Builds a TSDS query string from target.func
+      // Builds the aggregation statement for a TSDS query from
+      // target.func.
       function TSDSQuery(func, parentQuery) {
         let query = '';
         let query_list = [];
@@ -527,111 +553,135 @@ export class GenericDatasource {
         return TSDSQuery(func.wrapper[0], query);
       }
 
-      var scopevar = options.scopedVars;
-      var query = _.map(options.targets, function(target) {
-
-        // Returns target when not formated as a tsds query
-        // object.
-        if (typeof(target) === "string") { return target; }
-
-        if (target.rawQuery) {
-          var query = t.templateSrv.replace(target.target, scopevar);
-          var oldQ = query.substr(query.indexOf("{"), query.length);
-          var formatQ = oldQ.replace(/,/gi, " or ");
-          query = query.replace(oldQ, formatQ);
-          return query;
-        } else {
-
-          var query = 'get ';
-          var seriesName = target.series;
-
-          for (var index = 0 ; index < target.metric_array.length; index++) {
-            query+= ' '+target.metric_array[index];
-            if (index + 1 == target.metric_array.length) {
-              break;
-            }
-            query+=',';
+      var queries = options.targets.map(function(target) {
+        return new Promise((resolve, reject) => {
+          if (typeof(target) === "string"){
+            return resolve({
+              target: target,
+              targetAliases: target.metricValueAliasMappings,
+              targetBuckets: target.bucket,
+              refId: target.refId,
+              hide: target.hide,
+              type: target.type || 'timeserie',
+              alias : target.target_alias
+            });
           }
+
+          if (target.rawQuery) {
+            let query = t.templateSrv.replace(target.target, options.scopedVars);
+            let oldQ = query.substr(query.indexOf("{"), query.length);
+            let formatQ = oldQ.replace(/,/gi, " or ");
+            query = query.replace(oldQ, formatQ);
+
+            return resolve({
+              target: query,
+              targetAliases: target.metricValueAliasMappings,
+              targetBuckets: target.bucket,
+              refId: target.refId,
+              hide: target.hide,
+              type: target.type || 'timeserie',
+              alias : target.target_alias
+            });
+          }
+
           target.metricValueAliasMappings = {};
-          
+
+          let query = 'get ';
+
+          target.metric_array.forEach((metric) => {
+            query += `${metric}, `;
+          });
+
           let functions = target.func.map((f) => {
-              let aggregation = TSDSQuery(f);
-              let start = Date.parse(options.range.from);
-              let end   = Date.parse(options.range.to);
-              let duration = (end - start) / 1000;
-              let template_variables = getVariableDetails();
-              let defaultBucket = duration / options.maxDataPoints;
-              let size = (f.bucket === '') ? defaultBucket : parseInt(f.bucket);
+            let aggregation = TSDSQuery(f);
+            let start = Date.parse(options.range.from);
+            let end   = Date.parse(options.range.to);
+            let duration = (end - start) / 1000;
+            let template_variables = getVariableDetails();
+            let defaultBucket = duration / options.maxDataPoints;
+            let size = (f.bucket === '') ? defaultBucket : parseInt(f.bucket);
 
-              if (duration >= 7776000) {
-                size = Math.max(86400, size);
-              } else if (duration >= 259200) {
-                size = Math.max(3600, size);
-              } else {
-                size = Math.max(60, size);
-              }
+            if (duration >= 7776000) {
+              size = Math.max(86400, size);
+            } else if (duration >= 259200) {
+              size = Math.max(3600, size);
+            } else {
+              size = Math.max(60, size);
+            }
 
-              aggregation = aggregation.replace(/\$quantify/g, size.toString());
-              let alias_value = template_variables[f.alias.replace('$', '')] ? template_variables[f.alias.replace('$', '')] : f.alias;
-              target.metricValueAliasMappings[aggregation] = alias_value;
+            aggregation = aggregation.replace(/\$quantify/g, size.toString());
+            let alias_value = template_variables[f.alias.replace('$', '')] ? template_variables[f.alias.replace('$', '')] : f.alias;
+            target.metricValueAliasMappings[aggregation] = alias_value;
 
-              return aggregation;
+            return aggregation;
           }).join(', ');
 
-          query += ', ' + functions;
-          query += ' between ($START,$END)';
+          query += `${functions} between ($START, $END) `;
 
-          if (target.groupby_field) {
-            query += ' by ' + target.groupby_field;
+          if (target.groupby_field) query += `by ${target.groupby_field} `;
+
+          query += `from ${target.series} where `;
+
+          target.whereClauseGroup.forEach((whereClauseGroup, groupIndex) => {
+            if (groupIndex > 0) query += ` ${target.outerGroupOperator[groupIndex]} `;
+            query += '(';
+
+            let groupOperators = target.inlineGroupOperator[groupIndex];
+            let whereClauses   = target.whereClauseGroup[groupIndex];
+
+            whereClauses.forEach((clause, clauseIndex) => {
+              if (clauseIndex > 0) query += ` ${groupOperators[clauseIndex]} `;
+              query += `${clause.left}${clause.op}"${clause.right}"`;
+            });
+
+            query += ')';
+          });
+
+          let filters = [];
+          if (typeof t.templateSrv.getAdhocFilters !== 'undefined') {
+            filters = t.templateSrv.getAdhocFilters(t.name);
           }
 
-          query += ' from ' + seriesName;
-          query += " where ";
+          // Generate adhoc query components. Use Promise.all to wait
+          // for all components to resolve then join each with the
+          // 'and' operator and append to the final query.
+          let filterQueryGenerators = filters.map(this.getAdhocQueryString.bind(this));
 
-          for(var i=0; i<target.whereClauseGroup.length; i++) {
-            if(i>0) query +=" "+ target.outerGroupOperator[i]+" ";
-            query +=" ( ";
-            for(var j =0 ; j<target.whereClauseGroup[i].length; j++){
-              if(j>0) query = query +" "+target.inlineGroupOperator[i][j]+" ";
-              query += target.whereClauseGroup[i][j].left+" "+target.whereClauseGroup[i][j].op+" \""+target.whereClauseGroup[i][j].right+"\"";
-            }
+          return Promise.all(filterQueryGenerators).then((filterQueries) => {
+            let adhocQuery = filterQueries.join(', ');
+            if (adhocQuery !== '') query += ` and (${adhocQuery}) `;
 
-            var adhocFilters = getAdhocFilters();
-            //console.log("Adhoc Filters: ",adhocFilters);
-            if (adhocFilters === '') {
-              query +=" )";
-            } else {
-              query +=" and " + adhocFilters + " )";
-            }
-          }
+            if (target.orderby_field) query += `ordered by ${target.orderby_field}`;
 
-          if(target.orderby_field){
-            query+= ' ordered by '+target.orderby_field;
-          }
+            query = t.templateSrv.replace(query, options.scopedVars);
+            var oldQ = query.substr(query.indexOf("{"), query.length);
+            var formatQ = oldQ.replace(/,/gi, " or ");
+            query = query.replace(oldQ, formatQ);
 
-          query = t.templateSrv.replace(query, scopevar);
-          var oldQ = query.substr(query.indexOf("{"), query.length);
-          var formatQ = oldQ.replace(/,/gi, " or ");
-          query = query.replace(oldQ, formatQ);
-          target.target = query;
-          return query;
-        }
-      }.bind(scopevar));
+            // Log final query for debugging.
+            console.log(query);
 
-      var index = 0;
-      var targets = _.map(options.targets, target => {
-        return {
-          target: query[index++],
-          targetAliases: target.metricValueAliasMappings,
-          targetBuckets: target.bucket,
-          refId: target.refId,
-          hide: target.hide,
-          type: target.type || 'timeserie',
-          alias : target.target_alias
-        };
+            return resolve({
+              target: query,
+              targetAliases: target.metricValueAliasMappings,
+              targetBuckets: target.bucket,
+              refId: target.refId,
+              hide: target.hide,
+              type: target.type || 'timeserie',
+              alias : target.target_alias
+            });
+          });
+
+        }).catch((e) => {
+          console.log(e);
+        });
+      }.bind(this));
+
+      return Promise.all(queries).then((targets) => {
+        options.targets = targets;
+        return Promise.resolve(options);
       });
-
-      options.targets = targets;
-      return options;
     }
 }
+
+export {GenericDatasource};

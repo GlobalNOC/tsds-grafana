@@ -107,7 +107,7 @@ class GenericFunction {
   }
 }
 
-export class GenericDatasourceQueryCtrl extends QueryCtrl {
+class GenericDatasourceQueryCtrl extends QueryCtrl {
   /**
    * Create a GenericDatasourceQueryCtrl
    *
@@ -260,3 +260,5 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
 }
 
 GenericDatasourceQueryCtrl.templateUrl = 'partials/query.editor.html';
+
+export {GenericDatasourceQueryCtrl};

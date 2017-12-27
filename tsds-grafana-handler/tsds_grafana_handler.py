@@ -296,7 +296,6 @@ def search():
                     output.append(eachDict["name"]+"."+field["name"])
             else:
                 output.append(eachDict["name"])
-
     elif searchType == "Value": # Searching for Values
         url = getUrl()+"metadata.cgi?method=get_measurement_type_values;measurement_type="+inpParameter['target']
         json_result = make_TSDS_Request(url)
@@ -311,31 +310,34 @@ def search():
         url = getUrl()+"metadata.cgi?method=get_meta_field_values;measurement_type="+inpParameter['target']+";meta_field="+inpParameter['meta_field']+";limit=100000;offset=0;"+inpParameter['meta_field']+"_like="+inpParameter['like_field']
         json_result = make_TSDS_Request(url)
         output = [eachDict["value"] for eachDict in json_result["results"]]
-
     elif searchType == "Where_Related": # Searching for dependent where clause
-        url = ''
-
-        if not 'parent_meta_fields' in inpParameter:
-            url = getUrl()+"metadata.cgi?method=get_meta_field_values;measurement_type="+inpParameter['target']+";meta_field="+inpParameter['meta_field']+";limit=100;offset=0;"+inpParameter['parent_meta_field']+"="+inpParameter['parent_meta_field_value']+";"+inpParameter['meta_field']+"_like="+str(inpParameter['like_field'])
+        # Auto-complete for generic search is currently disabled for
+        # simplicity.
+        if inpParameter["meta_field"] == "*":
+            output = []
         else:
-            parent_meta_field_kv_pairs = []
-            for field in inpParameter['parent_meta_fields']:
-                s = "{0}_like={1}".format(field['key'], field['value'])
-                parent_meta_field_kv_pairs.append(s)
+            url = ''
+            if not 'parent_meta_fields' in inpParameter:
+                url = getUrl()+"metadata.cgi?method=get_meta_field_values;measurement_type="+inpParameter['target']+";meta_field="+inpParameter['meta_field']+";limit=100;offset=0;"+inpParameter['parent_meta_field']+"="+inpParameter['parent_meta_field_value']+";"+inpParameter['meta_field']+"_like="+str(inpParameter['like_field'])
+            else:
+                parent_meta_field_kv_pairs = []
+                for field in inpParameter['parent_meta_fields']:
+                    s = "{0}_like={1}".format(field['key'], field['value'])
+                    parent_meta_field_kv_pairs.append(s)
 
-            # Becase adhoc filters do not support live
-            # filtering (re-query as you type), limit has
-            # been set to 10000; This should be large
-            # enough to cover most cases.
-            url = "{0}metadata.cgi?method=get_meta_field_values;measurement_type={1};meta_field={2};limit=10000;offset=0;{3}".format(
-                getUrl(),
-                inpParameter['target'],
-                inpParameter['meta_field'],
-                ';'.join(parent_meta_field_kv_pairs)
-            )
+                # Becase adhoc filters do not support live
+                # filtering (re-query as you type), limit has
+                # been set to 10000; This should be large
+                # enough to cover most cases.
+                url = "{0}metadata.cgi?method=get_meta_field_values;measurement_type={1};meta_field={2};limit=10000;offset=0;{3}".format(
+                    getUrl(),
+                    inpParameter['target'],
+                    inpParameter['meta_field'],
+                    ';'.join(parent_meta_field_kv_pairs)
+                )
 
-        json_result = make_TSDS_Request(url)
-        output = [eachDict["value"] for eachDict in json_result["results"]]
+            json_result = make_TSDS_Request(url)
+            output = [eachDict["value"] for eachDict in json_result["results"]]
 
     elif searchType == "Search": #Searching for template variables in Drill Down report
 
