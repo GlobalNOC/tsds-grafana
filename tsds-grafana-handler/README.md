@@ -1,5 +1,9 @@
 ## globalnoc-tsds-datasource-handler
 
+globalnoc-tsds-datasource-handler is a python CGI that translates
+requests from globalnoc-tsds-datasource to the configured TSDS
+backend.
+
 ### RPM setup
 
 ```
