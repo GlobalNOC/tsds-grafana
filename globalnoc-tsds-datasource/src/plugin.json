@@ -11,9 +11,9 @@
   "annotations": true,
 
   "info": {
-    "description": "GlobalNOC TSDS Datasource Query Builder",
+    "description": "GlobalNOC TSDS",
     "author": {
-      "name": "GRNOC - Mihir Thatte",
+      "name": "GlobalNOC",
       "url": "https://globalnoc.iu.edu/"
     },
     "logos": {
@@ -22,7 +22,7 @@
     },
     "links": [
       {"name": "Github", "url": "https://github.com/GlobalNOC/tsds-grafana/tree/master/globalnoc-tsds-datasource"},
-      {"name": "MIT License", "url": "https://github.com/grafana/simple-json-datasource/blob/master/LICENSE"}
+      {"name": "MIT License", "url": "https://github.com/GlobalNOC/tsds-grafana/blob/cleanup/globalnoc-tsds-datasource/LICENSE"}
     ],
     "version": "0.1.0",
     "updated": "2017-09-06"
