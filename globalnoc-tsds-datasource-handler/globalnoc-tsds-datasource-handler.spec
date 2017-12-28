@@ -28,15 +28,18 @@ cp -pr %{_sourcedir}/*  %{_builddir}
 rm -rf $RPM_BUILDR_ROOT
 
 %{__install} -d -p %{buildroot}%{_datarootdir}/grnoc/globalnoc-tsds-datasource-handler
-
 %{__install} %{_builddir}/cgi-bin/tsds_grafana_handler.py %{buildroot}%{_datarootdir}/grnoc/globalnoc-tsds-datasource-handler/tsds_grafana_handler.py
 
 %{__install} -d -p %{buildroot}%{_sysconfdir}/grnoc/globalnoc-tsds-datasource-handler
-
 %{__install} %{_builddir}/conf/config.json %{buildroot}%{_sysconfdir}/grnoc/globalnoc-tsds-datasource-handler/config.json
+
+%{__install} -d -p %{buildroot}%{_sysconfdir}/httpd/conf.d
+%{__install} etc/globalnoc-tsds-datasource-handler.conf %{buildroot}%{_sysconfdir}/httpd/conf.d/globalnoc-tsds-datasource-handler.conf
 
 %files
 %{_datarootdir}/grnoc/globalnoc-tsds-datasource-handler
 %{_sysconfdir}/grnoc/globalnoc-tsds-datasource-handler
 
 %config(noreplace) %{_sysconfdir}/grnoc/globalnoc-tsds-datasource-handler/config.json
+
+%config(noreplace) %{_sysconfdir}/httpd/conf.d/globalnoc-tsds-datasource-handler.conf
