@@ -3,7 +3,7 @@
   <!-- BEGIN - Get Template -->
   <script type="text/ng-template" id="categoryTree">
 
-    <div class="gf-form" ng-repeat="func in func.wrapper" ng-include="'categoryTree'"></div>
+    <span class="gf-form-inline" ng-repeat="func in func.wrapper" ng-include="'categoryTree'"></span>
 
     <button class="btn btn-inverse gf-form-btn query-keyword" ng-click="func.addWrapper()"><i class="fa fa-plus"></i></button>
 
@@ -22,35 +22,30 @@
     </span>
 
     <!-- Singleton function -->
-    <div class="gf-form" ng-if="funct.type=='Singleton'">
-    </div>
+    <span ng-if="funct.type=='Singleton'"></span>
 
     <!-- Percentile function -->
-    <div class="gf-form" ng-if="func.type=='Percentile'">
-      <input type="text" class="gf-form-input width-3" ng-model="func.percentile"/>
-    </div>
+    <input type="text" ng-if="func.type=='Percentile'" class="gf-form-input width-3" ng-model="func.percentile"/>
 
     <!-- Aggregate function -->
-    <div class="gf-form" ng-if="func.type=='Aggregate'">
-      <span class="gf-form-select-wrapper">
-        <select class="gf-form-input width-8" name="aggregator" ng-model="func.method" bs-tooltip="'Select an Aggregator'">
-          <option "style = background: #292929" value="average">average</option>
-          <option "style = background: #292929" value="max">max</option>
-          <option "style = background: #292929" value="min">min</option>
-          <option "style = background: #292929" value="sum">sum</option>
-          <option "style = background: #292929" value="percentile">percentile</option>
-          <option "style = background: #292929" value="template">template</option>
-        </select>
-      </span>
+    <span class="gf-form-select-wrapper" ng-if="func.type=='Aggregate'">
+      <select class="gf-form-input width-8" name="aggregator" ng-model="func.method" bs-tooltip="'Select an Aggregator'">
+        <option "style = background: #292929" value="average">average</option>
+        <option "style = background: #292929" value="max">max</option>
+        <option "style = background: #292929" value="min">min</option>
+        <option "style = background: #292929" value="sum">sum</option>
+        <option "style = background: #292929" value="percentile">percentile</option>
+        <option "style = background: #292929" value="template">template</option>
+      </select>
+    </span>
 
-      <input type="text" ng-if="func.method=='percentile'" class="gf-form-input width-7" ng-model="func.percentile"/>
-      <input type="text" ng-if="func.method=='template'" class="gf-form-input width-10" placeholder="$<variable_name>" ng-model="func.template"/>
+    <input type="text" ng-if="func.type=='Aggregate'&&func.method=='percentile'" class="gf-form-input width-7" ng-model="func.percentile"/>
+    <input type="text" ng-if="func.type=='Aggregate'&&func.method=='template'" class="gf-form-input width-10" placeholder="$<variable_name>" ng-model="func.template"/>
 
-      <metric-segment-model css-class="width-10" property="func.target" ng-model="func.target" get-options="ctrl.getMetricValues()"></metric-segment-model>
+    <metric-segment-model ng-if="func.type=='Aggregate'" css-class="width-10" property="func.target" ng-model="func.target" get-options="ctrl.getMetricValues()"></metric-segment-model>
 
-      <label class="gf-form-label query-keyword width-3"><i class="fa fa-bitbucket" aria-hidden="true"></i></label>
-      <input type="text" class="gf-form-input width-5" placeholder="300" ng-model="func.bucket" bs-tooltip="'Bucket Size'"/>
-    </div>
+    <label class="gf-form-label query-keyword width-3" ng-if="func.type=='Aggregate'"><i class="fa fa-bitbucket" aria-hidden="true"></i></label>
+    <input type="text" ng-if="func.type=='Aggregate'" class="gf-form-input width-5" placeholder="300" ng-model="func.bucket" bs-tooltip="'Bucket Size'"/>
 
   </script>
   <!-- END - Get Template -->
@@ -76,22 +71,19 @@
 
     <!-- GET -->
     <div ng-repeat="segment in ctrl.target.metricValues_array track by $index">
-      <div class="gf-form-inline">
-        <div class="gf-form">
-          <label ng-if="$index == 0" class="gf-form-label query-keyword width-8">Get</label>
-          <div ng-if="$index != 0" style="padding-left: 111px;"></div>
+      <div class="gf-form">
 
-          <div class="gf-form" ng-include="'categoryTree'" ng-init="func = ctrl.target.func[$index]"></div>
+        <label ng-if="$index == 0" class="gf-form-label query-keyword width-8">Get</label>
+        <div ng-if="$index != 0" style="padding-left: 111px;"></div>
 
-          <label class="gf-form-label query-keyword width-3">AS</label>
-	      <input type="text" class="gf-form-input width=7" placeholder="alias" ng-model="ctrl.target.func[$index].alias"/>
+        <span class="gf-form-inline" ng-include="'categoryTree'" ng-init="func = ctrl.target.func[$index]"></span>
 
-          <button class="btn btn-inverse gf-form-btn" ng-click="ctrl.removeValueSegment($index)"><i class="fa fa-trash"></i></button>
-        </div>
+        <label class="gf-form-label query-keyword width-3">AS</label>
+	    <input type="text" class="gf-form-input width-7" placeholder="alias" ng-model="ctrl.target.func[$index].alias"/>
 
-        <div class="gf-form">
-          <button class="btn btn-inverse gf-form-btn query-keyword" ng-click="ctrl.addValueSegments()"><i class="fa fa-plus"></i></button>
-        </div>
+        <button class="btn btn-inverse gf-form-btn" ng-click="ctrl.removeValueSegment($index)"><i class="fa fa-trash"></i></button>
+
+        <button class="btn btn-inverse gf-form-btn query-keyword" ng-click="ctrl.addValueSegments()"><i class="fa fa-plus"></i></button>
 
 	    <div class="gf-form gf-form--grow">
           <div class="gf-form-label gf-form-label--grow"></div>
