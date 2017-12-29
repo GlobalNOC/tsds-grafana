@@ -176,10 +176,13 @@
         <label ng-if="$index == 0" class="gf-form-label query-keyword width-8">Where</label>
         <div ng-repeat="segment in line">
           <div class="gf-form-inline">
-            <select class="gf-form-input" ng-if="$index >0" style="width:70px; margin-left:7px;margin-right:7px;" name="whereGroup" ng-model="ctrl.target.inlineGroupOperator[parentIndex][$index]" bs-tooltip="'Select an Operator'">
-              <option value="and">and</option>
-              <option value="or">or</option>
-            </select>
+            <span class="gf-form-select-wrapper" ng-if="$index > 0">
+              <select class="gf-form-input" style="width:64px;" name="whereGroup" ng-model="ctrl.target.inlineGroupOperator[parentIndex][$index]" bs-tooltip="'Select an Operator'">
+                <option value="and">and</option>
+                <option value="or">or</option>
+              </select>
+            </span>
+
             <metric-segment-model property="segment.left" ng-model="segment.left" get-options="ctrl.getColumns()" style="min-width:66px;"></metric-segment-model>
 
             <span class="gf-form-select-wrapper">

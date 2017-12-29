@@ -680,6 +680,7 @@ class GenericDatasource {
             var oldQ = query.substr(query.indexOf("{"), query.length);
             var formatQ = oldQ.replace(/,/gi, " or ");
             query = query.replace(oldQ, formatQ);
+            target.target = query;
 
             // Log final query for debugging.
             console.log(query);
