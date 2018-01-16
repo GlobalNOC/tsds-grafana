@@ -96,7 +96,7 @@
         <label class="gf-form-label query-keyword width-8">Metadata</label>
 	  </div>
       <div ng-repeat="element in ctrl.target.metric_array track by $index" class="gf-form">
-		<metric-segment-model style="min-width:66px;" property="ctrl.target.metric_array[$index]" get-options="ctrl.getColumns()"></metric-segment-model>
+		<metric-segment-model style="min-width:66px;" property="ctrl.target.metric_array[$index]" get-options="ctrl.getMetaFields()"></metric-segment-model>
 		<button class="btn btn-inverse gf-form-btn"  ng-click="ctrl.removeSegment($index)"><i class="fa fa-trash"></i></button>
       </div>
 	  

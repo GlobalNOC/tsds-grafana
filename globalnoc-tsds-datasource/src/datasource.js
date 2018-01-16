@@ -47,6 +47,8 @@ class GenericDatasource {
         this.metricValue = this.metricValue||[];
         this.metricColumn =this.metricColumn||[];
         this.whereSuggest =[];
+
+        this.tsdsURL = 'https://netsage-archive.grnoc.iu.edu/tsds/services-basic/';
     }
 
     query(options) {
@@ -115,25 +117,36 @@ class GenericDatasource {
         });
     }
 
+    /**
+     * testDatasource queries for TSDS measurement types. If the
+     * request is successful the plugin is configured correctly.
+     */
     testDatasource() {
-        var options = {
-            url: this.url + '/test',
-            method: 'GET'
-        };
+      let form = new FormData();
+      form.append('method', 'get_measurement_types');
 
-        if (this.basicAuth || this.withCredentials) {
-            options.withCredentials = true;
-        }
-        if (this.basicAuth) {
-            options.headers.Authorization = self.basicAuth;
-        }
+      let request = {
+          headers: {'Content-Type' : 'multipart/form-data'},
+          method: 'POST',
+          data: form,
+          url: `${this.tsdsURL}metadata.cgi`
+      };
 
-        return this.backendSrv.datasourceRequest(options).then(response => {
-            if (response.status === 200) {
-                return { status: "success", message: "Data source is working", title: "Success" };
-            }
+      if (this.basicAuth || this.withCredentials) {
+        request.withCredentials = true;
+      }
 
-        return { error: "Data source isn't working" };
+      if (this.basicAuth) {
+        request.headers.Authorization = self.basicAuth;
+      }
+
+      return this.backendSrv.datasourceRequest(request)
+        .then((response) => {
+          if (response.status === 200) {
+            return { status: "success", message: "Data source is working", title: "Success" };
+          }
+
+          return { error: "Data source isn't working" };
         });
     }
 
@@ -352,7 +365,41 @@ class GenericDatasource {
         if (this.basicAuth) {
             payload.headers.Authorization = self.basicAuth;
         }
-        return this.backendSrv.datasourceRequest(payload).then(this.mapToTextValue);
+        return this.backendSrv.datasourceRequest(payload).then((resp) => {
+            this.mapToTextValue(resp);
+        });
+    }
+
+    /**
+     * getMetaFields returns a list of metadata fields that can be
+     * used to filter datasets of the specified type.
+     *
+     * @param {string} type - A measurement structure type
+     */
+    getMetaFields(type) {
+      let form = new FormData();
+      form.append('method', 'get_meta_fields');
+      form.append('measurement_type', this.templateSrv.replace(type, null, 'regex'));
+
+      let request = {
+          headers: {'Content-Type' : 'multipart/form-data'},
+          method: 'POST',
+          data: form,
+          url: `${this.tsdsURL}metadata.cgi`
+      };
+
+      if (this.basicAuth || this.withCredentials) {
+        request.withCredentials = true;
+      }
+
+      if (this.basicAuth) {
+        request.headers.Authorization = self.basicAuth;
+      }
+
+      return this.backendSrv.datasourceRequest(request)
+        .then((response) => {
+          return response.data.results.map((x) => { return {text: x.name, value: x.name}; });
+        });
     }
 
     findWhereFields(options, parentIndex, index, callback) {

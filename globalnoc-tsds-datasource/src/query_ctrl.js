@@ -237,9 +237,10 @@ class GenericDatasourceQueryCtrl extends QueryCtrl {
 	this.target.orderby_field.splice(index,1);
   }
 
-  getColumns() {
-    return this.datasource.findMetric(this.target,"Column")
-      .then(this.uiSegmentSrv.transformToSegments(false));
+  getMetaFields() {
+    return this.datasource.getMetaFields(this.target.series)
+      .then(this.uiSegmentSrv.transformToSegments(false))
+      .catch(error => console.log(error));
   }
 
   getMetricValues() {
