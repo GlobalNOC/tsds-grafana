@@ -237,6 +237,11 @@ class GenericDatasourceQueryCtrl extends QueryCtrl {
 	this.target.orderby_field.splice(index,1);
   }
 
+  getColumns() {
+    return this.datasource.findMetric(this.target,"Column")
+      .then(this.uiSegmentSrv.transformToSegments(false));
+  }
+
   getMetaFields() {
     return this.datasource.getMetaFields(this.target.series)
       .then(this.uiSegmentSrv.transformToSegments(false))
@@ -254,7 +259,8 @@ class GenericDatasourceQueryCtrl extends QueryCtrl {
   }
 
   getWhereFields() {
-    this.datasource.findWhereFields(this.target, this.parentIndex, this.index, arguments[1]);
+    // this.datasource.findWhereFields(this.target, this.parentIndex, this.index, arguments[1]);
+    this.datasource.getMetaFieldValues(this.target, this.parentIndex, this.index, arguments[1]);
   }
 
   generateDrillDown(){

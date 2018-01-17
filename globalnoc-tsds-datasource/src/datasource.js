@@ -402,6 +402,51 @@ class GenericDatasource {
         });
     }
 
+    getMetaFieldValues(options, parentIndex, index, callback) {
+      var target = typeof (options) === "string" ? options : options.series;
+
+      console.log(options.inlineGroupOperator[parentIndex][index]);
+      console.log(options.whereClauseGroup[parentIndex][index]);
+
+      var meta_field = options.whereClauseGroup[parentIndex][index].left;
+      meta_field = this.templateSrv.replace(meta_field, null, 'regex');
+
+      var like_field = options.whereClauseGroup[parentIndex][index].right;
+      like_field = this.templateSrv.replace(like_field, null, 'regex');
+
+      var like_field_name = `${meta_field}_like`;
+
+      let form = new FormData();
+      form.append('method', 'get_meta_field_values');
+      form.append('measurement_type', this.templateSrv.replace(target, null, 'regex'));
+      form.append('meta_field', meta_field);
+      form.append(like_field_name, like_field);
+      form.append('limit', 1000);
+      form.append('offset', 0);
+
+      var payload = {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        method: 'POST',
+        data: form,
+        url: `${this.tsdsURL}metadata.cgi`
+      };
+
+      if (this.basicAuth || this.withCredentials) {
+        payload.withCredentials = true;
+      }
+
+      if (this.basicAuth) {
+        payload.headers.Authorization = self.basicAuth;
+      }
+
+      return this.backendSrv.datasourceRequest(payload)
+        .then((response) => {
+          let data = response.data.results.map((x) => { return x.value; });
+          return callback(data);
+        });
+    }
+
+
     findWhereFields(options, parentIndex, index, callback) {
         var target = typeof (options) === "string" ? options : options.series;
 

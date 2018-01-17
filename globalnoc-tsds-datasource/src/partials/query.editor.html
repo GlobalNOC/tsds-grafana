@@ -137,7 +137,7 @@
 			    </select>
               </span>
 
-              <metric-segment-model property="segment.left" ng-model="segment.left" get-options="ctrl.getColumns()" style="min-width:66px;"></metric-segment-model>
+              <metric-segment-model property="segment.left" ng-model="segment.left" get-options="ctrl.getMetaFields()" style="min-width:66px;"></metric-segment-model>
 
               <span class="gf-form-select-wrapper">
 		        <select class="gf-form-input" style="width:64px;" name="operator" ng-model="segment.op" bs-tooltip="'Select an Operator'">
@@ -183,7 +183,7 @@
               </select>
             </span>
 
-            <metric-segment-model property="segment.left" ng-model="segment.left" get-options="ctrl.getColumns()" style="min-width:66px;"></metric-segment-model>
+            <metric-segment-model property="segment.left" ng-model="segment.left" get-options="ctrl.getMetaFields()" style="min-width:66px;"></metric-segment-model>
 
             <span class="gf-form-select-wrapper">
               <select class="gf-form-input" style="width:64px;" name="operator" ng-model="segment.op" bs-tooltip="'Select an Operator'">
