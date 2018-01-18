@@ -259,8 +259,7 @@ class GenericDatasourceQueryCtrl extends QueryCtrl {
   }
 
   getWhereFields() {
-    // this.datasource.findWhereFields(this.target, this.parentIndex, this.index, arguments[1]);
-    this.datasource.getMetaFieldValues(this.target, this.parentIndex, this.index, arguments[1]);
+    this.datasource.getMetaFieldValues(this.target.series, this.target.whereClauseGroup, this.parentIndex, this.index, arguments[1]);
   }
 
   generateDrillDown(){
