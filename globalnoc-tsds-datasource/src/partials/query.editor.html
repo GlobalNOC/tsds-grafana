@@ -153,7 +153,7 @@
         	    </select>
 			  </span>
 
-              <input type="text" class="gf-form-input width-10" placeholder="Type Target name" ng-model="segment.right" bs-typeahead="ctrl.getWhereFields" ng-blur="ctrl.onChangeInternal()" ng-change="ctrl.saveIndices(parentIndex, $index)"></input>
+              <input type="text" class="gf-form-input width-10" placeholder="Type Target name" ng-model="segment.right" bs-typeahead="ctrl.getMetaFieldValues" ng-blur="ctrl.onChangeInternal()" ng-change="ctrl.saveIndices(parentIndex, $index)"></input>
               <button class="btn btn-inverse gf-form-btn" ng-click="ctrl.removeWhereClause(parentIndex,$index)"><i class="fa fa-trash"></i></button>
             </div>
 	      </div>
@@ -199,7 +199,7 @@
               </select>
             </span>
 
-            <input type="text" class="gf-form-input width-10" placeholder="Type Target name" ng-model="segment.right" bs-typeahead="ctrl.getWhereFields" ng-blur="ctrl.onChangeInternal()" ng-change="ctrl.saveIndices(parentIndex, $index)"></input>
+            <input type="text" class="gf-form-input width-10" placeholder="Type Target name" ng-model="segment.right" bs-typeahead="ctrl.getMetaFieldValues" ng-blur="ctrl.onChangeInternal()" ng-change="ctrl.saveIndices(parentIndex, $index)"></input>
             <button class="btn btn-inverse gf-form-btn"  ng-click="ctrl.removeWhereClause(parentIndex,$index)"><i class="fa fa-trash"></i></button>
 
           </div>

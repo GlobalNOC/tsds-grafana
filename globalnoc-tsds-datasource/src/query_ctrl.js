@@ -172,7 +172,7 @@ class GenericDatasourceQueryCtrl extends QueryCtrl {
     this.index = 0;
     this.parentIndex = 0;
     this.whereFieldOptions = [];
-    this.getWhereFields = this.getWhereFields.bind(this);
+    this.getMetaFieldValues = this.getMetaFieldValues.bind(this);
 
     self = this;
   }
@@ -258,7 +258,7 @@ class GenericDatasourceQueryCtrl extends QueryCtrl {
       .then(this.uiSegmentSrv.transformToSegments(false));
   }
 
-  getWhereFields() {
+  getMetaFieldValues() {
     this.datasource.getMetaFieldValues(this.target.series, this.target.whereClauseGroup, this.parentIndex, this.index, arguments[1]);
   }
 
