@@ -5,7 +5,11 @@
 layout: home
 ---
 
-## Adding the TSDS Datasource
+## 
+
+## Getting Started
+
+### Adding the TSDS Datasource
 
 After you've installed the datasource and restarted Grafana you can
 configure the TSDS Datasource. Under Grafana's main menu click Data
@@ -24,7 +28,7 @@ Auth, select With Credentials, and then input the user credentials you
 wish to use. Other authentication methods are not covered in this
 guide.
 
-## Crafting your first query
+### Crafting your first query
 
 To get familiar with the visual query builder let's walk though a
 simple example. Assuming you've already created a new dashboard create
