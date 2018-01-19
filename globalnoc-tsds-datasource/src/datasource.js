@@ -58,6 +58,34 @@ class GenericDatasource {
           return this.q.when({data: []});
         }
 
+        // let form = new FormData();
+        // form.append('method', 'query');
+        // form.append('query', '');
+
+        // let request = {
+        //   data: form,
+        //   headers: {'Content-Type' : 'multipart/form-data'},
+        //   method: 'POST',
+        //   url: `${this.tsdsURL}query.cgi`
+        // };
+
+        // if (this.basicAuth || this.withCredentials) {
+        //   request.withCredentials = true;
+        // }
+
+        // if (this.basicAuth) {
+        //   request.headers.Authorization = self.basicAuth;
+        // }
+
+        // return this.backendSrv.datasourceRequest(request)
+        //   .then((response) => {
+        //     return response.data.results.map((x) => { return {text: x.name, value: x.name}; });
+        //   });
+
+        query.targets.forEach((target, i) => {
+          // console.log(target);
+        });
+
         var ops = {
           url: this.url + '/query',
           data:query,
@@ -288,40 +316,75 @@ class GenericDatasource {
         });
     }
 
+    /**
+     * metricFindQuery is called once for every template variable, and
+     * returns a list of values that may be used for each. This method
+     * implements part of the Grafana Datasource specification.
+     *
+     * @param {string} options - A TSDS query
+     */
     metricFindQuery(options) {
-        var target = typeof (options) === "string" ? options : options.target;
-        var interpolated = {
-            target: this.templateSrv.replace(target, null, 'regex'),
-            type:"Search"
+      var target = typeof options === "string" ? options : options.target;
+
+      // By default the dashboard's selected time range is not passed
+      // to metricFindQuery. Use the angular object to retrieve it or
+      // if the angular object doesn't exist we're in test.
+      if (typeof angular === 'undefined') {
+        let request = {
+          headers: {'Content-Type' : 'multipart/form-data'},
+          method: 'POST',
+          data: { method: 'query', query: target },
+          url: `${this.tsdsURL}query.cgi`
         };
 
-        // Nested template variables are escaped, which tsds doesn't
-        // expect. Remove any `\` characters from the template variable
-        // query to craft a valid tsds query.
-        if (interpolated.target) {
-            interpolated.target = interpolated.target.replace(/\\/g, "");
-        }
+        return this.backendSrv.datasourceRequest(request).then((response) => {
+          return response.data.map((x) => { return {text: x, value: x}; });
+        });
+      }
 
-        // By default the dashboard's selected time range is not passed
-        // to metricFindQuery.
-        if (typeof angular !== 'undefined') {
-            interpolated.range = angular.element('grafana-app').injector().get('timeSrv').timeRange();
-        }
+      let range = angular.element('grafana-app').injector().get('timeSrv').timeRange();
+      let start = Date.parse(range.from) / 1000;
+      let end   = Date.parse(range.to) / 1000;
+      let duration = (end - start);
 
-        var payload = {
-            url: this.url + '/search',
-            data: interpolated,
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
-        };
-        if (this.basicAuth || this.withCredentials) {
-            payload.withCredentials = true;
-        }
-        if (this.basicAuth) {
-            payload.headers.Authorization = self.basicAuth;
-        }
+      target = target.replace("$START", start.toString());
+      target = target.replace("$END", end.toString());
+      target = target.replace("$TIMESPAN", duration.toString());
+      target = this.templateSrv.replace(target, null, 'regex');
 
-        return this.backendSrv.datasourceRequest(payload).then(this.mapToTextValue);
+      // Nested template variables are escaped, which tsds doesn't
+      // expect. Remove any `\` characters from the template
+      // variable query to craft a valid tsds query.
+      target = target.replace(/\\/g, "");
+
+      let form = new FormData();
+      form.append('method', 'query');
+      form.append('query', target);
+
+      let request = {
+        headers: {'Content-Type' : 'multipart/form-data'},
+        method: 'POST',
+        data: form,
+        url: `${this.tsdsURL}query.cgi`
+      };
+
+      if (this.basicAuth || this.withCredentials) {
+        request.withCredentials = true;
+      }
+
+      if (this.basicAuth) {
+        request.headers.Authorization = self.basicAuth;
+      }
+
+      return this.backendSrv.datasourceRequest(request)
+        .then((response) => {
+          let dataType = target.split(' ')[1];
+          let data = response.data.results.map((x) => {
+            return {text: x[dataType], value: x[dataType]};
+          });
+
+          return data;
+        });
     }
 
     metricFindTables(options) {
@@ -491,7 +554,6 @@ class GenericDatasource {
 
         if (!isTestData) {
             if (result.data.error) {
-                console.log(result.data.error);
                 return [];
             }
 
@@ -518,7 +580,6 @@ class GenericDatasource {
 
     mapToListValue(result) {
         this.metricValue = result.data;
-        console.log(this.metricValue);
     }
 
     /**
@@ -567,7 +628,6 @@ class GenericDatasource {
             method = `percentile(${func.percentile})`;
           } else if (method == 'template') {
             let template_variables = getVariableDetails();
-            console.log(template_variables);
             method = template_variables[func.template.replace('$', '')];
           }
           if(targets) {
@@ -632,11 +692,12 @@ class GenericDatasource {
             query += `${metric}, `;
           });
 
+          let start = Date.parse(options.range.from) / 1000;
+          let end   = Date.parse(options.range.to) / 1000;
+          let duration = (end - start);
+
           let functions = target.func.map((f) => {
             let aggregation = TSDSQuery(f);
-            let start = Date.parse(options.range.from);
-            let end   = Date.parse(options.range.to);
-            let duration = (end - start) / 1000;
             let template_variables = getVariableDetails();
             let defaultBucket = duration / options.maxDataPoints;
             let size = (f.bucket === '') ? defaultBucket : parseInt(f.bucket);
@@ -656,7 +717,7 @@ class GenericDatasource {
             return aggregation;
           }).join(', ');
 
-          query += `${functions} between ($START, $END) `;
+          query += `${functions} between (${start}, ${end}) `;
 
           if (target.groupby_field) query += `by ${target.groupby_field} `;
 

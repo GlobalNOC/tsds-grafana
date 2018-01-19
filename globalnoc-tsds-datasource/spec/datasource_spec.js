@@ -77,7 +77,7 @@ describe('GenericDatasource', function() {
 
     it ('should return the metric target results when a target is set', function(done) {
         ctx.backendSrv.datasourceRequest = function(request) {
-            var target = request.data.target;
+            var target = request.data.query;
             var result = [target + "_0", target + "_1", target + "_2"];
 
             return ctx.$q.when({
@@ -170,7 +170,7 @@ describe('GenericDatasource', function() {
 
     it ('should return the metric target results when the args are a string', function(done) {
         ctx.backendSrv.datasourceRequest = function(request) {
-            var target = request.data.target;
+            var target = request.data.query;
             var result = [target + "_0", target + "_1", target + "_2"];
 
             return ctx.$q.when({
