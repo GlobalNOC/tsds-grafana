@@ -485,44 +485,6 @@ class GenericDatasource {
         });
     }
 
-    generateDashboard(options, timeFrom, timeTo, DB_title, datasource, type) {
-        var target = typeof (options) === "string" ? options : options.target;
-        var interpolated = {
-            query: this.templateSrv.replace(target, null, 'regex'),
-            drill : options.drillDownValue,
-            timeFrom : timeFrom,
-            timeTo: timeTo,
-            DB_title : DB_title,
-            Data_source : datasource,
-            alias: options.drillDownAlias,
-            graph_type : type
-        };
-
-        var payload = {
-            url: this.url + '/dashboard',
-            data: interpolated,
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
-        };
-        if (this.basicAuth || this.withCredentials) {
-            payload.withCredentials = true;
-        }
-        if (this.basicAuth) {
-            payload.headers.Authorization = self.basicAuth;
-        }
-
-        return this.backendSrv.datasourceRequest(payload).then(function(){
-
-        });
-    }
-
-    findOperator(){
-        return  new Promise(function(resolve, reject) {
-            var a = {"data":['=','<','>'], "status":200, "statusText":"OK"};
-            resolve(a);
-        }).then(this.mapToTextValue);
-    }
-
     mapToTextValue(result) {
         let isTestData = _.isArray(result.data) || typeof result.data.data === 'undefined';
         let data = result.data;
@@ -557,10 +519,6 @@ class GenericDatasource {
     mapToListValue(result) {
         this.metricValue = result.data;
         console.log(this.metricValue);
-    }
-
-    targetContainsTemplate(target) {
-        return templateSrv.variableExists(target.target);
     }
 
     /**

@@ -193,10 +193,6 @@ class GenericDatasourceQueryCtrl extends QueryCtrl {
 	this.target.inlineGroupOperator.push(['']);
   }
 
-  getOperator(){
-    return this.datasource.findOperator();
-  }
-
   addSegments(){
 	this.target.metric_array.push('Select Metric');
   }
@@ -264,13 +260,6 @@ class GenericDatasourceQueryCtrl extends QueryCtrl {
 
   generateDrillDown(){
 	this.target.drillDown.splice(0,0,'Drill');
-  }
-
-
-  createDashboard(){
-	var r = this.datasource.generateDashboard(this.target, this.panelCtrl.$scope.ctrl.range.from.toISOString(), this.panelCtrl.$scope.ctrl.range.to.toISOString(),  this.panelCtrl.dashboard.title, this.datasource.name, this.panel.type);
-	window.location.reload();
-	return r;
   }
 
   saveIndices(parentIndex, index){
