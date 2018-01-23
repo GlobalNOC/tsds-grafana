@@ -54,50 +54,225 @@ class GenericDatasource {
     query(options) {
       return this.buildQueryParameters(options, this).then((query) => {
         query.targets = query.targets.filter(t => !t.hide);
-        if (query.targets.length <= 0) {
-          return this.q.when({data: []});
+        if (query.targets.length <= 0) { return this.q.when({data: []}); }
+
+        if (typeof angular === 'undefined') {
+          var ops = {
+            url: this.url + '/query',
+            data:query,
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'}
+          };
+
+          return this.post(query.targets, ops).then(function(response){
+            let data = new ResponseHandler(query.targets, response.data).getData();
+            console.log(data);
+            return data;
+          });
         }
 
-        // let form = new FormData();
-        // form.append('method', 'query');
-        // form.append('query', '');
+        console.log(query);
+        let start = Date.parse(query.range.from) / 1000;
+        let end   = Date.parse(query.range.to) / 1000;
+        let duration = (end - start);
 
-        // let request = {
-        //   data: form,
-        //   headers: {'Content-Type' : 'multipart/form-data'},
-        //   method: 'POST',
-        //   url: `${this.tsdsURL}query.cgi`
-        // };
+        let output = [];
 
-        // if (this.basicAuth || this.withCredentials) {
-        //   request.withCredentials = true;
-        // }
+        let requests = query.targets.map((target) => {
+          return new Promise((resolve, reject) => {
+            let form = new FormData();
+            form.append('method', 'query');
+            form.append('query', target.target);
 
-        // if (this.basicAuth) {
-        //   request.headers.Authorization = self.basicAuth;
-        // }
+            let request = {
+              data: form,
+              headers: {'Content-Type' : 'multipart/form-data'},
+              method: 'POST',
+              url: `${this.tsdsURL}query.cgi`
+            };
 
-        // return this.backendSrv.datasourceRequest(request)
-        //   .then((response) => {
-        //     return response.data.results.map((x) => { return {text: x.name, value: x.name}; });
-        //   });
+            if (this.basicAuth || this.withCredentials) {
+              request.withCredentials = true;
+            }
 
-        query.targets.forEach((target, i) => {
-          // console.log(target);
+            if (this.basicAuth) {
+              request.headers.Authorization = self.basicAuth;
+            }
+
+            let aliases  = target.targetAliases;
+            let query    = target.target;
+            let template = target.alias !== '' ? target.alias.split(' ') : null; // Value of 'Target Name'
+
+            return this.backendSrv.datasourceRequest(request).then((response) => {
+              response.data.results.forEach((result) => {
+
+                // TSDS modifies the target expression of extrapolate
+                // functions on return, such that a request like
+                // 'extrapolate(..., 1526705726)' will return with a
+                // key of 'extrapolate(..., Date(1526705726))'; This
+                // breaks our alias mappings. Ensure the key from TSDS
+                // no longer includes the Date method.
+                let newval = null;
+                let newkey = null;
+
+                for (let key in result) {
+                  if (key.indexOf('extrapolate') !== -1) {
+                    newval = result[key];
+                    newkey = key.replace(/Date\(\d+\)/g, function(x) {
+                      return x.match(/\d+/);
+                    });
+                  }
+
+                  if (newval !== null) {
+                    result[newkey] = newval;
+                    delete result[key];
+                  }
+                }
+
+                let targetObjects = this.getTargetNames(result, template, aliases);
+                console.log(targetObjects);
+
+                targetObjects.forEach((targetObject) => {
+                  let datapoints = result[targetObject['name']];
+
+                  if (Array.isArray(datapoints)) {
+                    // TSDS returns [timestamp, value], but Grafana
+                    // wants [value, timestamp] in milliseconds.
+                    targetObject['datapoints'] = datapoints.map(datapoint => [datapoint[1], datapoint[0] * 1000]);
+                  } else {
+                    // It's possible that a user may request
+                    // something like sum(aggregate(...)) which will
+                    // result in a single datapoint being returned.
+                    targetObject['datapoints'] = [[datapoints, end]];
+                  }
+
+                  output.push(targetObject);
+                });
+              });
+
+              output.sort(function(a, b) {
+                var nameA = a.target.toUpperCase();
+                var nameB = b.target.toUpperCase();
+                if (nameA < nameB) {
+                  return -1;
+                }
+                if (nameA > nameB) {
+                  return 1;
+                }
+
+                return 0;
+              });
+
+              resolve(output);
+            });
+          });
         });
 
-        var ops = {
-          url: this.url + '/query',
-          data:query,
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'}
-        };
-
-        return this.post(query.targets, ops).then(function(response){
-          return new ResponseHandler(query.targets, response.data).getData();
+        return Promise.all(requests).then((responses) => {
+          console.log(output);
+          return {data: output, error: null};
         });
       });
     }
+
+  getHumanTime(seconds) {
+    if (seconds >= 86400) {
+      let count = seconds/86400;
+      return `${count}d`;
+    }
+
+    if (seconds >= 3600) {
+      let count = seconds/3600;
+      return `${count}h`;
+    }
+
+    if (seconds >= 60) {
+      let count = seconds/3600;
+      return `${count}m`;
+    }
+
+    return `${seconds}s`;
+  }
+
+  getTargetNames(result, template, aliases) {
+    let returnNames = [];
+
+    for (let key in result) {
+
+      // Aggregate functions will have '.values' in the key. The rest
+      // are metric names.
+      if (key.indexOf('values.') === -1) {
+        continue;
+      }
+
+      let args = key.split(/[(,)]/).map(x => x.trim());
+      let name = null;
+
+      if (aliases.hasOwnProperty(key) && aliases[key] !== '') {
+        name = aliases[key];
+      } else if (args[0] !== 'aggregate') {
+        name = key;
+      } else if (key.indexOf('percentile') !== -1) {
+        let measurement = args[1].replace('values.', '');
+        measurement = measurement.charAt(0).toUpperCase() + measurement.slice(1);
+        let humanTime   = this.getHumanTime(args[2]);
+        let aggregation = args[3];
+        let percentile  = args[4];
+
+        name = `${measurement} ${humanTime} ${percentile}th ${aggregation}s`;
+      } else {
+        let measurement = args[1].replace('values.', '');
+        measurement = measurement.charAt(0).toUpperCase() + measurement.slice(1);
+        let humanTime   = this.getHumanTime(args[2]);
+        let aggregation = args[3];
+
+        name = `${measurement} (${humanTime} ${aggregation}s)`;
+      }
+      console.log(name);
+
+      let targetNames = [name];
+      if (template !== null) {
+        console.log(template);
+
+       for (let i = 0; i < template.length; i++) {
+         if (template[i].charAt(0) !== '$') {
+           targetNames.push(template[i]);
+           continue;
+         }
+
+         let alias = template[i].replace('$', '');
+         if (result.hasOwnProperty(alias)) {
+           targetNames.push(result[alias]);
+         } else if (alias === 'VALUE') {
+           targetNames.shift();
+           targetNames.push(name);
+         }
+       }
+      } else {
+        targetNames = targetNames.concat(this.getMetricLabel(result));
+      }
+
+      for (let i = 0; i < targetNames.length; i++) {
+        if (targetNames[i] === null) {
+          targetNames[i] = '';
+        }
+      }
+
+      returnNames.push({
+        name:   key,
+        target: targetNames.join(' ')
+      });
+    }
+
+    return returnNames;
+  }
+
+  getMetricLabel(tsdsResult) {
+    return Object.keys(tsdsResult)
+      .sort()
+      .filter(x => x.indexOf('values.') === -1)
+      .map(x => tsdsResult[x]);
+  }
 
   /**
    * getAdhocQueryString takes an adhoc filter and converts it into a
