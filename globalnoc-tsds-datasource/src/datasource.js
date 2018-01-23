@@ -396,6 +396,13 @@ class GenericDatasource {
         return fields;
     }
 
+    /**
+     * getTagKeys returns an array of TSDS meta fields that can be
+     * used to filter datasets returned by a query. This is a special
+     * Grafana method specifically for adhoc filters.
+     *
+     * @param {Object} options - An unused parameter
+     */
     getTagKeys(options) {
         let form = new FormData();
         form.append('method', 'get_meta_fields');
@@ -434,6 +441,13 @@ class GenericDatasource {
         });
     }
 
+    /**
+     * getTagValues returns an array of TSDS meta field values that
+     * can be used to filter datasets returned by a query. This is a
+     * special Grafana method specifically for adhoc filters.
+     *
+     * @param {Object} options - An Object containing a single parameter named key
+     */
     getTagValues(options) {
         var like = '';
         if (typeof this.templateSrv.getAdhocFilters !== 'undefined') {
