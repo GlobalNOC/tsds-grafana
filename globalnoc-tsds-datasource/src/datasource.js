@@ -56,6 +56,7 @@ class GenericDatasource {
         query.targets = query.targets.filter(t => !t.hide);
         if (query.targets.length <= 0) { return this.q.when({data: []}); }
 
+        // Section for testing
         if (typeof angular === 'undefined') {
           var ops = {
             url: this.url + '/query',
@@ -64,10 +65,17 @@ class GenericDatasource {
             headers: {'Content-Type': 'application/json'}
           };
 
-          return this.post(query.targets, ops).then(function(response){
-            let data = new ResponseHandler(query.targets, response.data).getData();
-            console.log(data);
-            return data;
+          return this.backendSrv.datasourceRequest(ops).then(function(results) {
+            results.data.config = results.config;
+            return new ResponseHandler(query.targets, results.data).getData();
+          }).catch(error => {
+            if(error.data && error.data.error){
+              /***** Example throw error for the Grafana inspector to catch *****/
+              // throw { message: 'TSDS Query Error: ' + err.data[0]['Error Text'] }
+              throw new ResponseHandler(query.targets, error).getErrorInfo({}, error);
+            }
+
+            throw error;
           });
         }
 
@@ -298,26 +306,6 @@ class GenericDatasource {
           resolve(query);
         });
       });
-    }
-
-    /**
-     * Makes a datasourceRequest and handle errors Resolves to check
-     * errors in response.
-     */
-    post(targets,options) {
-        return this.backendSrv.datasourceRequest(options).then(function(results) {
-            results.data.config = results.config;
-            return results;
-        }).catch(error => {
-            // datasourceRequest rejected, throw a query error!
-            if(error.data && error.data.error){
-                /***** Example throw error for the Grafana inspector to catch *****/
-                //throw { message: 'TSDS Query Error: ' + err.data[0]['Error Text'] }
-
-                throw new ResponseHandler(targets, error).getErrorInfo({}, error);
-            }
-            throw error;
-        });
     }
 
     /**
@@ -562,49 +550,68 @@ class GenericDatasource {
         });
     }
 
-    metricFindTables(options) {
-        var target = typeof (options) === "string" ? options : "Find tables";
-        var interpolated = {
-            target: this.templateSrv.replace(target, null, 'regex'),
-            type: "Table"
-        };
+    /**
+     * getMeasurementTypes returns a list of measurement types that
+     * may be queried from TSDS. These types can be described as a
+     * database table or data structure composing some types of
+     * measurement datasets.
+     */
+    getMeasurementTypes() {
+      let form = new FormData();
+      form.append('method', 'get_measurement_types');
 
-        var payload = {
-            url: this.url + '/search',
-            data: interpolated,
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
-        };
-        if (this.basicAuth || this.withCredentials) {
-            payload.withCredentials = true;
-        }
-        if (this.basicAuth) {
-            payload.headers.Authorization = self.basicAuth;
-        }
-        return this.backendSrv.datasourceRequest(payload).then(this.mapToTextValue);
+      let request = {
+        data: form,
+        headers: {'Content-Type' : 'multipart/form-data'},
+        method: 'POST',
+        url: `${this.tsdsURL}metadata.cgi`
+      };
+
+      if (this.basicAuth || this.withCredentials) {
+        request.withCredentials = true;
+      }
+
+      if (this.basicAuth) {
+        request.headers.Authorization = self.basicAuth;
+      }
+
+      return this.backendSrv.datasourceRequest(request)
+        .then((response) => {
+          return response.data.results.map((x) => { return {text: x.name, value: x.name}; });
+        });
     }
 
-    findMetric(options, metric) {
-        var target = typeof (options) === "string" ? options : options.series;
-        var interpolated = {
-            target: this.templateSrv.replace(target, null, 'regex'),
-            type:metric
-        };
+    /**
+     * getMeasurementTypeValues returns a list of values that may be
+     * graphed. These values are the values grouped under measurement
+     * type measurementType; For example, a measurement type of
+     * interface will contain values including input and output.
+     *
+     * @param {string} type - The measurement type to query
+     */
+    getMeasurementTypeValues(type) {
+      let form = new FormData();
+      form.append('method', 'get_measurement_type_values');
+      form.append('measurement_type', type);
 
-        var payload = {
-            url: this.url + '/search',
-            data: interpolated,
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
-        };
-        if (this.basicAuth || this.withCredentials) {
-            payload.withCredentials = true;
-        }
-        if (this.basicAuth) {
-            payload.headers.Authorization = self.basicAuth;
-        }
-        return this.backendSrv.datasourceRequest(payload).then((resp) => {
-            this.mapToTextValue(resp);
+      let request = {
+        data: form,
+        headers: {'Content-Type' : 'multipart/form-data'},
+        method: 'POST',
+        url: `${this.tsdsURL}metadata.cgi`
+      };
+
+      if (this.basicAuth || this.withCredentials) {
+        request.withCredentials = true;
+      }
+
+      if (this.basicAuth) {
+        request.headers.Authorization = self.basicAuth;
+      }
+
+      return this.backendSrv.datasourceRequest(request)
+        .then((response) => {
+          return response.data.results.map((x) => { return {text: x.name, value: x.name}; });
         });
     }
 
@@ -612,7 +619,7 @@ class GenericDatasource {
      * getMetaFields returns a list of metadata fields that can be
      * used to filter datasets of the specified type.
      *
-     * @param {string} type - A measurement structure type
+     * @param {string} type - The measurement type to query
      */
     getMetaFields(type) {
       let form = new FormData();
@@ -644,7 +651,7 @@ class GenericDatasource {
      * getMetaFieldValues passes a list of metadata field values to
      * callback.
      *
-     * @param {string} type - A measurement structure type
+     * @param {string} type - The measurement type to query
      * @param {Object[]} where - An array of where clause groups
      * @param {integer} groupIndex - Index of selected where clause group
      * @param {integer} index - Index of selected where clause

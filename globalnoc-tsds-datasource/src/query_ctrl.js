@@ -164,10 +164,7 @@ class GenericDatasourceQueryCtrl extends QueryCtrl {
       this.target.func = this.target.func.map((f) => new GenericFunction(f.type, f.title, f.wrapper, f));
     }
 
-    this.target.drillDownAlias = "";
     this.hiddenIndex = "";
-    this.target.drillDown = [];
-    this.target.drillDownValue = [];
 
     this.index = 0;
     this.parentIndex = 0;
@@ -233,8 +230,13 @@ class GenericDatasourceQueryCtrl extends QueryCtrl {
 	this.target.orderby_field.splice(index,1);
   }
 
-  getColumns() {
-    return this.datasource.findMetric(this.target,"Column")
+  getMeasurementTypes() {
+    return this.datasource.getMeasurementTypes()
+      .then(this.uiSegmentSrv.transformToSegments(false));
+  }
+
+  getMeasurementTypeValues() {
+    return this.datasource.getMeasurementTypeValues(this.target.series)
       .then(this.uiSegmentSrv.transformToSegments(false));
   }
 
@@ -244,22 +246,14 @@ class GenericDatasourceQueryCtrl extends QueryCtrl {
       .catch(error => console.log(error));
   }
 
-  getMetricValues() {
-    return this.datasource.findMetric(this.target,"Value")
-      .then(this.uiSegmentSrv.transformToSegments(false));
-  }
-
-  getTableNames() {
-    return  this.datasource.metricFindTables(this.target)
-      .then(this.uiSegmentSrv.transformToSegments(false));
-  }
-
   getMetaFieldValues() {
-    this.datasource.getMetaFieldValues(this.target.series, this.target.whereClauseGroup, this.parentIndex, this.index, arguments[1]);
-  }
-
-  generateDrillDown(){
-	this.target.drillDown.splice(0,0,'Drill');
+    this.datasource.getMetaFieldValues(
+      this.target.series,
+      this.target.whereClauseGroup,
+      this.parentIndex,
+      this.index,
+      arguments[1]
+    );
   }
 
   saveIndices(parentIndex, index){
