@@ -175,14 +175,15 @@ class GenericDatasource {
     */
     getParentMetaFields(fieldName) {
         var fields = [];
-
         this.templateSrv.variables.forEach(function(element) {
         if (element.type === 'adhoc') {
             return;
         }
+        
+        if(element.type !== 'query') return;
 
         fields.push({
-            key:   element.name,
+            key:   element.query.split(' ')[1],
             value: element.current.value
         });
         });
@@ -207,12 +208,16 @@ class GenericDatasource {
     }
 
     getTagKeys(options) {
-        var payload = {
-            url: this.url + '/search',
-            data: { type: 'Column', target: this.getMeasurementType() },
+        let form = new FormData();
+        form.append('method', 'get_meta_fields');
+        form.append('measurement_type', this.templateSrv.replace(this.getMeasurementType(), null, 'regex'));
+        const payload = {
+            url: `${this.tsdsURL}metadata.cgi`,
+            data: form,
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
+            headers: { 'Content-Type': 'multipart/form-data' }
         };
+
         if (this.basicAuth || this.withCredentials) {
             payload.withCredentials = true;
         }
@@ -220,11 +225,23 @@ class GenericDatasource {
             payload.headers.Authorization = self.basicAuth;
         }
 
-        return this.backendSrv.datasourceRequest(payload).then((result) => {
-            // Adding * option for generic search.
-            let mTypes = this.mapToTextValue(result);
-            mTypes.splice(0, 0, {text: "*", value: "*"});
-            return mTypes;
+         return this.backendSrv.datasourceRequest(payload).then((result) => {
+            result.data.error = null;
+            let output = [];
+            _.forEach(result.data.results, function(eachDict) {
+                if("fields" in eachDict) {
+                    _.forEach(eachDict.fields, function(field) {
+                        output.push(eachDict.name+"."+field.name); 
+                    });
+                } else {
+                    output.push(eachDict.name);
+                }
+            });
+            result.data.data = output;
+            let metTypes = this.mapToTextValue(result);
+            // Adding * option for generic search
+            metTypes.splice(0, 0, {text: "*", value: "*"});
+            return metTypes;
         });
     }
 
@@ -234,19 +251,26 @@ class GenericDatasource {
             // TODO Update like field as user types
             // console.log(this.templateSrv.getAdhocFilters(this.name));
         }
-
-        var payload = {
-            url: this.url + '/search',
-            data: {
-                target: this.getMeasurementType(),
-                parent_meta_fields: this.getParentMetaFields(options.key),
-                meta_field: options.key,
-                like_field: like,
-                type: 'Where_Related'
-            },
+        let form = new FormData();
+        form.append('method', 'get_meta_field_values');
+        form.append('measurement_type', this.templateSrv.replace(this.getMeasurementType(), null, 'regex'));
+        let parent_meta_fields = this.getParentMetaFields(options.key);
+        let that = this;
+        _.forEach(parent_meta_fields, function(parent_meta) {
+            form.append(`${parent_meta.key}_like`, parent_meta.value);
+        });
+        form.append('meta_field',options.key);
+        form.append(`${options.key}_like`, like);
+        form.append('limit',1000);
+        form.append('offset',0);  
+        
+        const payload = {
+            url: `${this.tsdsURL}metadata.cgi`,
+            data: form,
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
-        };
+            headers: { 'Content-Type': 'multipart/form-data' }
+        }; 
+
         if (this.basicAuth || this.withCredentials) {
             payload.withCredentials = true;
         }
@@ -254,7 +278,15 @@ class GenericDatasource {
             payload.headers.Authorization = self.basicAuth;
         }
 
-        return this.backendSrv.datasourceRequest(payload).then(this.mapToTextValue);
+        return this.backendSrv.datasourceRequest(payload).then((result) => {
+            result.data.error = null;
+            let output = [];
+            _.forEach(result.data.results, function(dict){
+                output.push(dict.value);
+            });
+            result.data.data = output;
+            return this.mapToTextValue(result);
+        });
     }
 
     annotationQuery(options) {
