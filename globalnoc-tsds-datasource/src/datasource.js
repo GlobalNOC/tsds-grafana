@@ -47,8 +47,6 @@ class GenericDatasource {
         this.metricValue = this.metricValue||[];
         this.metricColumn =this.metricColumn||[];
         this.whereSuggest =[];
-
-        this.tsdsURL = 'https://netsage-archive.grnoc.iu.edu/tsds/services-basic/';
     }
 
     query(options) {
@@ -59,7 +57,7 @@ class GenericDatasource {
         // Section for testing
         if (typeof angular === 'undefined') {
           var ops = {
-            url: this.tsdsURL + '/query',
+            url: this.url + '/query',
             data:query,
             method: 'POST',
             headers: {'Content-Type': 'application/json'}
@@ -96,7 +94,7 @@ class GenericDatasource {
               data: form,
               headers: {'Content-Type' : 'multipart/form-data'},
               method: 'POST',
-              url: `${this.tsdsURL}query.cgi`
+              url: `${this.url}/query.cgi`
             };
 
             if (this.basicAuth || this.withCredentials) {
@@ -320,7 +318,7 @@ class GenericDatasource {
           headers: {'Content-Type' : 'multipart/form-data'},
           method: 'POST',
           data: form,
-          url: `${this.tsdsURL}metadata.cgi`
+          url: `${this.url}/metadata.cgi`
       };
 
       if (this.basicAuth || this.withCredentials) {
@@ -403,7 +401,7 @@ class GenericDatasource {
         form.append('method', 'get_meta_fields');
         form.append('measurement_type', this.templateSrv.replace(this.getMeasurementType(), null, 'regex'));
         const payload = {
-            url: `${this.tsdsURL}metadata.cgi`,
+            url: `${this.url}/metadata.cgi`,
             data: form,
             method: 'POST',
             headers: { 'Content-Type': 'multipart/form-data' }
@@ -456,7 +454,7 @@ class GenericDatasource {
         form.append('offset',0);  
         
         const payload = {
-            url: `${this.tsdsURL}metadata.cgi`,
+            url: `${this.url}/metadata.cgi`,
             data: form,
             method: 'POST',
             headers: { 'Content-Type': 'multipart/form-data' }
@@ -498,7 +496,7 @@ class GenericDatasource {
           headers: {'Content-Type' : 'multipart/form-data'},
           method: 'POST',
           data: { method: 'query', query: target },
-          url: `${this.tsdsURL}query.cgi`
+          url: `${this.url}/query.cgi`
         };
 
         return this.backendSrv.datasourceRequest(request).then((response) => {
@@ -529,7 +527,7 @@ class GenericDatasource {
         headers: {'Content-Type' : 'multipart/form-data'},
         method: 'POST',
         data: form,
-        url: `${this.tsdsURL}query.cgi`
+        url: `${this.url}/query.cgi`
       };
 
       if (this.basicAuth || this.withCredentials) {
@@ -565,7 +563,7 @@ class GenericDatasource {
         data: form,
         headers: {'Content-Type' : 'multipart/form-data'},
         method: 'POST',
-        url: `${this.tsdsURL}metadata.cgi`
+        url: `${this.url}/metadata.cgi`
       };
 
       if (this.basicAuth || this.withCredentials) {
@@ -599,7 +597,7 @@ class GenericDatasource {
         data: form,
         headers: {'Content-Type' : 'multipart/form-data'},
         method: 'POST',
-        url: `${this.tsdsURL}metadata.cgi`
+        url: `${this.url}/metadata.cgi`
       };
 
       if (this.basicAuth || this.withCredentials) {
@@ -631,7 +629,7 @@ class GenericDatasource {
           data: form,
           headers: {'Content-Type' : 'multipart/form-data'},
           method: 'POST',
-          url: `${this.tsdsURL}metadata.cgi`
+          url: `${this.url}/metadata.cgi`
       };
 
       if (this.basicAuth || this.withCredentials) {
@@ -713,7 +711,7 @@ class GenericDatasource {
         data: form,
         headers: { 'Content-Type': 'multipart/form-data' },
         method: 'POST',
-        url: `${this.tsdsURL}metadata.cgi`
+        url: `${this.url}/metadata.cgi`
       };
 
       if (this.basicAuth || this.withCredentials) {
