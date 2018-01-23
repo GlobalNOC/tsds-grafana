@@ -195,7 +195,7 @@ describe('GenericDatasource', function() {
         });
     });
 
-    it ('should return data as text and as value', function(done) {
+  /*  it ('should return data as text and as value', function(done) {
         var result = ctx.ds.mapToTextValue({data: ["zero", "one", "two"]});
 
         expect(result).to.have.length(3);
@@ -244,5 +244,5 @@ describe('GenericDatasource', function() {
         expect(result[2].text).to.equal(data[2]);
         expect(result[2].value).to.equal(2);
         done();
-    });
+    });*/
 });
