@@ -448,37 +448,6 @@ class GenericDatasource {
         return this.backendSrv.datasourceRequest(payload).then(this.mapToTextValue);
     }
 
-    annotationQuery(options) {
-        var query = this.templateSrv.replace(options.annotation.query, {}, 'glob');
-        var annotationQuery = {
-            range: options.range,
-            annotation: {
-                name: options.annotation.name,
-                datasource: options.annotation.datasource,
-                enable: options.annotation.enable,
-                iconColor: options.annotation.iconColor,
-                query: query
-            },
-            rangeRaw: options.rangeRaw
-        };
-
-        var payload = {
-            url: this.url + '/annotations',
-            method: 'POST',
-            data: annotationQuery
-        };
-        if (this.basicAuth || this.withCredentials) {
-            payload.withCredentials = true;
-        }
-        if (this.basicAuth) {
-            payload.headers.Authorization = self.basicAuth;
-        }
-
-        return this.backendSrv.datasourceRequest(payload).then(result => {
-            return result.data;
-        });
-    }
-
     /**
      * metricFindQuery is called once for every template variable, and
      * returns a list of values that may be used for each. This method
@@ -751,17 +720,6 @@ class GenericDatasource {
             return { text: d, value: d };
         });
         return a;
-    }
-
-    mapToArray(result){
-        if (result.data.length == 0) {
-            result.data = ["No results found"];
-        }
-        return result.data;
-    }
-
-    mapToListValue(result) {
-        this.metricValue = result.data;
     }
 
     /**
