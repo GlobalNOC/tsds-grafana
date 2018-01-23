@@ -59,7 +59,7 @@ class GenericDatasource {
         // Section for testing
         if (typeof angular === 'undefined') {
           var ops = {
-            url: this.url + '/query',
+            url: this.tsdsURL + '/query',
             data:query,
             method: 'POST',
             headers: {'Content-Type': 'application/json'}
