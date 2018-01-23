@@ -427,7 +427,7 @@ class GenericDatasource {
                 }
             });
             result.data.data = output;
-            let metTypes = this.mapToTextValue(result);
+            let metTypes = result.data.data.map((x) => { return {text: x, value: x}; });
             // Adding * option for generic search
             metTypes.splice(0, 0, {text: "*", value: "*"});
             return metTypes;
@@ -474,7 +474,7 @@ class GenericDatasource {
                 output.push(dict.value);
             });
             result.data.data = output;
-            return this.mapToTextValue(result);
+            return result.data.data.map(x => { return {text: x, value: x}; });;
         });
     }
 
@@ -727,29 +727,6 @@ class GenericDatasource {
           let data = response.data.results.map((x) => { return x.value; });
           return callback(data);
         });
-    }
-
-    mapToTextValue(result) {
-        let isTestData = _.isArray(result.data) || typeof result.data.data === 'undefined';
-        let data = result.data;
-
-        if (!isTestData) {
-            if (result.data.error) {
-                return [];
-            }
-
-            data = result.data.data;
-        }
-
-        var a =  _.map(data, (d, i) => {
-            if (d && d.text && d.value) {
-                return { text: d.text, value: d.value };
-            } else if (_.isObject(d)) {
-                return { text: d, value: i};
-            }
-            return { text: d, value: d };
-        });
-        return a;
     }
 
     /**
