@@ -1,6 +1,6 @@
 *~
-globalnoc-tsds-datasource/dist/*
-globalnoc-tsds-datasource/node_modules/*
-globalnoc-tsds-datasource/src/out/*
+dist/*
+node_modules/*
+out/*
 Gemfile.lock
 _site/
