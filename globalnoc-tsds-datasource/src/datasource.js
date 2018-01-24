@@ -49,6 +49,17 @@ class GenericDatasource {
         this.whereSuggest =[];
     }
 
+    /**
+     * query sends a query request to TSDS based on the visual or raw
+     * query builder. This is a special Grafana method specifically
+     * for Datasource plugins.
+     *
+     * <p>Throws an object on error.
+     * <pre><code>
+     *   { message: 'Error string for the user.', data: response_object };
+     * </code></pre>
+     *
+     */
     query(options) {
       return this.buildQueryParameters(options, this).then((query) => {
         query.targets = query.targets.filter(t => !t.hide);
@@ -110,6 +121,11 @@ class GenericDatasource {
             let template = target.alias !== '' ? target.alias.split(' ') : null; // Value of 'Target Name'
 
             return this.backendSrv.datasourceRequest(request).then((response) => {
+
+              if (typeof response.data.error !== 'undefined') {
+                reject(response);
+              }
+
               response.data.results.forEach((result) => {
 
                 // TSDS modifies the target expression of extrapolate
@@ -174,10 +190,14 @@ class GenericDatasource {
           });
         });
 
-        return Promise.all(requests).then((responses) => {
-          console.log(output);
-          return {data: output, error: null};
-        });
+        return Promise.all(requests)
+          .then(responses => {
+            console.log(output);
+            return {data: output};
+          })
+          .catch(error => {
+            throw {message: error.data.error_text, data: error};
+          });
       });
     }
 
