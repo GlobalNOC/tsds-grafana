@@ -270,7 +270,6 @@ class GenericDatasource {
          if (result.hasOwnProperty(alias)) {
            targetNames.push(result[alias]);
          } else if (alias === 'VALUE') {
-           targetNames.shift();
            targetNames.push(name);
          }
        }
