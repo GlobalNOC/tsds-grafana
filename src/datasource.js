@@ -258,7 +258,7 @@ class GenericDatasource {
         name = `${measurement} (${humanTime} ${aggregation}s)`;
       }
 
-      let targetNames = [name];
+      let targetNames = [];
       if (template !== null) {
        for (let i = 0; i < template.length; i++) {
          if (template[i].charAt(0) !== '$') {
@@ -275,6 +275,7 @@ class GenericDatasource {
          }
        }
       } else {
+        targetNames.push(name);
         targetNames = targetNames.concat(this.getMetricLabel(result));
       }
 
