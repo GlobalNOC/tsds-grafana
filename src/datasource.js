@@ -943,7 +943,7 @@ class GenericDatasource {
           let filterQueryGenerators = filters.map(this.getAdhocQueryString.bind(this));
 
           return Promise.all(filterQueryGenerators).then((filterQueries) => {
-            let adhocQuery = filterQueries.join(', ');
+            let adhocQuery = filterQueries.join(' and ');
             if (adhocQuery !== '') query += ` and (${adhocQuery}) `;
 
             if (target.orderby_field) query += `ordered by ${target.orderby_field}`;
