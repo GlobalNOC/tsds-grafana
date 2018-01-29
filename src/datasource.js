@@ -254,7 +254,7 @@ class GenericDatasource {
         measurement = measurement.charAt(0).toUpperCase() + measurement.slice(1);
         let humanTime   = this.getHumanTime(args[2]);
         let aggregation = args[3];
-
+        if (aggregation === 'max') { aggregation = 'maxe'; }
         name = `${measurement} (${humanTime} ${aggregation}s)`;
       }
 
