@@ -204,16 +204,19 @@ class GenericDatasource {
   getHumanTime(seconds) {
     if (seconds >= 86400) {
       let count = seconds/86400;
+      if (count % 1 !== 0) { count = count.toFixed(2); }
       return `${count}d`;
     }
 
     if (seconds >= 3600) {
       let count = seconds/3600;
+      if (count % 1 !== 0) { count = count.toFixed(2); }
       return `${count}h`;
     }
 
     if (seconds >= 60) {
-      let count = seconds/3600;
+      let count = seconds/60;
+      if (count % 1 !== 0) { count = count.toFixed(2); }
       return `${count}m`;
     }
 
