@@ -254,12 +254,9 @@ class GenericDatasource {
 
         name = `${measurement} (${humanTime} ${aggregation}s)`;
       }
-      console.log(name);
 
       let targetNames = [name];
       if (template !== null) {
-        console.log(template);
-
        for (let i = 0; i < template.length; i++) {
          if (template[i].charAt(0) !== '$') {
            targetNames.push(template[i]);
@@ -674,10 +671,22 @@ class GenericDatasource {
         request.headers.Authorization = self.basicAuth;
       }
 
-      return this.backendSrv.datasourceRequest(request)
-        .then((response) => {
-          return response.data.results.map((x) => { return {text: x.name, value: x.name}; });
-        });
+      return this.backendSrv.datasourceRequest(request).then((response) => {
+          let fields = [];
+
+          response.data.results.forEach((metafield) => {
+            if (metafield.hasOwnProperty('fields')) {
+              metafield.fields.forEach((field) => {
+                let result = `${metafield.name}.${field.name}`;
+                fields.push({text: result, value: result});
+              });
+            } else {
+              fields.push({text: metafield.name, value: metafield.name});
+            }
+          });
+
+          return fields;
+      });
     }
 
     /**
