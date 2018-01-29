@@ -476,7 +476,7 @@ class GenericDatasource {
             // console.log(this.templateSrv.getAdhocFilters(this.name));
         }
         let form = new FormData();
-        form.append('method', 'get_meta_field_values');
+        form.append('method', 'get_distinct_meta_field_values');
         form.append('measurement_type', this.templateSrv.replace(this.getMeasurementType(), null, 'regex'));
         let parent_meta_fields = this.getParentMetaFields(options.key);
         let that = this;
@@ -705,7 +705,7 @@ class GenericDatasource {
      */
     getMetaFieldValues(type, where, groupIndex, index, callback) {
       let form = new FormData();
-      form.append('method', 'get_meta_field_values');
+      form.append('method', 'get_distinct_meta_field_values');
       form.append('measurement_type', this.templateSrv.replace(type, null, 'regex'));
       form.append('limit', 1000);
       form.append('offset', 0);
