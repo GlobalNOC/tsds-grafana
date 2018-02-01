@@ -926,7 +926,7 @@ class GenericDatasource {
 
             whereClauses.forEach((clause, clauseIndex) => {
               if (clauseIndex > 0) query += ` ${groupOperators[clauseIndex]} `;
-              query += `${clause.left}${clause.op}"${clause.right}"`;
+              query += `${clause.left} ${clause.op} "${clause.right}"`;
             });
 
             query += ')';
