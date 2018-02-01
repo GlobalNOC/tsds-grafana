@@ -469,6 +469,7 @@ class GenericDatasource {
      * @param {Object} options - An Object containing a single parameter named key
      */
     getTagValues(options) {
+        if(options.key === "*") return;
         var like = '';
         if (typeof this.templateSrv.getAdhocFilters !== 'undefined') {
             // TODO Update like field as user types
