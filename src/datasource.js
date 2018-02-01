@@ -471,9 +471,6 @@ class GenericDatasource {
     getTagValues(options) {
         if(options.key === "*") {
             return Promise.resolve("No autocomplete for *");
-            /*    .then(() => { 
-                    return; 
-            });*/
         }
         var like = '';
         if (typeof this.templateSrv.getAdhocFilters !== 'undefined') {
