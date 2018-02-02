@@ -541,6 +541,26 @@ class GenericDatasource {
         });
       }
 
+      let queryObject = null;
+
+      try {
+        queryObject = JSON.parse(target);
+      }
+      catch (error) {
+        queryObject = {query: target, type: 'query'};
+        // throw {message: error.message};
+      }
+
+      if (typeof queryObject.type === 'undefined') {
+        throw {message: 'Required query type was not specified.'};
+      }
+
+      if (queryObject.type !== 'query') {
+        throw {message: 'Invalid query type was specified.'};
+      }
+
+      target = queryObject.query;
+
       let range = angular.element('grafana-app').injector().get('timeSrv').timeRange();
       let start = Date.parse(range.from) / 1000;
       let end   = Date.parse(range.to) / 1000;
@@ -575,15 +595,31 @@ class GenericDatasource {
         request.headers.Authorization = self.basicAuth;
       }
 
-      return this.backendSrv.datasourceRequest(request)
-        .then((response) => {
-          let dataType = target.split(' ')[1];
-          let data = response.data.results.map((x) => {
-            return {text: x[dataType], value: x[dataType]};
-          });
+      return this.backendSrv.datasourceRequest(request).then((response) => {
+        console.log(response);
 
-          return data;
+        let dataType = target.split(' ')[1];
+        let data = response.data.results.map((x) => {
+          let t = queryObject.text;
+          let v = queryObject.value;
+
+          if (typeof queryObject.value !== 'undefined') {
+            Object.keys(x).forEach(key => {
+              v = v.replace(`{{${key}}}`, x[key]);
+            });
+
+            Object.keys(x).forEach(key => {
+              t = t.replace(`{{${key}}}`, x[key]);
+            });
+
+            return {text: t, value: v};
+          }
+
+          return {text: x[dataType], value: x[dataType]};
         });
+
+        return data;
+      });
     }
 
     /**
