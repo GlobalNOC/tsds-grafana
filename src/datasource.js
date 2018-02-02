@@ -165,7 +165,7 @@ class GenericDatasource {
                     // It's possible that a user may request
                     // something like sum(aggregate(...)) which will
                     // result in a single datapoint being returned.
-                    targetObject['datapoints'] = [[datapoints, end]];
+                    targetObject['datapoints'] = [[datapoints, end * 1000]];
                   }
 
                   output.push(targetObject);
