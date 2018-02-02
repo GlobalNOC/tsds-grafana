@@ -204,19 +204,19 @@ class GenericDatasource {
   getHumanTime(seconds) {
     if (seconds >= 86400) {
       let count = seconds/86400;
-      if (count % 1 !== 0) { count = count.toFixed(2); }
+      if (count % 1 !== 0) { count = count.toFixed(1); }
       return `${count}d`;
     }
 
     if (seconds >= 3600) {
       let count = seconds/3600;
-      if (count % 1 !== 0) { count = count.toFixed(2); }
+      if (count % 1 !== 0) { count = count.toFixed(1); }
       return `${count}h`;
     }
 
-    if (seconds >= 60) {
+    if (seconds >= 120) {
       let count = seconds/60;
-      if (count % 1 !== 0) { count = count.toFixed(2); }
+      if (count % 1 !== 0) { count = count.toFixed(1); }
       return `${count}m`;
     }
 
@@ -895,8 +895,11 @@ class GenericDatasource {
           let functions = target.func.map((f) => {
             let aggregation = TSDSQuery(f);
             let template_variables = getVariableDetails();
-            let defaultBucket = duration / options.maxDataPoints;
+            let defaultBucket = duration / options.maxDataPoints;	      
+            // get defaultBucket rounded to nearest 10 for pretty
+            defaultBucket = Math.ceil(defaultBucket / 10) * 10;
             let size = (f.bucket === '') ? defaultBucket : parseInt(f.bucket);
+
 
             if (duration >= 7776000) {
               size = Math.max(86400, size);
