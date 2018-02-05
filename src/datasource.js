@@ -555,8 +555,34 @@ class GenericDatasource {
         throw {message: 'Required query type was not specified.'};
       }
 
-      if (queryObject.type !== 'query') {
+      let validTypes = ['query', 'values'];
+      if (!validTypes.includes(queryObject.type)) {
         throw {message: 'Invalid query type was specified.'};
+      }
+
+      if (queryObject.type === 'values') {
+        let form = new FormData();
+        form.append('method', 'get_measurement_type_values');
+        form.append('measurement_type', queryObject.measurement_type);
+
+        let request = {
+          data: form,
+          headers: {'Content-Type' : 'multipart/form-data'},
+          method: 'POST',
+          url: `${this.url}/metadata.cgi`
+        };
+
+        if (this.basicAuth || this.withCredentials) {
+          request.withCredentials = true;
+        }
+
+        if (this.basicAuth) {
+          request.headers.Authorization = self.basicAuth;
+        }
+
+        return this.backendSrv.datasourceRequest(request).then((response) => {
+          return response.data.results.map(x => { return {text: x.description, value: x.name}; });
+        });
       }
 
       target = queryObject.query;
@@ -855,19 +881,24 @@ class GenericDatasource {
           let method = func.method || 'average';
           let target = func.target || 'input';
           let templates = getVariableDetails();
-          let targets = templates[func.target.replace('$','')]; // array of targets; 
+
           if (method == 'percentile') {
             method = `percentile(${func.percentile})`;
           } else if (method == 'template') {
             let template_variables = getVariableDetails();
             method = template_variables[func.template.replace('$', '')];
           }
+
+          let targets = templates[func.target.replace('$','')]; // array of targets;
           if(targets) {
+            if (!Array.isArray(targets)) { targets = [targets]; }
+
             if(func.wrapper.length === 0) {  
               query_list = targets.map(target => {
                 query = `aggregate(values.${target}, ${bucket}, ${method})`;
                 return query;
               });
+
               if(query_list.length>0) {
                 query = query_list.map(q => q).join(', ');
               }
@@ -875,7 +906,7 @@ class GenericDatasource {
               return targets.map(target => TSDSQuery(func.wrapper[0], `aggregate(values.${target},${bucket}, ${method})`)).join(', ');      
             }
           } else{
-	      query = `aggregate(values.${target}, ${bucket}, ${method})`;
+            query = `aggregate(values.${target}, ${bucket}, ${method})`;
           }
         }
 	
