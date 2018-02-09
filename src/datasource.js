@@ -930,11 +930,22 @@ class GenericDatasource {
             });
           }
 
+          target.metricValueAliasMappings = {};
+
+          let start = Date.parse(options.range.from) / 1000;
+          let end   = Date.parse(options.range.to) / 1000;
+          let duration = (end - start);
+
           if (target.rawQuery) {
             let query = t.templateSrv.replace(target.target, options.scopedVars);
             let oldQ = query.substr(query.indexOf("{"), query.length);
             let formatQ = oldQ.replace(/,/gi, " or ");
             query = query.replace(oldQ, formatQ);
+
+            query = query.replace("$START", start.toString());
+            query = query.replace("$END", end.toString());
+            query = query.replace("$TIMESPAN", duration.toString());
+            query = this.templateSrv.replace(query, null, 'regex');
 
             return resolve({
               target: query,
@@ -947,17 +958,11 @@ class GenericDatasource {
             });
           }
 
-          target.metricValueAliasMappings = {};
-
           let query = 'get ';
 
           target.metric_array.forEach((metric) => {
             query += `${metric}, `;
           });
-
-          let start = Date.parse(options.range.from) / 1000;
-          let end   = Date.parse(options.range.to) / 1000;
-          let duration = (end - start);
 
           let functions = target.func.map((f) => {
             let aggregation = TSDSQuery(f);
