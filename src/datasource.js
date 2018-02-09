@@ -541,6 +541,52 @@ class GenericDatasource {
         });
       }
 
+      let queryObject = null;
+
+      try {
+        queryObject = JSON.parse(target);
+      }
+      catch (error) {
+        queryObject = {query: target, type: 'query'};
+        // throw {message: error.message};
+      }
+
+      if (typeof queryObject.type === 'undefined') {
+        throw {message: 'Required query type was not specified.'};
+      }
+
+      let validTypes = ['query', 'values'];
+      if (!validTypes.includes(queryObject.type)) {
+        throw {message: 'Invalid query type was specified.'};
+      }
+
+      if (queryObject.type === 'values') {
+        let form = new FormData();
+        form.append('method', 'get_measurement_type_values');
+        form.append('measurement_type', queryObject.measurement_type);
+
+        let request = {
+          data: form,
+          headers: {'Content-Type' : 'multipart/form-data'},
+          method: 'POST',
+          url: `${this.url}/metadata.cgi`
+        };
+
+        if (this.basicAuth || this.withCredentials) {
+          request.withCredentials = true;
+        }
+
+        if (this.basicAuth) {
+          request.headers.Authorization = self.basicAuth;
+        }
+
+        return this.backendSrv.datasourceRequest(request).then((response) => {
+          return response.data.results.map(x => { return {text: x.description, value: x.name}; });
+        });
+      }
+
+      target = queryObject.query;
+
       let range = angular.element('grafana-app').injector().get('timeSrv').timeRange();
       let start = Date.parse(range.from) / 1000;
       let end   = Date.parse(range.to) / 1000;
@@ -575,15 +621,31 @@ class GenericDatasource {
         request.headers.Authorization = self.basicAuth;
       }
 
-      return this.backendSrv.datasourceRequest(request)
-        .then((response) => {
-          let dataType = target.split(' ')[1];
-          let data = response.data.results.map((x) => {
-            return {text: x[dataType], value: x[dataType]};
-          });
+      return this.backendSrv.datasourceRequest(request).then((response) => {
+        console.log(response);
 
-          return data;
+        let dataType = target.split(' ')[1];
+        let data = response.data.results.map((x) => {
+          let t = queryObject.text;
+          let v = queryObject.value;
+
+          if (typeof queryObject.value !== 'undefined') {
+            Object.keys(x).forEach(key => {
+              v = v.replace(`{{${key}}}`, x[key]);
+            });
+
+            Object.keys(x).forEach(key => {
+              t = t.replace(`{{${key}}}`, x[key]);
+            });
+
+            return {text: t, value: v};
+          }
+
+          return {text: x[dataType], value: x[dataType]};
         });
+
+        return data;
+      });
     }
 
     /**
@@ -819,19 +881,24 @@ class GenericDatasource {
           let method = func.method || 'average';
           let target = func.target || 'input';
           let templates = getVariableDetails();
-          let targets = templates[func.target.replace('$','')]; // array of targets; 
+
           if (method == 'percentile') {
             method = `percentile(${func.percentile})`;
           } else if (method == 'template') {
             let template_variables = getVariableDetails();
             method = template_variables[func.template.replace('$', '')];
           }
+
+          let targets = templates[func.target.replace('$','')]; // array of targets;
           if(targets) {
+            if (!Array.isArray(targets)) { targets = [targets]; }
+
             if(func.wrapper.length === 0) {  
               query_list = targets.map(target => {
                 query = `aggregate(values.${target}, ${bucket}, ${method})`;
                 return query;
               });
+
               if(query_list.length>0) {
                 query = query_list.map(q => q).join(', ');
               }
@@ -839,7 +906,7 @@ class GenericDatasource {
               return targets.map(target => TSDSQuery(func.wrapper[0], `aggregate(values.${target},${bucket}, ${method})`)).join(', ');      
             }
           } else{
-	      query = `aggregate(values.${target}, ${bucket}, ${method})`;
+            query = `aggregate(values.${target}, ${bucket}, ${method})`;
           }
         }
 	
