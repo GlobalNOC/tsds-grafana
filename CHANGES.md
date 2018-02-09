@@ -1,3 +1,16 @@
+## GRNOC TSDS Grafana 0.2.0 -- Fri Feb 9 2018
+
+### Features
+
+* Big overhaul. Complete removal of python middleware package. All work is now performed in the Javascript driver.
+* Changed the way that template variable queries are defined to support more operations. Backwards compatibility is maintained for now.
+* Tidied up the way bucket size calculations are computed to be more consistent and prettier.
+* Fixed "datapoints out of range" error in a number of single number queries.
+* Fixed issue where sub-fields in metadata were not being parsed properly.
+* Fixed issue where multiple ad-hoc filters could generate a bad query.
+* Don't automatically include $VALUE if not requested during target aliasing.
+* Lots of repository cleanup.
+
 ## GRNOC TSDS Grafana 0.1.3 -- Tue Dec 12 2017
 
 ### Features
