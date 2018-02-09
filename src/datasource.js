@@ -942,9 +942,22 @@ class GenericDatasource {
             let formatQ = oldQ.replace(/,/gi, " or ");
             query = query.replace(oldQ, formatQ);
 
+            let defaultBucket = duration / options.maxDataPoints;
+            // get defaultBucket rounded to nearest 10 for pretty
+            let size = Math.ceil(defaultBucket / 10) * 10;
+
+            if (duration >= 7776000) {
+              size = Math.max(86400, size);
+            } else if (duration >= 259200) {
+              size = Math.max(3600, size);
+            } else {
+              size = Math.max(60, size);
+            }
+
             query = query.replace("$START", start.toString());
             query = query.replace("$END", end.toString());
             query = query.replace("$TIMESPAN", duration.toString());
+            query = query.replace(/\$quantify/g, size.toString());
             query = this.templateSrv.replace(query, null, 'regex');
 
             return resolve({
