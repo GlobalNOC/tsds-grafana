@@ -134,19 +134,12 @@ class GenericDatasource {
                 // key of 'extrapolate(..., Date(1526705726))'; This
                 // breaks our alias mappings. Ensure the key from TSDS
                 // no longer includes the Date method.
-                let newval = null;
-                let newkey = null;
-
                 for (let key in result) {
                   if (key.indexOf('extrapolate') !== -1) {
-                    newval = result[key];
-                    newkey = key.replace(/Date\(\d+\)/g, function(x) {
+                    let newkey = key.replace(/Date\(\d+\)/g, function(x) {
                       return x.match(/\d+/);
                     });
-                  }
-
-                  if (newval !== null) {
-                    result[newkey] = newval;
+                    result[newkey] = result[key];
                     delete result[key];
                   }
                 }
