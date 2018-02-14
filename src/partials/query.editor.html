@@ -69,6 +69,17 @@
 	  </div>
 	</div>
 
+    <!-- EMPTY GET -->
+    <div ng-if="!ctrl.target.func.length" class="gf-form">
+      <label class="gf-form-label query-keyword width-8">Get</label>
+
+      <button class="btn btn-inverse gf-form-btn query-keyword" ng-click="ctrl.addValueSegments()"><i class="fa fa-plus"></i></button>
+
+	  <div class="gf-form gf-form--grow">
+        <div class="gf-form-label gf-form-label--grow"></div>
+      </div>
+    </div>
+
     <!-- GET -->
     <div ng-repeat="segment in ctrl.target.metricValues_array track by $index">
       <div class="gf-form">
