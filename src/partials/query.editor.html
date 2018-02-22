@@ -262,9 +262,21 @@
     </div>
   </div>
 
+  <div class="gf-form">
+    <label class="gf-form-label query-keyword width-8">Format As</label>
+
+    <span class="gf-form-select-wrapper">
+      <select class="gf-form-input" style="width:183px;" name="displayFormat" ng-model="ctrl.target.displayFormat" bs-tooltip="'Set display format'">
+        <option value="series">series</option>
+        <option value="table">table</option>
+      </select>
+    </span>
+    <div class="gf-form gf-form--grow"><div class="gf-form-label gf-form-label--grow"></div></div>
+  </div>
+
   <div class="gf-form-inline">
     <div class="gf-form">
-	  <button class="gf-form-label" style="background-color:#008CBA; border-radius: 4px; width:120px;" ng-click = "ctrl.panelCtrl.refresh();">Run</button>
+	  <button class="gf-form-label" style="background-color:#008CBA; border-radius: 4px; width:120px;" ng-click="ctrl.panelCtrl.refresh();">Run</button>
     </div>
   </div>
 </div>

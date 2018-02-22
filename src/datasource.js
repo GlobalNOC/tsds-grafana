@@ -88,7 +88,6 @@ class GenericDatasource {
           });
         }
 
-        console.log(query);
         let start = Date.parse(query.range.from) / 1000;
         let end   = Date.parse(query.range.to) / 1000;
         let duration = (end - start);
@@ -145,8 +144,6 @@ class GenericDatasource {
                 }
 
                 let targetObjects = this.getTargetNames(result, template, aliases);
-                console.log(targetObjects);
-
                 targetObjects.forEach((targetObject) => {
                   let datapoints = result[targetObject['name']];
 
@@ -183,14 +180,44 @@ class GenericDatasource {
           });
         });
 
-        return Promise.all(requests)
-          .then(responses => {
-            console.log(output);
+        return Promise.all(requests).then(responses => {
+          console.log(output);
+
+          if (typeof options.targets[0].displayFormat === 'undefined' || options.targets[0].displayFormat === 'series') {
+            console.log('Formating result as a series.');
             return {data: output};
-          })
-          .catch(error => {
-            throw {message: error.data.error_text, data: error};
+          }
+
+          let table = {columns: [{text: 'target', type: 'text', sort: true, desc: true}], rows: [], type: 'table'};
+
+          output.forEach((dataset, i) => {
+            let row = [];
+
+            dataset.datapoints.forEach((datapoint, j) => {
+              if (i === 0) {
+                let seconds = datapoint[1];
+                let dateStr = new Date(seconds * 1000);
+                table.columns.push({text: dateStr.toString(), type: 'text'});
+              }
+
+              if (j === 0) {
+                row.push(dataset.target);
+              }
+              row.push(datapoint[0]);
+            });
+
+            table.rows.push(row);
+            return 1;
           });
+
+          console.log('Formating result as a table.');
+          return {
+            data: [table]
+          };
+        }).catch(error => {
+          console.log(error);
+          throw {message: error.data.error_text, data: error};
+        });
       });
     }
 
@@ -518,9 +545,7 @@ class GenericDatasource {
     metricFindQuery(options) {
       var target = typeof options === "string" ? options : options.target;
 
-      // By default the dashboard's selected time range is not passed
-      // to metricFindQuery. Use the angular object to retrieve it or
-      // if the angular object doesn't exist we're in test.
+      // If the angular object doesn't exist we're in test.
       if (typeof angular === 'undefined') {
         let request = {
           headers: {'Content-Type' : 'multipart/form-data'},
@@ -580,6 +605,8 @@ class GenericDatasource {
 
       target = queryObject.query;
 
+      // By default the dashboard's selected time range is not passed
+      // to metricFindQuery. Use the angular object to retrieve it.
       let range = angular.element('grafana-app').injector().get('timeSrv').timeRange();
       let start = Date.parse(range.from) / 1000;
       let end   = Date.parse(range.to) / 1000;
@@ -839,7 +866,6 @@ class GenericDatasource {
      * by default.
      */
     buildQueryParameters(options, t) {
-
       // Returns each template variable and its selected value has a
       // hash. i.e. {'metric':'average', 'example':
       // 'another_metric'}. getVariableDetails excludes any adhoc
@@ -913,13 +939,14 @@ class GenericDatasource {
         return new Promise((resolve, reject) => {
           if (typeof(target) === "string"){
             return resolve({
-              target: target,
+              alias :        target.target_alias,
+              displayFormat: target.displayFormat,
+              target:        target,
               targetAliases: target.metricValueAliasMappings,
               targetBuckets: target.bucket,
-              refId: target.refId,
-              hide: target.hide,
-              type: target.type || 'timeserie',
-              alias : target.target_alias
+              refId:         target.refId,
+              hide:          target.hide,
+              type:          target.type || 'timeserie'
             });
           }
 
@@ -954,6 +981,7 @@ class GenericDatasource {
             query = this.templateSrv.replace(query, null, 'regex');
 
             return resolve({
+              displayFormat: target.displayFormat,
               target: query,
               targetAliases: target.metricValueAliasMappings,
               targetBuckets: target.bucket,
@@ -1009,7 +1037,23 @@ class GenericDatasource {
 
             whereClauses.forEach((clause, clauseIndex) => {
               if (clauseIndex > 0) query += ` ${groupOperators[clauseIndex]} `;
-              query += `${clause.left} ${clause.op} "${clause.right}"`;
+
+              let whereArgument = clause.right;
+              if (clause.right.indexOf('$') !== -1) {
+                // Because templasteSrv.replace handles multi-values
+                // strangely, we perform our own template variable
+                // replacement here.
+                let tvar  = clause.right.replace('$', '');
+                whereArgument = t.templateSrv._index[tvar].current.value;
+
+                if (Array.isArray(whereArgument)) {
+                  query += '(' + whereArgument.map(arg => `${clause.left} ${clause.op} "${arg}"`).join(' or ') + ')';
+                } else {
+                  query += `${clause.left} ${clause.op} "${whereArgument}"`;
+                }
+              } else {
+                query += `${clause.left} ${clause.op} "${whereArgument}"`;
+              }
             });
 
             query += ')';
@@ -1032,15 +1076,20 @@ class GenericDatasource {
             if (target.orderby_field) query += `ordered by ${target.orderby_field}`;
 
             query = t.templateSrv.replace(query, options.scopedVars);
+
             var oldQ = query.substr(query.indexOf("{"), query.length);
             var formatQ = oldQ.replace(/,/gi, " or ");
             query = query.replace(oldQ, formatQ);
             target.target = query;
 
             // Log final query for debugging.
+            // TODO
+            console.log(options);
+            console.log(target);
             console.log(query);
 
             return resolve({
+              displayFormat: target.displayFormat,
               target: query,
               targetAliases: target.metricValueAliasMappings,
               targetBuckets: target.bucket,
