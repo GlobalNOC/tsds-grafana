@@ -195,8 +195,8 @@ class GenericDatasource {
 
             dataset.datapoints.forEach((datapoint, j) => {
               if (i === 0) {
-                let seconds = datapoint[1];
-                let dateStr = new Date(seconds * 1000);
+                let milliseconds = datapoint[1];
+                let dateStr = new Date(milliseconds);
                 table.columns.push({text: dateStr.toString(), type: 'text'});
               }
 
