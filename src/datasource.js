@@ -188,26 +188,32 @@ class GenericDatasource {
             return {data: output};
           }
 
-          let table = {columns: [{text: 'target', type: 'text', sort: true, desc: true}], rows: [], type: 'table'};
+          let table       = {columns: [{text: 'target', type: 'text', sort: true, desc: true}], rows: [], type: 'table'};
+          let dateOptions = {year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric', timeZoneName: 'short'};
 
+          let datasetsAtTimestamp = {};
           output.forEach((dataset, i) => {
-            let row = [];
+            table.rows.push([dataset.target]);
 
             dataset.datapoints.forEach((datapoint, j) => {
-              if (i === 0) {
-                let milliseconds = datapoint[1];
-                let dateStr = new Date(milliseconds);
-                table.columns.push({text: dateStr.toString(), type: 'text'});
+              let milliseconds = datapoint[1];
+              if (typeof datasetsAtTimestamp[milliseconds] === 'undefined') {
+                datasetsAtTimestamp[milliseconds] = Array(output.length).fill('-');
               }
 
-              if (j === 0) {
-                row.push(dataset.target);
-              }
-              row.push(datapoint[0]);
+              datasetsAtTimestamp[milliseconds][i] = datapoint;
             });
+          });
 
-            table.rows.push(row);
-            return 1;
+          Object.keys(datasetsAtTimestamp).sort().reverse().forEach(milliseconds => {
+            let datapoints = datasetsAtTimestamp[milliseconds];
+            let dateStr    = new Date(parseInt(milliseconds));
+
+            table.columns.push({text: dateStr.toLocaleDateString("en-US", dateOptions), type: 'text'});
+
+            for (let i = 0; i < datapoints.length; i++) {
+              table.rows[i].push(datapoints[i][0]);
+            }
           });
 
           console.log('Formating result as a table.');
