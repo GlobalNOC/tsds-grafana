@@ -88,12 +88,7 @@ class GenericDatasource {
             throw error;
           });
         }
-<<<<<<< HEAD
-        
-        console.log(query);
-=======
 
->>>>>>> be8a7aa19e7e850735002e71c8bf4b7b05284e4a
         let start = Date.parse(query.range.from) / 1000;
         let end   = Date.parse(query.range.to) / 1000;
         let duration = (end - start);
@@ -684,19 +679,12 @@ class GenericDatasource {
         }
         target = queryObject.query;
 
-<<<<<<< HEAD
+        // By default the dashboard's selected time range is not passed
+        // to metricFindQuery. Use the angular object to retrieve it.
         let range = angular.element('grafana-app').injector().get('timeSrv').timeRange();
         let start = Date.parse(range.from) / 1000;
         let end   = Date.parse(range.to) / 1000;
         let duration = (end - start);
-=======
-      // By default the dashboard's selected time range is not passed
-      // to metricFindQuery. Use the angular object to retrieve it.
-      let range = angular.element('grafana-app').injector().get('timeSrv').timeRange();
-      let start = Date.parse(range.from) / 1000;
-      let end   = Date.parse(range.to) / 1000;
-      let duration = (end - start);
->>>>>>> be8a7aa19e7e850735002e71c8bf4b7b05284e4a
 
         target = target.replace("$START", start.toString());
         target = target.replace("$END", end.toString());
