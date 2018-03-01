@@ -61,6 +61,7 @@ class GenericDatasource {
      *
      */
     query(options) {
+      //this.templateSearch();
       return this.buildQueryParameters(options, this).then((query) => {
         query.targets = query.targets.filter(t => !t.hide);
         if (query.targets.length <= 0) { return this.q.when({data: []}); }
@@ -87,7 +88,7 @@ class GenericDatasource {
             throw error;
           });
         }
-
+        
         console.log(query);
         let start = Date.parse(query.range.from) / 1000;
         let end   = Date.parse(query.range.to) / 1000;
@@ -201,27 +202,32 @@ class GenericDatasource {
       });
     }
 
-  getHumanTime(seconds) {
-    if (seconds >= 86400) {
-      let count = seconds/86400;
-      if (count % 1 !== 0) { count = count.toFixed(1); }
-      return `${count}d`;
+    // function that takes a string and tokenizes on a delimiter[" ", ":", ";"]
+    tokenizeString(str_literal, delimiter){
+        return str_literal.split(delimiter);
     }
 
-    if (seconds >= 3600) {
-      let count = seconds/3600;
-      if (count % 1 !== 0) { count = count.toFixed(1); }
-      return `${count}h`;
-    }
+    getHumanTime(seconds) {
+        if (seconds >= 86400) {
+            let count = seconds/86400;
+            if (count % 1 !== 0) { count = count.toFixed(1); }
+            return `${count}d`;
+        }
 
-    if (seconds >= 120) {
-      let count = seconds/60;
-      if (count % 1 !== 0) { count = count.toFixed(1); }
-      return `${count}m`;
-    }
+        if (seconds >= 3600) {
+            let count = seconds/3600;
+            if (count % 1 !== 0) { count = count.toFixed(1); }
+            return `${count}h`;
+        }
 
-    return `${seconds}s`;
-  }
+        if (seconds >= 120) {
+            let count = seconds/60;
+            if (count % 1 !== 0) { count = count.toFixed(1); }
+            return `${count}m`;
+        }
+
+        return `${seconds}s`;
+    }
 
   getTargetNames(result, template, aliases) {
     let returnNames = [];
@@ -515,6 +521,22 @@ class GenericDatasource {
         });
     }
 
+    // function that takes fields and tokens to craft the where clause for "Template Search functionality"
+    buildWhere(fields, tokens){
+        let where = [];
+        // where  (field = value or field = value)
+        
+        _.forEach(tokens, function(tkn){
+            let partials = [];
+            _.forEach(fields, function(field){
+                partials.push(field+' like '+'"'+tkn+'"');
+            });
+            let partial_clause = `(${partials.join(" or ")})`;
+            where.push(partial_clause);
+        });
+        return where;
+    }
+
     /**
      * metricFindQuery is called once for every template variable, and
      * returns a list of values that may be used for each. This method
@@ -523,129 +545,178 @@ class GenericDatasource {
      * @param {string} options - A TSDS query
      */
     metricFindQuery(options) {
-      var target = typeof options === "string" ? options : options.target;
+        var target = typeof options === "string" ? options : options.target;
 
-      // By default the dashboard's selected time range is not passed
-      // to metricFindQuery. Use the angular object to retrieve it or
-      // if the angular object doesn't exist we're in test.
-      if (typeof angular === 'undefined') {
-        let request = {
-          headers: {'Content-Type' : 'multipart/form-data'},
-          method: 'POST',
-          data: { method: 'query', query: target },
-          url: `${this.url}/query.cgi`
-        };
+        // By default the dashboard's selected time range is not passed
+        // to metricFindQuery. Use the angular object to retrieve it or
+        // if the angular object doesn't exist we're in test.
+        if (typeof angular === 'undefined') {
+            let request = {
+            headers: {'Content-Type' : 'multipart/form-data'},
+            method: 'POST',
+            data: { method: 'query', query: target },
+            url: `${this.url}/query.cgi`
+            };
 
-        return this.backendSrv.datasourceRequest(request).then((response) => {
-          return response.data.map((x) => { return {text: x, value: x}; });
-        });
-      }
+            return this.backendSrv.datasourceRequest(request).then((response) => {
+                return response.data.map((x) => { return {text: x, value: x}; });
+            });
+        }
 
-      let queryObject = null;
+        let queryObject = null;
 
-      try {
-        queryObject = JSON.parse(target);
-      }
-      catch (error) {
-        queryObject = {query: target, type: 'query'};
-        // throw {message: error.message};
-      }
+        try {
+            queryObject = JSON.parse(target);
+        }
+        catch (error) {
+            queryObject = {query: target, type: 'query'};
+            // throw {message: error.message};
+        }
 
-      if (typeof queryObject.type === 'undefined') {
-        throw {message: 'Required query type was not specified.'};
-      }
+        if (typeof queryObject.type === 'undefined') {
+            throw {message: 'Required query type was not specified.'};
+        }
 
-      let validTypes = ['query', 'values'];
-      if (!validTypes.includes(queryObject.type)) {
-        throw {message: 'Invalid query type was specified.'};
-      }
+        let validTypes = ['query', 'values', 'search'];
+        if (!validTypes.includes(queryObject.type)) {
+            throw {message: 'Invalid query type was specified.'};
+        }
 
-      if (queryObject.type === 'values') {
+        if (queryObject.type === 'values') {
+            let form = new FormData();
+            form.append('method', 'get_measurement_type_values');
+            form.append('measurement_type', queryObject.measurement_type);
+
+            let request = {
+            data: form,
+            headers: {'Content-Type' : 'multipart/form-data'},
+            method: 'POST',
+            url: `${this.url}/metadata.cgi`
+            };
+
+            if (this.basicAuth || this.withCredentials) {
+                request.withCredentials = true;
+            }
+
+            if (this.basicAuth) {
+                request.headers.Authorization = self.basicAuth;
+            }
+
+            return this.backendSrv.datasourceRequest(request).then((response) => {
+                return response.data.results.map(x => { return {text: x.description, value: x.name}; });
+            });
+        }
+
+        if (queryObject.type === 'search'){
+            console.log("I'm a search query"); 
+            // build the search query here. 
+            if(queryObject.get === undefined || queryObject.get.length<1){
+                throw {message: "Required get field was not specified."}
+            }
+            const get_fields = queryObject.get.join(",");
+            var query = `get ${get_fields} between ($START, $END)`;
+            if ("by" in queryObject){
+                query+=` by ${queryObject.by}`; 
+            }else {
+                throw {message: "Required by field was not specified."};
+            }
+            if ("from" in queryObject){
+                query+=` from ${queryObject.from}`;
+            }else {
+                throw {message: "Required from field was not specified."}
+            }
+            let search_variable;
+            if("search" in queryObject){
+                let s_name=queryObject.search.replace("$","");
+                search_variable = this.templateSrv.variables.filter(x => x.name === s_name);
+                if(search_variable) {
+                    search_variable = search_variable[0];
+                }
+            }else {
+                throw {message: "Required search field was not specified."}
+            }
+            let tokens = this.tokenizeString(search_variable.current.value, " ");
+            if("fields" in queryObject){
+                let where = this.buildWhere(queryObject.fields, tokens);
+                let where_clause = ` where ${where.join(" and ")}`;
+                query+=where_clause;
+                console.log("search_query:",query);
+            }else {
+                throw {message: "Required fields not specified."}
+            }
+            if("limit" in queryObject){
+                query+=` limit ${queryObject.limit} offset 0`;
+            } else {
+                query+=` limit 50 offset 0`;
+            }
+            if("order_by" in queryObject){
+                query+=` orederd by ${queryObject.order_by}`;
+            } 
+            queryObject.query = query;
+        }
+        target = queryObject.query;
+
+        let range = angular.element('grafana-app').injector().get('timeSrv').timeRange();
+        let start = Date.parse(range.from) / 1000;
+        let end   = Date.parse(range.to) / 1000;
+        let duration = (end - start);
+
+        target = target.replace("$START", start.toString());
+        target = target.replace("$END", end.toString());
+        target = target.replace("$TIMESPAN", duration.toString());
+        target = this.templateSrv.replace(target, null, 'regex');
+
+        // Nested template variables are escaped, which tsds doesn't
+        // expect. Remove any `\` characters from the template
+        // variable query to craft a valid tsds query.
+        target = target.replace(/\\/g, "");
+
         let form = new FormData();
-        form.append('method', 'get_measurement_type_values');
-        form.append('measurement_type', queryObject.measurement_type);
+        form.append('method', 'query');
+        form.append('query', target);
 
         let request = {
-          data: form,
-          headers: {'Content-Type' : 'multipart/form-data'},
-          method: 'POST',
-          url: `${this.url}/metadata.cgi`
-        };
-
-        if (this.basicAuth || this.withCredentials) {
-          request.withCredentials = true;
-        }
-
-        if (this.basicAuth) {
-          request.headers.Authorization = self.basicAuth;
-        }
-
-        return this.backendSrv.datasourceRequest(request).then((response) => {
-          return response.data.results.map(x => { return {text: x.description, value: x.name}; });
-        });
-      }
-
-      target = queryObject.query;
-
-      let range = angular.element('grafana-app').injector().get('timeSrv').timeRange();
-      let start = Date.parse(range.from) / 1000;
-      let end   = Date.parse(range.to) / 1000;
-      let duration = (end - start);
-
-      target = target.replace("$START", start.toString());
-      target = target.replace("$END", end.toString());
-      target = target.replace("$TIMESPAN", duration.toString());
-      target = this.templateSrv.replace(target, null, 'regex');
-
-      // Nested template variables are escaped, which tsds doesn't
-      // expect. Remove any `\` characters from the template
-      // variable query to craft a valid tsds query.
-      target = target.replace(/\\/g, "");
-
-      let form = new FormData();
-      form.append('method', 'query');
-      form.append('query', target);
-
-      let request = {
         headers: {'Content-Type' : 'multipart/form-data'},
         method: 'POST',
         data: form,
         url: `${this.url}/query.cgi`
-      };
+        };
 
-      if (this.basicAuth || this.withCredentials) {
-        request.withCredentials = true;
-      }
+        if (this.basicAuth || this.withCredentials) {
+            request.withCredentials = true;
+        }
 
-      if (this.basicAuth) {
-        request.headers.Authorization = self.basicAuth;
-      }
+        if (this.basicAuth) {
+            request.headers.Authorization = self.basicAuth;
+        }
 
-      return this.backendSrv.datasourceRequest(request).then((response) => {
-        console.log(response);
+        return this.backendSrv.datasourceRequest(request).then((response) => {
+            console.log(response);
+            if(response.data.error){
+                throw {message: response.data.error_text};
+            }
+            let dataType = target.split(' ')[1];
+            let data = response.data.results.map((x) => {
+                let t = queryObject.text;
+                let v = queryObject.value;
 
-        let dataType = target.split(' ')[1];
-        let data = response.data.results.map((x) => {
-          let t = queryObject.text;
-          let v = queryObject.value;
+                if (typeof queryObject.value !== 'undefined') {
+                    Object.keys(x).forEach(key => {
+                        v = v.replace(`{{${key}}}`, x[key]);
+                    });
 
-          if (typeof queryObject.value !== 'undefined') {
-            Object.keys(x).forEach(key => {
-              v = v.replace(`{{${key}}}`, x[key]);
+                    Object.keys(x).forEach(key => {
+                        t = t.replace(`{{${key}}}`, x[key]);
+                    });
+
+                    return {text: t, value: v};
+                }
+
+                return {text: x[dataType], value: x[dataType]};
             });
 
-            Object.keys(x).forEach(key => {
-              t = t.replace(`{{${key}}}`, x[key]);
-            });
-
-            return {text: t, value: v};
-          }
-
-          return {text: x[dataType], value: x[dataType]};
+            return data;
         });
-
-        return data;
-      });
     }
 
     /**
