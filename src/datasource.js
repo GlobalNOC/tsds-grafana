@@ -162,20 +162,6 @@ class GenericDatasource {
                   output.push(targetObject);
                 });
               });
-
-              output.sort(function(a, b) {
-                var nameA = a.target.toUpperCase();
-                var nameB = b.target.toUpperCase();
-                if (nameA < nameB) {
-                  return -1;
-                }
-                if (nameA > nameB) {
-                  return 1;
-                }
-
-                return 0;
-              });
-
               resolve(output);
             });
           });
@@ -1120,7 +1106,7 @@ class GenericDatasource {
                 // strangely, we perform our own template variable
                 // replacement here.
                 let tvar  = clause.right.replace('$', '');
-                whereArgument = t.templateSrv._index[tvar].current.value;
+                whereArgument = t.templateSrv.index[tvar].current.value;
 
                 if (Array.isArray(whereArgument)) {
                   query += '(' + whereArgument.map(arg => `${clause.left} ${clause.op} "${arg}"`).join(' or ') + ')';
