@@ -1,3 +1,16 @@
+## GRNOC TSDS Grafana 0.2.1 -- Thu Mar 8 2018
+
+### Features
+
+* Added ability to exclusively query metadata.
+* Fixed substring replacement for extrapolation functions.
+* Added target naming for manual query mode.
+* Fixed multi-value temp vars rendering incorrectly.
+* Added support for table generation. Data can be now formatted as a table to create tables.  
+* Added Search functionality with Template variables. Added a new query type “search” to support this.
+* Fixed order by to order legend based on query results.
+* Changed `_index` to `index` of templateSrv to support grafana 5.0.1.
+
 ## GRNOC TSDS Grafana 0.2.0 -- Fri Feb 9 2018
 
 ### Features
