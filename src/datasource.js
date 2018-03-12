@@ -1106,7 +1106,7 @@ class GenericDatasource {
                 // strangely, we perform our own template variable
                 // replacement here.
                 let tvar  = clause.right.replace('$', '');
-                // If all, option is selected, we have to explicitly include all the values in options. 
+                // If all option is selected, explicitly include all the values in options irrespective of its selected property type. 
                 if(t.templateSrv.index[tvar].current.text === "All"){
                     let allArguments = [];
                     t.templateSrv.index[tvar].options.forEach((value) => {
