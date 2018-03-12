@@ -1106,8 +1106,19 @@ class GenericDatasource {
                 // strangely, we perform our own template variable
                 // replacement here.
                 let tvar  = clause.right.replace('$', '');
-                whereArgument = t.templateSrv.index[tvar].current.value;
-
+                // If all option is selected, explicitly include all the values in options irrespective of its selected property type. 
+                if(t.templateSrv.index[tvar].current.text === "All"){
+                    let allArguments = [];
+                    t.templateSrv.index[tvar].options.forEach((value) => {
+                        if(value.text !== "All") {
+                                allArguments.push(value.value);
+                        }
+                    });
+                    whereArgument = allArguments;
+                }
+                else{
+                    whereArgument = t.templateSrv.index[tvar].current.value;
+                }
                 if (Array.isArray(whereArgument)) {
                   query += '(' + whereArgument.map(arg => `${clause.left} ${clause.op} "${arg}"`).join(' or ') + ')';
                 } else {
