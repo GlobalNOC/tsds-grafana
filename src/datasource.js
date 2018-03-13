@@ -925,7 +925,8 @@ class GenericDatasource {
     // Returns the formatted where clause
     // This function is passed as a parameter to the templateSrv.replace
     // to support repeated panels by making use of the scopedVars
-    formatQ(value, variable){
+    
+    formatWhere(value, variable, formatFunc){
         let clause = this.clause;
         let allArgs=[];
         if(Array.isArray(value)){
@@ -1122,7 +1123,7 @@ class GenericDatasource {
               if (clause.right.indexOf('$') !== -1) {
                 let tvar  = clause.right.replace('$', '');
                 that.clause = clause; 
-                whereArgument = t.templateSrv.replace(clause.right, options.scopedVars,that.formatQ.bind(that));
+                whereArgument = t.templateSrv.replace(clause.right, options.scopedVars,that.formatWhere.bind(that));
                 query += whereArgument;
               } else {
                 query += `${clause.left} ${clause.op} "${whereArgument}"`;
