@@ -921,6 +921,21 @@ class GenericDatasource {
           return callback(data);
         });
     }
+    
+    // Returns the formatted where clause
+    // This function is passed as a parameter to the templateSrv.replace
+    // to support repeated panels by making use of the scopedVars
+    formatQ(value, variable){
+        let clause = this.clause;
+        let allArgs=[];
+        if(Array.isArray(value)){
+            value.forEach((val) => {
+                allArgs.push(`${clause.left} ${clause.op} "${val}"`);
+            }); 
+            return "(" + allArgs.join(' or ') + ")";
+        }
+        return `${clause.left} ${clause.op} "${value}"`;
+    }
 
     /**
      * buildQueryParameters generates a TSDS database query for each
@@ -928,6 +943,9 @@ class GenericDatasource {
      * by default.
      */
     buildQueryParameters(options, t) {
+
+      var that = this;
+
       // Returns each template variable and its selected value has a
       // hash. i.e. {'metric':'average', 'example':
       // 'another_metric'}. getVariableDetails excludes any adhoc
@@ -1102,28 +1120,10 @@ class GenericDatasource {
 
               let whereArgument = clause.right;
               if (clause.right.indexOf('$') !== -1) {
-                // Because templasteSrv.replace handles multi-values
-                // strangely, we perform our own template variable
-                // replacement here.
                 let tvar  = clause.right.replace('$', '');
-                // If all option is selected, explicitly include all the values in options irrespective of its selected property type. 
-                if(t.templateSrv.index[tvar].current.text === "All"){
-                    let allArguments = [];
-                    t.templateSrv.index[tvar].options.forEach((value) => {
-                        if(value.text !== "All") {
-                                allArguments.push(value.value);
-                        }
-                    });
-                    whereArgument = allArguments;
-                }
-                else{
-                    whereArgument = t.templateSrv.index[tvar].current.value;
-                }
-                if (Array.isArray(whereArgument)) {
-                  query += '(' + whereArgument.map(arg => `${clause.left} ${clause.op} "${arg}"`).join(' or ') + ')';
-                } else {
-                  query += `${clause.left} ${clause.op} "${whereArgument}"`;
-                }
+                that.clause = clause; 
+                whereArgument = t.templateSrv.replace(clause.right, options.scopedVars,that.formatQ.bind(that));
+                query += whereArgument;
               } else {
                 query += `${clause.left} ${clause.op} "${whereArgument}"`;
               }
