@@ -99,14 +99,18 @@
         <button class="btn btn-inverse gf-form-btn" ng-click="ctrl.removeValueSegment($index)"><i class="fa fa-trash"></i></button>
       </div>
 
-      <div class="gf-form" style="padding-left: 143px;" ng-if="ctrl.target.func[$index].expanded">
-        <label class="gf-form-label query-keyword width-3"><i class="fa fa-bitbucket" aria-hidden="true"></i></label>
-        <input type="text" class="gf-form-input width-8" placeholder="300" ng-model="func.bucket" bs-tooltip="'Bucket Size'"/>
-      </div>
+      <div ng-if="ctrl.target.func[$index].expanded" style="padding-bottom: 36px; padding-left: 143px;">
+        <div class="gf-form">
+          <label class="gf-form-label query-keyword width-3"><i class="fa fa-bitbucket" aria-hidden="true"></i></label>
+          <input type="text" class="gf-form-input width-8" placeholder="300" ng-model="func.bucket" bs-tooltip="'Bucket Size'"/>
+          <div class="gf-form-label gf-form-label--grow"></div>
+        </div>
 
-      <div class="gf-form" style="padding-left: 143px;" ng-if="ctrl.target.func[$index].expanded">
-        <label class="gf-form-label query-keyword width-3">AS</label>
-	    <input type="text" class="gf-form-input width-8" placeholder="alias" ng-model="ctrl.target.func[$index].alias"/>
+        <div class="gf-form">
+          <label class="gf-form-label query-keyword width-3">AS</label>
+	      <input type="text" class="gf-form-input width-8" placeholder="alias" ng-model="ctrl.target.func[$index].alias"/>
+          <div class="gf-form-label gf-form-label--grow"></div>
+        </div>
       </div>
     </div>
 
