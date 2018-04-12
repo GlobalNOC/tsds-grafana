@@ -47,6 +47,7 @@ class GenericFunction {
     this.target = (typeof options.target === 'undefined') ? 'input' : options.target;
     this.bucket = (typeof options.bucket === 'undefined') ? '' : options.bucket;
     this.alias = (typeof options.alias === 'undefined') ? '' : options.alias;
+    this.expanded = (typeof options.expanded === 'undefined') ? false : options.expanded;
 
     this.percentile = (typeof options.percentile === 'undefined') ? '85' : options.percentile;
 

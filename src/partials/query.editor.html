@@ -44,9 +44,6 @@
 
     <metric-segment-model ng-if="func.type=='Aggregate'" css-class="width-10" property="func.target" ng-model="func.target" get-options="ctrl.getMeasurementTypeValues()"></metric-segment-model>
 
-    <label class="gf-form-label query-keyword width-3" ng-if="func.type=='Aggregate'"><i class="fa fa-bitbucket" aria-hidden="true"></i></label>
-    <input type="text" ng-if="func.type=='Aggregate'" class="gf-form-input width-5" placeholder="300" ng-model="func.bucket" bs-tooltip="'Bucket Size'"/>
-
   </script>
   <!-- END - Get Template -->
 
@@ -91,14 +88,27 @@
 
         <span class="gf-form-inline" ng-include="'categoryTree'" ng-init="func = ctrl.target.func[$index]"></span>
 
-        <label class="gf-form-label query-keyword width-3">AS</label>
-	    <input type="text" class="gf-form-input width-7" placeholder="alias" ng-model="ctrl.target.func[$index].alias"/>
-
-        <button class="btn btn-inverse gf-form-btn" ng-click="ctrl.removeValueSegment($index)"><i class="fa fa-trash"></i></button>
-
-        <button class="btn btn-inverse gf-form-btn query-keyword" ng-click="ctrl.addValueSegments()"><i class="fa fa-plus"></i></button>
+        <button class="btn btn-inverse gf-form-btn query-keyword" ng-if="!ctrl.target.func[$index].expanded" ng-click="ctrl.target.func[$index].expanded=true"><i class="fa fa-caret-right"></i> Options</button>
+        <button class="btn btn-inverse gf-form-btn query-keyword" ng-if="ctrl.target.func[$index].expanded" ng-click="ctrl.target.func[$index].expanded=false"><i class="fa fa-caret-down"></i> Options</button>
 
 	    <div class="gf-form gf-form--grow">
+          <div class="gf-form-label gf-form-label--grow"></div>
+        </div>
+
+        <button class="btn btn-inverse gf-form-btn query-keyword" ng-click="ctrl.addValueSegments()"><i class="fa fa-plus"></i></button>
+        <button class="btn btn-inverse gf-form-btn" ng-click="ctrl.removeValueSegment($index)"><i class="fa fa-trash"></i></button>
+      </div>
+
+      <div ng-if="ctrl.target.func[$index].expanded" style="padding-bottom: 36px; padding-left: 143px;">
+        <div class="gf-form">
+          <label class="gf-form-label query-keyword width-3"><i class="fa fa-bitbucket" aria-hidden="true"></i></label>
+          <input type="text" class="gf-form-input width-8" placeholder="300" ng-model="func.bucket" bs-tooltip="'Bucket Size'"/>
+          <div class="gf-form-label gf-form-label--grow"></div>
+        </div>
+
+        <div class="gf-form">
+          <label class="gf-form-label query-keyword width-3">AS</label>
+	      <input type="text" class="gf-form-input width-8" placeholder="alias" ng-model="ctrl.target.func[$index].alias"/>
           <div class="gf-form-label gf-form-label--grow"></div>
         </div>
       </div>
