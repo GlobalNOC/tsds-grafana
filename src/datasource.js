@@ -1100,6 +1100,7 @@ class GenericDatasource {
             let alias_value = template_variables[f.alias.replace('$', '')] ? template_variables[f.alias.replace('$', '')] : f.alias;
             target.metricValueAliasMappings[aggregation] = alias_value;
 
+            f.operation = f.operation || '';
             return `${aggregation}${f.operation}`;
           }).join(', ');
 

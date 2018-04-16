@@ -218,12 +218,10 @@ class GenericDatasourceQueryCtrl extends QueryCtrl {
 
   addGroupBy(){
 	this.target.groupby_field.push('Select Column');
-	console.log(this.target.groupby_field);
   }
 
   addOrderBy(){
 	this.target.orderby_field.push('Select Column');
-	console.log(this.target.orderby_field);
   }
 
   removeGroupBy(index){
