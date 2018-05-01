@@ -185,7 +185,7 @@ class GenericDatasource {
             dataset.datapoints.forEach((datapoint, j) => {
               let milliseconds = datapoint[1];
               if (typeof datasetsAtTimestamp[milliseconds] === 'undefined') {
-                datasetsAtTimestamp[milliseconds] = Array(output.length).fill('-');
+                datasetsAtTimestamp[milliseconds] = Array(output.length).fill(null);
               }
 
               datasetsAtTimestamp[milliseconds][i] = datapoint;
@@ -199,7 +199,8 @@ class GenericDatasource {
             table.columns.push({text: dateStr.toLocaleDateString("en-US", dateOptions), type: 'text'});
 
             for (let i = 0; i < datapoints.length; i++) {
-              table.rows[i].push(datapoints[i][0]);
+	      var point = datapoints[i];
+              table.rows[i].push(point == null ? null : point[0]);
             }
           });
 
