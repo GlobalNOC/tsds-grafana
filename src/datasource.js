@@ -756,9 +756,14 @@ class GenericDatasource {
         request.headers.Authorization = self.basicAuth;
       }
 
-      return this.backendSrv.datasourceRequest(request)
-        .then((response) => {
-          return response.data.results.map((x) => { return {text: x.name, value: x.name}; });
+      return this.backendSrv.datasourceRequest(request).then((response) => {
+          let measurement_types = [];
+          response.data.results.forEach((x) => {
+            if(!x.parent){
+                measurement_types.push({text: x.name, value: x.name});
+            }   
+          });
+          return measurement_types;
         });
     }
 
