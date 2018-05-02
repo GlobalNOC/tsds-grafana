@@ -101,14 +101,20 @@
 
       <div ng-if="ctrl.target.func[$index].expanded" style="padding-bottom: 36px; padding-left: 143px;">
         <div class="gf-form">
-          <label class="gf-form-label query-keyword width-3"><i class="fa fa-bitbucket" aria-hidden="true"></i></label>
-          <input type="text" class="gf-form-input width-8" placeholder="300" ng-model="func.bucket" bs-tooltip="'Bucket Size'"/>
+          <label class="gf-form-label query-keyword width-6">Alias</label>
+	      <input type="text" class="gf-form-input width-10" placeholder="alias" ng-model="ctrl.target.func[$index].alias" bs-tooltip="'Custom alias for this aggregation'"/>
           <div class="gf-form-label gf-form-label--grow"></div>
         </div>
 
         <div class="gf-form">
-          <label class="gf-form-label query-keyword width-3">AS</label>
-	      <input type="text" class="gf-form-input width-8" placeholder="alias" ng-model="ctrl.target.func[$index].alias"/>
+          <label class="gf-form-label query-keyword width-6">Bucket</label>
+          <input type="text" class="gf-form-input width-10" placeholder="300" ng-model="func.bucket" bs-tooltip="'Size of bucket to aggregate data'"/>
+          <div class="gf-form-label gf-form-label--grow"></div>
+        </div>
+
+        <div class="gf-form">
+          <label class="gf-form-label query-keyword width-6">Operation</label>
+	      <input type="text" class="gf-form-input width-10" placeholder="* 4" ng-model="ctrl.target.func[$index].operation" bs-tooltip="'Operation applied to the datapoints in this aggregation'"/>
           <div class="gf-form-label gf-form-label--grow"></div>
         </div>
       </div>

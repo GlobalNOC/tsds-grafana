@@ -1004,7 +1004,7 @@ class GenericDatasource {
                 query = query_list.map(q => q).join(', ');
               }
             } else {
-              return targets.map(target => TSDSQuery(func.wrapper[0], `aggregate(values.${target},${bucket}, ${method})`)).join(', ');      
+              return targets.map(target => TSDSQuery(func.wrapper[0], `aggregate(values.${target}, ${bucket}, ${method})`)).join(', ');
             }
           } else{
             query = `aggregate(values.${target}, ${bucket}, ${method})`;
@@ -1101,7 +1101,8 @@ class GenericDatasource {
             let alias_value = template_variables[f.alias.replace('$', '')] ? template_variables[f.alias.replace('$', '')] : f.alias;
             target.metricValueAliasMappings[aggregation] = alias_value;
 
-            return aggregation;
+            f.operation = f.operation || '';
+            return `${aggregation}${f.operation}`;
           }).join(', ');
 
           query += `${functions} between (${start}, ${end}) `;

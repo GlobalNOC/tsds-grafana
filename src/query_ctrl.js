@@ -45,9 +45,11 @@ class GenericFunction {
 
     this.method = (typeof options.method === 'undefined') ? 'average' : options.method;
     this.target = (typeof options.target === 'undefined') ? 'input' : options.target;
-    this.bucket = (typeof options.bucket === 'undefined') ? '' : options.bucket;
-    this.alias = (typeof options.alias === 'undefined') ? '' : options.alias;
+
     this.expanded = (typeof options.expanded === 'undefined') ? false : options.expanded;
+    this.alias = (typeof options.alias === 'undefined') ? '' : options.alias;
+    this.bucket = (typeof options.bucket === 'undefined') ? '' : options.bucket;
+    this.operation = (typeof options.operation === 'undefined') ? '' : options.operation;
 
     this.percentile = (typeof options.percentile === 'undefined') ? '85' : options.percentile;
 
@@ -216,12 +218,10 @@ class GenericDatasourceQueryCtrl extends QueryCtrl {
 
   addGroupBy(){
 	this.target.groupby_field.push('Select Column');
-	console.log(this.target.groupby_field);
   }
 
   addOrderBy(){
 	this.target.orderby_field.push('Select Column');
-	console.log(this.target.orderby_field);
   }
 
   removeGroupBy(index){
