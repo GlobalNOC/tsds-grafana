@@ -961,7 +961,17 @@ class GenericDatasource {
         let varDetails = {};
         t.templateSrv.variables.forEach(function(item){
           if (item.type !== 'adhoc') {
-            varDetails[item.name] = item.current.value;
+            if(item.current.text === "All"){
+                let options = [];
+                item.options.forEach(value => {
+                    if(value.text !== "All") {
+                        options.push(value.value);
+                    }
+                });
+                varDetails[item.name] = options;
+            }else {
+                varDetails[item.name] = item.current.value;
+            }
           }
         });
         return varDetails;
