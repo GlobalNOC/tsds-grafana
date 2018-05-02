@@ -932,7 +932,7 @@ class GenericDatasource {
     // This function is passed as a parameter to the templateSrv.replace
     // to support repeated panels by making use of the scopedVars
     
-    formatWhere(value, variable, formatFunc){
+    formatWhere(value){
         let clause = this.clause;
         let allArgs=[];
         if(Array.isArray(value)){
@@ -1127,9 +1127,8 @@ class GenericDatasource {
 
               let whereArgument = clause.right;
               if (clause.right.indexOf('$') !== -1) {
-                let tvar  = clause.right.replace('$', '');
                 that.clause = clause; 
-                whereArgument = t.templateSrv.replace(clause.right, options.scopedVars,that.formatWhere.bind(that));
+                whereArgument = that.formatWhere(t.templateSrv.replace(clause.right, options.scopedVars));
                 query += whereArgument;
               } else {
                 query += `${clause.left} ${clause.op} "${whereArgument}"`;
@@ -1153,7 +1152,7 @@ class GenericDatasource {
             let adhocQuery = filterQueries.join(' and ');
             if (adhocQuery !== '') query += ` and (${adhocQuery}) `;
 
-            if (target.orderby_field) query += `ordered by ${target.orderby_field}`;
+            if (target.orderby_field) query += ` ordered by ${target.orderby_field}`;
 
             query = t.templateSrv.replace(query, options.scopedVars);
 
