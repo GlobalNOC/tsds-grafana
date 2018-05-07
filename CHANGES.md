@@ -1,3 +1,13 @@
+## GRNOC TSDS Grafana 0.2.2 -- Mon May 7 2018
+
+### Features
+
+* Added expandable options to the visual query builder to put all the options under a collapsible region.
+* Added support for tsds math operations.
+* Added empty default for existing queries.
+* Added the ability to provide multiple template variables within a string in the where clause. 
+* Fixed issue with sort when null datapoints are present.
+
 ## GRNOC TSDS Grafana 0.2.1 -- Thu Mar 8 2018
 
 ### Features
