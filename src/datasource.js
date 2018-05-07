@@ -47,8 +47,6 @@ class GenericDatasource {
         this.metricValue = this.metricValue||[];
         this.metricColumn =this.metricColumn||[];
         this.whereSuggest =[];
-        this.template_values = {};
-        this.whereArgs = [];
     }
 
     /**
