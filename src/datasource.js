@@ -47,6 +47,8 @@ class GenericDatasource {
         this.metricValue = this.metricValue||[];
         this.metricColumn =this.metricColumn||[];
         this.whereSuggest =[];
+        this.template_values = {};
+        this.whereArgs = [];
     }
 
     /**
@@ -1032,6 +1034,28 @@ class GenericDatasource {
         return TSDSQuery(func.wrapper[0], query);
       }
 
+      // creates an array of all possible combinations of clause.right. 
+      function buildWhereClause(whereArgument, wheres){
+        if(!t.templateSrv.variableExists(whereArgument)){
+            return whereArgument;
+        }
+        let temp = t.templateSrv.replace("$"+t.templateSrv.getVariableName(whereArgument), options.scopedVars,function(value, x, replacer){
+                        if(!Array.isArray(value)) {
+                            value = [value];
+                        }
+                        let map_arr = value.map(function(val){
+                                let replaced = whereArgument.replace("$" + x.name, `${val}`);
+                                if(!t.templateSrv.variableExists(replaced)){
+                                    wheres.push(replaced);
+                                }
+                                return buildWhereClause(replaced, wheres);
+                        });
+                        return map_arr;
+                    });
+        whereArgument = temp; 
+        return buildWhereClause(whereArgument, wheres);     
+      }
+
       var queries = options.targets.map(function(target) {
         return new Promise((resolve, reject) => {
           if (typeof(target) === "string"){
@@ -1139,7 +1163,12 @@ class GenericDatasource {
               let whereArgument = clause.right;
               if (clause.right.indexOf('$') !== -1) {
                 that.clause = clause; 
-                whereArgument = that.formatWhere(t.templateSrv.replace(clause.right, options.scopedVars));
+                let wheres = [];
+
+                // build all the possible clause.right combinations
+                whereArgument = buildWhereClause(whereArgument,wheres);
+                whereArgument = that.formatWhere(wheres);
+                console.log(whereArgument);
                 query += whereArgument;
               } else {
                 query += `${clause.left} ${clause.op} "${whereArgument}"`;
