@@ -244,15 +244,27 @@ class GenericDatasource {
 
   getTargetNames(result, template, aliases) {
     let returnNames = [];
+    
+    // construct an array of objects to preserve the order
+    let resultObj = [];
+    for(let key in result){
+        // Aggregate functions will have 'values.' in the key. The rest are metric names
+        if(key.indexOf("values.") === -1) continue;
+        if(key.indexOf("values.in") >= 0){
+            let myObj = new Object;
+            myObj[key] = result[key]; 
+            resultObj.unshift(myObj);
+        }else {
+            let myObj = new Object;
+            myObj[key] = result[key];
+            resultObj.push(myObj);
+        }
+    }
 
-    for (let key in result) {
-
-      // Aggregate functions will have '.values' in the key. The rest
-      // are metric names.
-      if (key.indexOf('values.') === -1) {
-        continue;
-      }
-
+    //for (let key in result) {
+    for (let i = 0; i < resultObj.length; i++){
+      //if(key.indexOf("values.") === -1) continue;
+      let key = Object.keys(resultObj[i])[0];
       let args = key.split(/[(,)]/).map(x => x.trim());
       let name = null;
 
