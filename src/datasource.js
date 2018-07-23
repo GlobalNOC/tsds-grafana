@@ -937,7 +937,11 @@ class GenericDatasource {
         let allArgs=[];
         if(Array.isArray(value)){
             value.forEach((val) => {
-                allArgs.push(`${clause.left} ${clause.op} "${val}"`);
+                if(val === "null"){
+                    allArgs.push(`{clause.left} ${clause.op} ${val}`);
+                } else {
+                    allArgs.push(`${clause.left} ${clause.op} "${val}"`);
+                }
             }); 
             return "(" + allArgs.join(' or ') + ")";
         }
@@ -1168,8 +1172,12 @@ class GenericDatasource {
                 whereArgument = that.formatWhere(wheres);
                 console.log(whereArgument);
                 query += whereArgument;
-              } else {
-                query += `${clause.left} ${clause.op} "${whereArgument}"`;
+              }else {
+                if(whereArgument === "null"){
+                    query += `${clause.left} ${clause.op} ${whereArgument}`;
+                }else{
+                    query += `${clause.left} ${clause.op} "${whereArgument}"`;
+                }
               }
             });
 
