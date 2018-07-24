@@ -250,21 +250,15 @@ class GenericDatasource {
     for(let key in result){
         // Aggregate functions will have 'values.' in the key. The rest are metric names
         if(key.indexOf("values.") === -1) continue;
-        if(key.indexOf("values.in") >= 0){
-            let myObj = new Object;
-            myObj[key] = result[key]; 
-            resultObj.unshift(myObj);
-        }else {
-            let myObj = new Object;
-            myObj[key] = result[key];
-            resultObj.push(myObj);
-        }
+        resultObj.push(key);
+        // sort the keys
+        resultObj.sort(); 
     }
 
-    //for (let key in result) {
+    // parse the sorted keys to preserve the order
     for (let i = 0; i < resultObj.length; i++){
-      //if(key.indexOf("values.") === -1) continue;
-      let key = Object.keys(resultObj[i])[0];
+      
+      let key = resultObj[i];
       let args = key.split(/[(,)]/).map(x => x.trim());
       let name = null;
 
