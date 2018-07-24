@@ -1126,9 +1126,15 @@ class GenericDatasource {
           target.metric_array.forEach((metric) => {
             query += `${metric}, `;
           });
+           
+          let aggregate_query, aggregate_function = [];
+          if(target.aggregate_all){
+            aggregate_query = query;
+          } 
 
           let functions = target.func.map((f) => {
             let aggregation = TSDSQuery(f);
+             
             let template_variables = getVariableDetails();
             let defaultBucket = duration / options.maxDataPoints;	      
             // get defaultBucket rounded to nearest 10 for pretty
@@ -1147,11 +1153,19 @@ class GenericDatasource {
             aggregation = aggregation.replace(/\$quantify/g, size.toString());
             let alias_value = template_variables[f.alias.replace('$', '')] ? template_variables[f.alias.replace('$', '')] : f.alias;
             target.metricValueAliasMappings[aggregation] = alias_value;
-
+            
+            let split_aggr = aggregation.split(/[(,)]/).map(x => x.trim());
+            let as_alias = split_aggr[1];
+            let bucket = split_aggr[2];
+            if(target.aggregate_all){
+                aggregate_function.push(`${split_aggr[0]}(${as_alias},${bucket}, sum)`);
+                aggregation += ` as ${as_alias}`;
+            } 
             f.operation = f.operation || '';
             return `${aggregation}${f.operation}`;
           }).join(', ');
 
+          
           query += `${functions} between (${start}, ${end}) `;
 
           if (target.groupby_field) query += `by ${target.groupby_field} `;
@@ -1188,6 +1202,7 @@ class GenericDatasource {
             });
 
             query += ')';
+            
           });
 
           let filters = [];
@@ -1211,7 +1226,15 @@ class GenericDatasource {
             var oldQ = query.substr(query.indexOf("{"), query.length);
             var formatQ = oldQ.replace(/,/gi, " or ");
             query = query.replace(oldQ, formatQ);
-            target.target = query;
+            if(target.aggregate_all){
+              let aggr = aggregate_function.join(', ');
+              aggregate_query += aggr;
+              aggregate_query += ` by nothing from ( ${query} )`;
+              target.target = aggregate_query;
+              query = aggregate_query;
+            }else{
+              target.target = query;
+            }
 
             // Log final query for debugging.
             // TODO

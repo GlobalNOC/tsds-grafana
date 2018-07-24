@@ -284,11 +284,16 @@
     <label class="gf-form-label query-keyword width-8">Format As</label>
 
     <span class="gf-form-select-wrapper">
-      <select class="gf-form-input" style="width:183px;" name="displayFormat" ng-model="ctrl.target.displayFormat" bs-tooltip="'Set display format'">
+      <select class="gf-form-input width-12" style="width:183px;" name="displayFormat" ng-model="ctrl.target.displayFormat" bs-tooltip="'Set display format'">
         <option value="series">series</option>
         <option value="table">table</option>
       </select>
     </span>
+    <div>
+      <gf-form-switch class="gf-form" label-class="query-keyword width-10"
+        label="Combine All Series"
+        checked="ctrl.target.aggregate_all">
+    </div>
     <div class="gf-form gf-form--grow"><div class="gf-form-label gf-form-label--grow"></div></div>
   </div>
 
