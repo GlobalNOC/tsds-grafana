@@ -1161,9 +1161,10 @@ class GenericDatasource {
                 let bucket = split_aggr[2];
                 if(target.aggregate_all){
                     aggregate_function.push(`${split_aggr[0]}(${as_alias}, ${bucket}, sum)`);
+                    f.operation = f.operation || '';
+                    agg += ` ${f.operation} as ${as_alias}`
                 } 
-                f.operation = f.operation || '';
-                return `${agg}${f.operation} as ${as_alias}`;
+                return `${agg}`;
             }).join(', ');
             
             return aggregate;
