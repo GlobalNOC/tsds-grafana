@@ -1026,7 +1026,8 @@ class GenericDatasource {
               });
 
               if(query_list.length>0) {
-                query = query_list.map(q => q).join(', ');
+                //query = query_list.map(q => q).join(', ');
+                return query_list;
               }
             } else {
               return targets.map(target => TSDSQuery(func.wrapper[0], `aggregate(values.${target}, ${bucket}, ${method})`)).join(', ');
@@ -1134,7 +1135,7 @@ class GenericDatasource {
 
           let functions = target.func.map((f) => {
             let aggregation = TSDSQuery(f);
-             
+            if(!Array.isArray(aggregation)) { aggregation = [aggregation] } 
             let template_variables = getVariableDetails();
             let defaultBucket = duration / options.maxDataPoints;	      
             // get defaultBucket rounded to nearest 10 for pretty
@@ -1149,21 +1150,25 @@ class GenericDatasource {
             } else {
               size = Math.max(60, size);
             }
-
-            aggregation = aggregation.replace(/\$quantify/g, size.toString());
-            let alias_value = template_variables[f.alias.replace('$', '')] ? template_variables[f.alias.replace('$', '')] : f.alias;
-            target.metricValueAliasMappings[aggregation] = alias_value;
             
-            let split_aggr = aggregation.split(/[(,)]/).map(x => x.trim());
-            let as_alias = split_aggr[1];
-            let bucket = split_aggr[2];
-            if(target.aggregate_all){
-                aggregate_function.push(`${split_aggr[0]}(${as_alias},${bucket}, sum)`);
-                aggregation += ` as ${as_alias}`;
-            } 
-            f.operation = f.operation || '';
-            return `${aggregation}${f.operation}`;
-          }).join(', ');
+            let aggregate = aggregation.map( agg => {
+                agg = agg.replace(/\$quantify/g, size.toString());
+                let alias_value = template_variables[f.alias.replace('$', '')] ? template_variables[f.alias.replace('$', '')] : f.alias;
+                target.metricValueAliasMappings[agg] = alias_value;
+            
+                let split_aggr = agg.split(/[(,)]/).map(x => x.trim());
+                let as_alias = split_aggr[1];
+                let bucket = split_aggr[2];
+                if(target.aggregate_all){
+                    aggregate_function.push(`${split_aggr[0]}(${as_alias}, ${bucket}, sum)`);
+                } 
+                f.operation = f.operation || '';
+                return `${agg}${f.operation} as ${as_alias}`;
+            }).join(', ');
+            
+            return aggregate;
+
+          });
 
           
           query += `${functions} between (${start}, ${end}) `;
