@@ -1,3 +1,9 @@
+## GRNOC TSDS Grafana 0.2.4 -- Thu Aug 2 2018
+
+### Features
+
+* Bug Fix for math operation not being applied to the regular query
+
 ## GRNOC TSDS Grafana 0.2.3 -- Wed July 25 2018
 
 ### Features

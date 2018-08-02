@@ -1164,7 +1164,7 @@ class GenericDatasource {
                     aggregate_function.push(`${split_aggr[0]}(${as_alias}, ${bucket}, sum)`);
                     agg += ` ${f.operation} as ${as_alias}`
                 } else {
-                    agg += `${f.operation}`;
+                    agg += ` ${f.operation}`;
                 } 
                 return `${agg}`;
             }).join(', ');
