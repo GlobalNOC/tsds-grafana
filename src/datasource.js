@@ -1007,7 +1007,7 @@ class GenericDatasource {
           let method = func.method || 'average';
           let target = func.target || 'input';
           let templates = getVariableDetails();
-
+          bucket = templates[bucket.replace('$','')] ? templates[bucket.replace('$', '')] : bucket;
           if (method == 'percentile') {
             method = `percentile(${func.percentile})`;
           } else if (method == 'template') {
@@ -1026,7 +1026,6 @@ class GenericDatasource {
               });
 
               if(query_list.length>0) {
-                //query = query_list.map(q => q).join(', ');
                 return query_list;
               }
             } else {
@@ -1142,7 +1141,6 @@ class GenericDatasource {
             defaultBucket = Math.ceil(defaultBucket / 10) * 10;
             let size = (f.bucket === '') ? defaultBucket : parseInt(f.bucket);
 
-
             if (duration >= 7776000) {
               size = Math.max(86400, size);
             } else if (duration >= 259200) {
@@ -1153,9 +1151,9 @@ class GenericDatasource {
             
             let aggregate = aggregation.map( agg => {
                 agg = agg.replace(/\$quantify/g, size.toString());
-                let alias_value = template_variables[f.alias.replace('$', '')] ? template_variables[f.alias.replace('$', '')] : f.alias;
-                target.metricValueAliasMappings[agg] = alias_value;
-            
+                let alias_value = template_variables[f.alias.replace('$', '')] ? template_variables[f.alias.replace('$', '')] : f.alias; 
+                target.metricValueAliasMappings[agg] = alias_value;  
+                
                 let split_aggr = agg.split(/[(,)]/).map(x => x.trim());
                 let as_alias = split_aggr[1];
                 let bucket = split_aggr[2];
