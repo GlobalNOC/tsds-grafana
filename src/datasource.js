@@ -1161,6 +1161,7 @@ class GenericDatasource {
                 let bucket = split_aggr[2];
                 f.operation = f.operation || '';
                 if(target.aggregate_all){
+                    bucket = template_variables[bucket.replace('$','')] ? template_variables[bucket.replace('$', '')] : bucket;
                     aggregate_function.push(`${split_aggr[0]}(${as_alias}, ${bucket}, sum)`);
                     agg += ` ${f.operation} as ${as_alias}`
                 } else {
