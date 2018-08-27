@@ -651,7 +651,7 @@ class GenericDatasource {
             }else {
                 throw {message: "Required search field was not specified."}
             }
-            let tokens = this.tokenizeString(search_variable.current.value, " ");
+	    let tokens = this.tokenizeString(search_variable.current.value, " ").map((f) => { if (f === ""){ return ".*"; } return f; });
             if("fields" in queryObject){
                 let where = this.buildWhere(queryObject.fields, tokens);
                 let where_clause = ` where ${where.join(" and ")}`;
@@ -660,13 +660,17 @@ class GenericDatasource {
             }else {
                 throw {message: "Required fields not specified."}
             }
+	    if("static_where" in queryObject){
+		let static_where = this.templateSrv.replace(queryObject.static_where, options.scopedVars, "regex");
+		query+=` and ${static_where}`;
+	    }
             if("limit" in queryObject){
                 query+=` limit ${queryObject.limit} offset 0`;
             } else {
                 query+=` limit 50 offset 0`;
             }
             if("order_by" in queryObject){
-                query+=` orederd by ${queryObject.order_by}`;
+                query+=` ordered by ${queryObject.order_by}`;
             } 
             queryObject.query = query;
         }
@@ -687,7 +691,8 @@ class GenericDatasource {
         // Nested template variables are escaped, which tsds doesn't
         // expect. Remove any `\` characters from the template
         // variable query to craft a valid tsds query.
-        target = target.replace(/\\/g, "");
+	target = target.replace(/(=\s*"[^"]+")/g, function(match){ var fixed = match.replace(/\\/g, ""); return fixed; });
+        //target = target.replace(/\\/g, "");
 
         let form = new FormData();
         form.append('method', 'query');
