@@ -1,3 +1,11 @@
+## GRNOC TSDS Grafana 0.2.5 -- Tue Aug 28 2018
+
+### Features
+
+* Ability to define a static portion of the where clause in a search template variable
+* Imporved ability to use strings with escaped regular expression characters in template variable queries
+* Added default value of '.*' to terms when doing a search when the variable has no value set
+
 ## GRNOC TSDS Grafana 0.2.4 -- Thu Aug 6 2018
 
 ### Features
