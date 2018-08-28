@@ -24,7 +24,7 @@
       {"name": "Github", "url": "https://github.com/GlobalNOC/tsds-grafana/tree/master/globalnoc-tsds-datasource"},
       {"name": "MIT License", "url": "https://github.com/GlobalNOC/tsds-grafana/blob/cleanup/globalnoc-tsds-datasource/LICENSE"}
     ],
-    "version": "0.2.4",
+    "version": "0.2.5",
     "updated": "2018-08-06"
   },
 
