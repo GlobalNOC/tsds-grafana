@@ -1,3 +1,13 @@
+## GRNOC TSDS Grafana 0.2.6 -- Fri Sep 21 2018
+
+### Features
+
+* Fixed issue where panels with multiple queries would return results in a inconsistent order
+between different reloads. Data is now always returned for query A first, then query B, etc.
+* Fixed issue where empty template variables used in queries would generate syntactically invalid
+queries. Queries are now generated properly with no results.
+
+
 ## GRNOC TSDS Grafana 0.2.5 -- Tue Aug 28 2018
 
 ### Features
