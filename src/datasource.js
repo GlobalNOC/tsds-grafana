@@ -119,6 +119,7 @@ class GenericDatasource {
             let aliases  = target.targetAliases;
             let query    = target.target;
             let template = target.alias !== '' ? target.alias.split(' ') : null; // Value of 'Target Name'
+	    let refId    = target.refId;
 
             return this.backendSrv.datasourceRequest(request).then((response) => {
 
@@ -159,6 +160,9 @@ class GenericDatasource {
                     targetObject['datapoints'] = [[datapoints, end * 1000]];
                   }
 
+                  // store reference to which target this came from to ensure same order back out
+ 	          targetObject['__refId'] = refId;
+
                   output.push(targetObject);
                 });
               });
@@ -169,6 +173,12 @@ class GenericDatasource {
 
         return Promise.all(requests).then(responses => {
           console.log(output);
+
+	  // since the queries are async there isn't a guarantee on which order they come back in
+	  // this gets them back to the order in which they were defined, ie query A is always first
+          output.sort(function(a, b){ return a['__refId'].localeCompare(b['__refId']) });
+	  // remove unneeded data now
+	  output.forEach(function(o){ delete o['__refId']});
 
           if (typeof options.targets[0].displayFormat === 'undefined' || options.targets[0].displayFormat === 'series') {
             console.log('Formating result as a series.');
@@ -1055,6 +1065,11 @@ class GenericDatasource {
         let temp = t.templateSrv.replace("$"+t.templateSrv.getVariableName(whereArgument), options.scopedVars,function(value, x, replacer){
                         if(!Array.isArray(value)) {
                             value = [value];
+                        }
+	                // template var may not have any applicable values, this (in almost every case) prevents it from 
+	                // generating an error about bad query syntax
+	                if (value.length === 0){
+                            value[0] = "__MISSINGVALUE__";
                         }
                         let map_arr = value.map(function(val){
                                 let replaced = whereArgument.replace("$" + x.name, `${val}`);
