@@ -119,7 +119,7 @@ class GenericDatasource {
             let aliases  = target.targetAliases;
             let query    = target.target;
             let template = target.alias !== '' ? target.alias.split(' ') : null; // Value of 'Target Name'
-	        let refId    = target.refId;
+            let refId    = target.refId;
 
             return this.backendSrv.datasourceRequest(request).then((response) => {
 
@@ -172,7 +172,7 @@ class GenericDatasource {
                   }
 
                   // store reference to which target this came from to ensure same order back out
- 	              targetObject['__refId'] = refId;
+                  targetObject['__refId'] = refId;
 
                   output.push(targetObject);
                 });
