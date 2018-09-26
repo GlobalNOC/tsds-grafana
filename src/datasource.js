@@ -119,7 +119,7 @@ class GenericDatasource {
             let aliases  = target.targetAliases;
             let query    = target.target;
             let template = target.alias !== '' ? target.alias.split(' ') : null; // Value of 'Target Name'
-	    let refId    = target.refId;
+	        let refId    = target.refId;
 
             return this.backendSrv.datasourceRequest(request).then((response) => {
 
@@ -127,7 +127,18 @@ class GenericDatasource {
                 reject(response);
               }
 
+              //Adding name + operation to the name returned by TSDS response
+              // to make it consistent for aliasing
               response.data.results.forEach((result) => {
+                for (let key in result) {
+                    for(let aliasKey in aliases){
+                        if(result[aliasKey]) break;
+                        if(aliasKey.includes(key)){
+                            result[aliasKey] = result[key];
+                            delete result[key];
+                        }
+                    }
+                }
 
                 // TSDS modifies the target expression of extrapolate
                 // functions on return, such that a request like
@@ -161,7 +172,7 @@ class GenericDatasource {
                   }
 
                   // store reference to which target this came from to ensure same order back out
- 	          targetObject['__refId'] = refId;
+ 	              targetObject['__refId'] = refId;
 
                   output.push(targetObject);
                 });
@@ -254,7 +265,7 @@ class GenericDatasource {
 
   getTargetNames(result, template, aliases) {
     let returnNames = [];
-    
+
     // construct an array of objects to preserve the order
     let resultObj = [];
     for(let key in result){
@@ -262,12 +273,12 @@ class GenericDatasource {
         if(key.indexOf("values.") === -1) continue;
         resultObj.push(key);
         // sort the keys
-        resultObj.sort(); 
+        resultObj.sort();
     }
 
     // parse the sorted keys to preserve the order
     for (let i = 0; i < resultObj.length; i++){
-      
+
       let key = resultObj[i];
       let args = key.split(/[(,)]/).map(x => x.trim());
       let name = null;
@@ -423,7 +434,7 @@ class GenericDatasource {
         if (element.type === 'adhoc') {
             return;
         }
-        
+
         if(element.type !== 'query') return;
 
         fields.push({
@@ -523,14 +534,14 @@ class GenericDatasource {
         form.append('meta_field',options.key);
         form.append(`${options.key}_like`, like);
         form.append('limit',1000);
-        form.append('offset',0);  
-        
+        form.append('offset',0);
+
         const payload = {
             url: `${this.url}/metadata.cgi`,
             data: form,
             method: 'POST',
             headers: { 'Content-Type': 'multipart/form-data' }
-        }; 
+        };
 
         if (this.basicAuth || this.withCredentials) {
             payload.withCredentials = true;
@@ -554,7 +565,7 @@ class GenericDatasource {
     buildWhere(fields, tokens){
         let where = [];
         // where  (field = value or field = value)
-        
+
         _.forEach(tokens, function(tkn){
             let partials = [];
             _.forEach(fields, function(field){
@@ -634,15 +645,15 @@ class GenericDatasource {
         }
 
         if (queryObject.type === 'search'){
-            console.log("I'm a search query"); 
-            // build the search query here. 
+            console.log("I'm a search query");
+            // build the search query here.
             if(queryObject.get === undefined || queryObject.get.length<1){
                 throw {message: "Required get field was not specified."}
             }
             const get_fields = queryObject.get.join(",");
             var query = `get ${get_fields} between ($START, $END)`;
             if ("by" in queryObject){
-                query+=` by ${queryObject.by}`; 
+                query+=` by ${queryObject.by}`;
             }else {
                 throw {message: "Required by field was not specified."};
             }
@@ -681,7 +692,7 @@ class GenericDatasource {
             }
             if("order_by" in queryObject){
                 query+=` ordered by ${queryObject.order_by}`;
-            } 
+            }
             queryObject.query = query;
         }
         target = queryObject.query;
@@ -782,7 +793,7 @@ class GenericDatasource {
           response.data.results.forEach((x) => {
             if(!x.parent){
                 measurement_types.push({text: x.name, value: x.name});
-            }   
+            }
           });
           return measurement_types;
         });
@@ -948,11 +959,11 @@ class GenericDatasource {
           return callback(data);
         });
     }
-    
+
     // Returns the formatted where clause
     // This function is passed as a parameter to the templateSrv.replace
     // to support repeated panels by making use of the scopedVars
-    
+
     formatWhere(value){
         let clause = this.clause;
         let allArgs=[];
@@ -963,7 +974,7 @@ class GenericDatasource {
                 } else {
                     allArgs.push(`${clause.left} ${clause.op} "${val}"`);
                 }
-            }); 
+            });
             return "(" + allArgs.join(' or ') + ")";
         }
         return `${clause.left} ${clause.op} "${value}"`;
@@ -981,6 +992,7 @@ class GenericDatasource {
       // Returns each template variable and its selected value has a
       // hash. i.e. {'metric':'average', 'example':
       // 'another_metric'}. getVariableDetails excludes any adhoc
+
       // variables from the the result.
       function getVariableDetails(){
         let varDetails = {};
@@ -1034,7 +1046,7 @@ class GenericDatasource {
           if(targets) {
             if (!Array.isArray(targets)) { targets = [targets]; }
 
-            if(func.wrapper.length === 0) {  
+            if(func.wrapper.length === 0) {
               query_list = targets.map(target => {
                 query = `aggregate(values.${target}, ${bucket}, ${method})`;
                 return query;
@@ -1050,14 +1062,14 @@ class GenericDatasource {
             query = `aggregate(values.${target}, ${bucket}, ${method})`;
           }
         }
-	
+
         if (func.wrapper.length === 0) {
           return query;
         }
         return TSDSQuery(func.wrapper[0], query);
       }
 
-      // creates an array of all possible combinations of clause.right. 
+      // creates an array of all possible combinations of clause.right.
       function buildWhereClause(whereArgument, wheres){
         if(!t.templateSrv.variableExists(whereArgument)){
             return whereArgument;
@@ -1066,7 +1078,7 @@ class GenericDatasource {
                         if(!Array.isArray(value)) {
                             value = [value];
                         }
-	                // template var may not have any applicable values, this (in almost every case) prevents it from 
+	                // template var may not have any applicable values, this (in almost every case) prevents it from
 	                // generating an error about bad query syntax
 	                if (value.length === 0){
                             value[0] = "__MISSINGVALUE__";
@@ -1080,8 +1092,8 @@ class GenericDatasource {
                         });
                         return map_arr;
                     });
-        whereArgument = temp; 
-        return buildWhereClause(whereArgument, wheres);     
+        whereArgument = temp;
+        return buildWhereClause(whereArgument, wheres);
       }
 
       var queries = options.targets.map(function(target) {
@@ -1146,17 +1158,17 @@ class GenericDatasource {
           target.metric_array.forEach((metric) => {
             query += `${metric}, `;
           });
-           
+
           let aggregate_query, aggregate_function = [];
           if(target.aggregate_all){
             aggregate_query = query;
-          } 
+          }
 
           let functions = target.func.map((f) => {
             let aggregation = TSDSQuery(f);
-            if(!Array.isArray(aggregation)) { aggregation = [aggregation] } 
+            if(!Array.isArray(aggregation)) { aggregation = [aggregation] }
             let template_variables = getVariableDetails();
-            let defaultBucket = duration / options.maxDataPoints;	      
+            let defaultBucket = duration / options.maxDataPoints;
             // get defaultBucket rounded to nearest 10 for pretty
             defaultBucket = Math.ceil(defaultBucket / 10) * 10;
             let size = (f.bucket === '') ? defaultBucket : parseInt(f.bucket);
@@ -1168,12 +1180,11 @@ class GenericDatasource {
             } else {
               size = Math.max(60, size);
             }
-            
+
             let aggregate = aggregation.map( agg => {
                 agg = agg.replace(/\$quantify/g, size.toString());
-                let alias_value = template_variables[f.alias.replace('$', '')] ? template_variables[f.alias.replace('$', '')] : f.alias; 
-                target.metricValueAliasMappings[agg] = alias_value;  
-                
+                let alias_value = template_variables[f.alias.replace('$', '')] ? template_variables[f.alias.replace('$', '')] : f.alias;
+
                 let split_aggr = agg.split(/[(,)]/).map(x => x.trim());
                 let as_alias = split_aggr[1];
                 let bucket = split_aggr[2];
@@ -1183,15 +1194,17 @@ class GenericDatasource {
                     agg += ` ${f.operation} as ${as_alias}`
                 } else {
                     agg += ` ${f.operation}`;
-                } 
+                }
+                target.metricValueAliasMappings[agg] = alias_value;
+
                 return `${agg}`;
             }).join(', ');
-            
+
             return aggregate;
 
           });
 
-          
+
           query += `${functions} between (${start}, ${end}) `;
 
           if (target.groupby_field) query += `by ${target.groupby_field} `;
@@ -1210,7 +1223,7 @@ class GenericDatasource {
 
               let whereArgument = clause.right;
               if (clause.right.indexOf('$') !== -1) {
-                that.clause = clause; 
+                that.clause = clause;
                 let wheres = [];
 
                 // build all the possible clause.right combinations
@@ -1228,7 +1241,7 @@ class GenericDatasource {
             });
 
             query += ')';
-            
+
           });
 
           let filters = [];
