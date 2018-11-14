@@ -132,10 +132,11 @@ class GenericDatasource {
               response.data.results.forEach((result) => {
                 for (let key in result) {
                     for(let aliasKey in aliases){
-                        if(result[aliasKey]) break;
-                        if(aliasKey.includes(key)){
-                            result[aliasKey] = result[key];
-                            delete result[key];
+                        if(!result[aliasKey]) {
+                            if(aliasKey.includes(key)){
+                                result[aliasKey] = result[key];
+                                delete result[key];
+                            }
                         }
                     }
                 }
