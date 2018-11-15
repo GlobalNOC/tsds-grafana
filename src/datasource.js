@@ -249,6 +249,37 @@ class GenericDatasource {
         return str_literal.split(delimiter);
     }
 
+    // function used to do query replacement of template variables.
+    // tries to do some instrospection of context of the template variable 
+    // to generate the most efficient query
+    // for example, `like $foo` vs `in $foo` vs `= $foo` 
+    replaceQueryTemplate(string, options){
+	let localtemplateSrv = this.templateSrv;
+	string = this.templateSrv.replace(string, options.scopedVars, function(value, info, callback){
+	    let name = info.name;
+
+	    // try to figure out context
+	    let s = "(in)\\s+\\$" + name; 
+	    let match = string.match(s);
+
+	    // default to like
+	    let context = match ? match[1] : "like";
+	    	    
+	    if(!Array.isArray(value)) {
+		value = [value];
+	    }
+
+	    if (context == "in"){
+		return "(" + value.map(val => '"' + val + '"').join(",") + ")";
+	    }
+	    return localtemplateSrv.formatValue(value, 'regex');	    
+
+	});
+
+
+	return string;
+    }
+
     getHumanTime(seconds) {
         if (seconds >= 86400) {
             let count = seconds/86400;
@@ -684,18 +715,30 @@ class GenericDatasource {
             }else {
                 throw {message: "Required search field was not specified."}
             }
-	    let tokens = this.tokenizeString(search_variable.current.value, " ").map((f) => { if (f === ""){ return ".*"; } return f; });
+	    let tokens = this.tokenizeString(search_variable.current.value, " ");//.map((f) => { if (f === ""){ return ".*"; } return f; });
             if("fields" in queryObject){
-                let where = this.buildWhere(queryObject.fields, tokens);
-                let where_clause = ` where ${where.join(" and ")}`;
-                query+=where_clause;
-                console.log("search_query:",query);
+		// only apply search terms if the value is not empty, otherwise this generates 
+		// inefficient queries 
+		if (search_variable.current.value){
+                    let where = this.buildWhere(queryObject.fields, tokens);
+                    let where_clause = ` where ${where.join(" and ")}`;
+                    query+=where_clause;
+                    console.log("search_query:",query);
+		}
             }else {
                 throw {message: "Required fields not specified."}
             }
 	    if("static_where" in queryObject){
-		let static_where = this.templateSrv.replace(queryObject.static_where, options.scopedVars, "regex");
-		query+=` and ${static_where}`;
+		let static_where = this.replaceQueryTemplate(queryObject.static_where, options);
+
+		// if we didn't have a search variable defined yet we don't have specified "where"
+		// so make sure we build the correct syntax
+		if (search_variable.current.value){
+		    query+=` and ${static_where}`;
+		}
+		else {
+		    query+=` where ${static_where}`;
+		}
 	    }
             if("limit" in queryObject){
                 query+=` limit ${queryObject.limit} offset 0`;
@@ -719,7 +762,8 @@ class GenericDatasource {
         target = target.replace("$START", start.toString());
         target = target.replace("$END", end.toString());
         target = target.replace("$TIMESPAN", duration.toString());
-        target = this.templateSrv.replace(target, null, 'regex');
+        target = this.replaceQueryTemplate(target, options);
+
 
         // Nested template variables are escaped, which tsds doesn't
         // expect. Remove any `\` characters from the template
