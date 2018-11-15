@@ -101,12 +101,18 @@ class GenericDatasource {
             form.append('method', 'query');
             form.append('query', target.target);
 
-            let request = {
+              /*let request = {
               data: form,
-              headers: {'Content-Type' : 'multipart/form-data'},
+              headers: {'Content-Type' : 'multipart/form-data;'},
               method: 'POST',
               url: `${this.url}/query.cgi`
-            };
+            };*/
+            let request = {
+                data: `method=query;query=${target.target}`,
+                headers: {'Content-Type' : 'application/x-www-form-urlencoded'},
+                method: 'POST',
+                url: `${this.url}/query.cgi`
+                };
 
             if (this.basicAuth || this.withCredentials) {
               request.withCredentials = true;
@@ -132,6 +138,7 @@ class GenericDatasource {
               response.data.results.forEach((result) => {
                 for (let key in result) {
                     for(let aliasKey in aliases){
+                        aliasKey = aliasKey.trim();
                         if(!result[aliasKey]) {
                             if(aliasKey.includes(key)){
                                 result[aliasKey] = result[key];
@@ -147,7 +154,7 @@ class GenericDatasource {
                 // key of 'extrapolate(..., Date(1526705726))'; This
                 // breaks our alias mappings. Ensure the key from TSDS
                 // no longer includes the Date method.
-                for (let key in result) {
+                /*for (let key in result) {
                   if (key.indexOf('extrapolate') !== -1) {
                     let newkey = key.replace(/Date\(\d+\)/g, function(x) {
                       return x.match(/\d+/);
@@ -155,7 +162,7 @@ class GenericDatasource {
                     result[newkey] = result[key];
                     delete result[key];
                   }
-                }
+              }*/
 
                 let targetObjects = this.getTargetNames(result, template, aliases);
                 targetObjects.forEach((targetObject) => {
@@ -169,7 +176,7 @@ class GenericDatasource {
                     // It's possible that a user may request
                     // something like sum(aggregate(...)) which will
                     // result in a single datapoint being returned.
-                    targetObject['datapoints'] = [[datapoints, end * 1000]];
+                    targetObject['datapoints'] = [[datapoints, start * 1000],[datapoints, end * 1000]];
                   }
 
                   // store reference to which target this came from to ensure same order back out
@@ -382,9 +389,11 @@ class GenericDatasource {
       form.append('method', 'get_measurement_types');
 
       let request = {
-          headers: {'Content-Type' : 'multipart/form-data'},
+          //headers: {'Content-Type' : 'multipart/form-data'},
           method: 'POST',
-          data: form,
+          headers: { 'Content-Type' : 'application/x-www-form-urlencoded' },
+          //data: form,
+          data: 'method=get_measurement_types',
           url: `${this.url}/metadata.cgi`
       };
 
@@ -476,9 +485,11 @@ class GenericDatasource {
         form.append('measurement_type', this.templateSrv.replace(this.getMeasurementType(), null, 'regex'));
         const payload = {
             url: `${this.url}/metadata.cgi`,
-            data: form,
+            //data: form,
+            data: `method=get_meta_fields; measurement_type: ${this.templateSrv.replace(this.getMeasurementType(), null, 'regex')}`,
             method: 'POST',
-            headers: { 'Content-Type': 'multipart/form-data' }
+            headers: { 'Content-Type' : 'application/x-www-form-urlencoded' }
+            //headers: { 'Content-Type': 'multipart/form-data' }
         };
 
         if (this.basicAuth || this.withCredentials) {
@@ -536,7 +547,7 @@ class GenericDatasource {
         form.append(`${options.key}_like`, like);
         form.append('limit',1000);
         form.append('offset',0);
-
+        
         const payload = {
             url: `${this.url}/metadata.cgi`,
             data: form,
@@ -721,9 +732,11 @@ class GenericDatasource {
         form.append('query', target);
 
         let request = {
-        headers: {'Content-Type' : 'multipart/form-data'},
+            //headers: {'Content-Type' : 'multipart/form-data'},
+        headers: { 'Content-Type' : 'application/x-www-form-urlencoded' },
         method: 'POST',
-        data: form,
+            //data: form,
+        data: `method=query;query=${target}`,
         url: `${this.url}/query.cgi`
         };
 
@@ -775,8 +788,10 @@ class GenericDatasource {
       form.append('method', 'get_measurement_types');
 
       let request = {
-        data: form,
-        headers: {'Content-Type' : 'multipart/form-data'},
+          //data: form,
+        data: 'method=get_measurement_types',
+          //headers: {'Content-Type' : 'multipart/form-data'},
+        headers: { 'Content-Type' : 'application/x-www-form-urlencoded' },
         method: 'POST',
         url: `${this.url}/metadata.cgi`
       };
@@ -814,8 +829,10 @@ class GenericDatasource {
       form.append('measurement_type', type);
 
       let request = {
-        data: form,
-        headers: {'Content-Type' : 'multipart/form-data'},
+          //data: form,
+        data: `method=get_measurement_type_values;measurement_type=${type}`,
+          //headers: {'Content-Type' : 'multipart/form-data'},
+        headers: { 'Content-Type' : 'application/x-www-form-urlencoded' },
         method: 'POST',
         url: `${this.url}/metadata.cgi`
       };
@@ -846,8 +863,10 @@ class GenericDatasource {
       form.append('measurement_type', this.templateSrv.replace(type, null, 'regex'));
 
       let request = {
-          data: form,
-          headers: {'Content-Type' : 'multipart/form-data'},
+          //data: form,
+          data: `method=get_meta_fields;measurement_type=${this.templateSrv.replace(type, null, 'regex')}`,
+          //headers: {'Content-Type' : 'multipart/form-data'},
+          headers: { 'Content-Type' : 'application/x-www-form-urlencoded' },
           method: 'POST',
           url: `${this.url}/metadata.cgi`
       };
@@ -1023,7 +1042,7 @@ class GenericDatasource {
         if (func.type === 'Singleton') {
           if (func.title === 'Extrapolate') {
             let endpoint = Date.parse(options.range.to) / 1000;
-            query = `extrapolate(${parentQuery}, ${endpoint})`;
+            query = `extrapolate(${parentQuery}, series)`;
           } else {
             query = `${func.title.toLowerCase()}(${parentQuery})`;
           }
