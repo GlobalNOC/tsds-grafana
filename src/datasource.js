@@ -97,16 +97,6 @@ class GenericDatasource {
 
         let requests = query.targets.map((target) => {
           return new Promise((resolve, reject) => {
-              //let form = new FormData();
-              //form.append('method', 'query');
-              //form.append('query', target.target);
-
-              /*let request = {
-              data: form,
-              headers: {'Content-Type' : 'multipart/form-data;'},
-              method: 'POST',
-              url: `${this.url}/query.cgi`
-            };*/
             let request = {
                 data: `method=query;query=${target.target}`,
                 headers: {'Content-Type' : 'application/x-www-form-urlencoded'},
@@ -147,22 +137,6 @@ class GenericDatasource {
                         }
                     }
                 }
-
-                // TSDS modifies the target expression of extrapolate
-                // functions on return, such that a request like
-                // 'extrapolate(..., 1526705726)' will return with a
-                // key of 'extrapolate(..., Date(1526705726))'; This
-                // breaks our alias mappings. Ensure the key from TSDS
-                // no longer includes the Date method.
-                /*for (let key in result) {
-                  if (key.indexOf('extrapolate') !== -1) {
-                    let newkey = key.replace(/Date\(\d+\)/g, function(x) {
-                      return x.match(/\d+/);
-                    });
-                    result[newkey] = result[key];
-                    delete result[key];
-                  }
-              }*/
 
                 let targetObjects = this.getTargetNames(result, template, aliases);
                 targetObjects.forEach((targetObject) => {
@@ -416,8 +390,6 @@ class GenericDatasource {
      * request is successful the plugin is configured correctly.
      */
     testDatasource() {
-        //let form = new FormData();
-        //form.append('method', 'get_measurement_types');
 
       let request = {
           method: 'POST',
@@ -509,9 +481,6 @@ class GenericDatasource {
      * @param {Object} options - An unused parameter
      */
     getTagKeys(options) {
-        //let form = new FormData();
-        //form.append('method', 'get_meta_fields');
-        //form.append('measurement_type', this.templateSrv.replace(this.getMeasurementType(), null, 'regex'));
         const measurement_type = this.templateSrv.replace(this.getMeasurementType(), null, 'regex');
         const payload = {
             url: `${this.url}/metadata.cgi`,
@@ -563,18 +532,8 @@ class GenericDatasource {
             // TODO Update like field as user types
             // console.log(this.templateSrv.getAdhocFilters(this.name));
         }
-        //let form = new FormData();
-        //form.append('method', 'get_distinct_meta_field_values');
-        //form.append('measurement_type', this.templateSrv.replace(this.getMeasurementType(), null, 'regex'));
         let parent_meta_fields = this.getParentMetaFields(options.key);
         let that = this;
-        //_.forEach(parent_meta_fields, function(parent_meta) {
-        //    form.append(`${parent_meta.key}_like`, parent_meta.value);
-        //});
-        //form.append('meta_field',options.key);
-        //form.append(`${options.key}_like`, like);
-        //form.append('limit',1000);
-        //form.append('offset',0);
 
         let request_query = `method=get_distinct_meta_field_values;measurement_type=${this.templateSrv.replace(this.getMeasurementType(), null, 'regex')}`;
         let temp_fields = [];
@@ -582,21 +541,15 @@ class GenericDatasource {
             temp_fields.push(`${parent_field.key}_like=${parent_field.value}`);
         });
 
-        //console.log(temp_fields);
         const parent_meta_string = temp_fields.join(";");
         request_query +=`;${parent_meta_string}`;
         request_query += `;meta_field=${options.key};${options.key}_like=${like};limit=1000;offset=0`;
-        //console.log("request_data", request_data);
-
-
 
         const payload = {
             url: `${this.url}/metadata.cgi`,
-            //data: form,
             data: request_query,
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-            //headers: { 'Content-Type': 'multipart/form-data' }
         };
 
         if (this.basicAuth || this.withCredentials) {
@@ -676,9 +629,6 @@ class GenericDatasource {
         }
 
         if (queryObject.type === 'values') {
-            //let form = new FormData();
-            //form.append('method', 'get_measurement_type_values');
-            //form.append('measurement_type', queryObject.measurement_type);
 
             let request = {
             data: `method=get_measurement_type_values;measurement_type=${queryObject.measurement_type}`,
@@ -782,11 +732,6 @@ class GenericDatasource {
         // expect. Remove any `\` characters from the template
         // variable query to craft a valid tsds query.
         target = target.replace(/(=\s*"[^"]+")/g, function(match){ var fixed = match.replace(/\\/g, ""); return fixed; });
-        //target = target.replace(/\\/g, "");
-
-        //let form = new FormData();
-        //form.append('method', 'query');
-        //form.append('query', target);
 
         let request = {
         headers: { 'Content-Type' : 'application/x-www-form-urlencoded' },
@@ -839,8 +784,6 @@ class GenericDatasource {
      * measurement datasets.
      */
     getMeasurementTypes() {
-        //let form = new FormData();
-        //form.append('method', 'get_measurement_types');
 
       let request = {
         data: 'method=get_measurement_types',
@@ -877,9 +820,6 @@ class GenericDatasource {
      * @param {string} type - The measurement type to query
      */
     getMeasurementTypeValues(type) {
-        //let form = new FormData();
-        //form.append('method', 'get_measurement_type_values');
-        //form.append('measurement_type', type);
 
       let request = {
         data: `method=get_measurement_type_values;measurement_type=${type}`,
@@ -909,9 +849,6 @@ class GenericDatasource {
      * @param {string} type - The measurement type to query
      */
     getMetaFields(type) {
-        //let form = new FormData();
-        //form.append('method', 'get_meta_fields');
-        //form.append('measurement_type', this.templateSrv.replace(type, null, 'regex'));
 
       let request = {
           data: `method=get_meta_fields;measurement_type=${this.templateSrv.replace(type, null, 'regex')}`,
@@ -957,11 +894,6 @@ class GenericDatasource {
      * @param {function} callback - Success callback for query results
      */
     getMetaFieldValues(type, where, groupIndex, index, callback) {
-        //let form = new FormData();
-        //form.append('method', 'get_distinct_meta_field_values');
-        //form.append('measurement_type', this.templateSrv.replace(type, null, 'regex'));
-        //form.append('limit', 1000);
-        //form.append('offset', 0);
       const measurement_type = this.templateSrv.replace(type, null, 'regex');
       let request_query = `method=get_distinct_meta_field_values;measurement_type=${measurement_type};limit=1000;offset=0;`;
       if (where[groupIndex].length >1) {
@@ -988,12 +920,7 @@ class GenericDatasource {
           }
         }
 
-          //form.append('meta_field', meta_field);
         let like_field_name = `${meta_field}_like`;
-          //form.append(like_field_name, like_field);
-
-          //form.append('parent_meta_field', parent_meta_field);
-          //form.append('parent_meta_field_value', parent_meta_field_value);
 
         request_query += `meta_field=${meta_field};${like_field_name}=${like_field};parent_meta_field=${parent_meta_field};parent_meta_field_value=${parent_meta_field_value}`;
 
@@ -1004,10 +931,7 @@ class GenericDatasource {
         let like_field = where[groupIndex][index].right;
         like_field = this.templateSrv.replace(like_field, null, 'regex');
 
-          //form.append('meta_field', meta_field);
-
         let like_field_name = `${meta_field}_like`;
-          //form.append(like_field_name, like_field);
         request_query += `meta_field=${meta_field};${like_field_name}=${like_field}`;
       }
 
