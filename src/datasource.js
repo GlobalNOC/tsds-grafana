@@ -1268,6 +1268,7 @@ class GenericDatasource {
                 } else {
                     agg += ` ${f.operation}`;
                 }
+                agg = agg.trim();
                 target.metricValueAliasMappings[agg] = alias_value;
 
                 return `${agg}`;
