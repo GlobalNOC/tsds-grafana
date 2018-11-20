@@ -97,16 +97,12 @@ class GenericDatasource {
 
         let requests = query.targets.map((target) => {
           return new Promise((resolve, reject) => {
-            let form = new FormData();
-            form.append('method', 'query');
-            form.append('query', target.target);
-
             let request = {
-              data: form,
-              headers: {'Content-Type' : 'multipart/form-data'},
-              method: 'POST',
-              url: `${this.url}/query.cgi`
-            };
+                data: `method=query;query=${target.target}`,
+                headers: {'Content-Type' : 'application/x-www-form-urlencoded'},
+                method: 'POST',
+                url: `${this.url}/query.cgi`
+                };
 
             if (this.basicAuth || this.withCredentials) {
               request.withCredentials = true;
@@ -119,7 +115,7 @@ class GenericDatasource {
             let aliases  = target.targetAliases;
             let query    = target.target;
             let template = target.alias !== '' ? target.alias.split(' ') : null; // Value of 'Target Name'
-	    let refId    = target.refId;
+            let refId    = target.refId;
 
             return this.backendSrv.datasourceRequest(request).then((response) => {
 
@@ -127,22 +123,19 @@ class GenericDatasource {
                 reject(response);
               }
 
+              //Adding name + operation to the name returned by TSDS response
+              // to make it consistent for aliasing
               response.data.results.forEach((result) => {
-
-                // TSDS modifies the target expression of extrapolate
-                // functions on return, such that a request like
-                // 'extrapolate(..., 1526705726)' will return with a
-                // key of 'extrapolate(..., Date(1526705726))'; This
-                // breaks our alias mappings. Ensure the key from TSDS
-                // no longer includes the Date method.
                 for (let key in result) {
-                  if (key.indexOf('extrapolate') !== -1) {
-                    let newkey = key.replace(/Date\(\d+\)/g, function(x) {
-                      return x.match(/\d+/);
-                    });
-                    result[newkey] = result[key];
-                    delete result[key];
-                  }
+                    for(let aliasKey in aliases){
+                        aliasKey = aliasKey.trim();
+                        if(!result[aliasKey]) {
+                            if(aliasKey.includes(key)){
+                                result[aliasKey] = result[key];
+                                delete result[key];
+                            }
+                        }
+                    }
                 }
 
                 let targetObjects = this.getTargetNames(result, template, aliases);
@@ -157,11 +150,11 @@ class GenericDatasource {
                     // It's possible that a user may request
                     // something like sum(aggregate(...)) which will
                     // result in a single datapoint being returned.
-                    targetObject['datapoints'] = [[datapoints, end * 1000]];
+                    targetObject['datapoints'] = [[datapoints, start * 1000],[datapoints, end * 1000]];
                   }
 
                   // store reference to which target this came from to ensure same order back out
- 	          targetObject['__refId'] = refId;
+                  targetObject['__refId'] = refId;
 
                   output.push(targetObject);
                 });
@@ -285,7 +278,7 @@ class GenericDatasource {
 
   getTargetNames(result, template, aliases) {
     let returnNames = [];
-    
+
     // construct an array of objects to preserve the order
     let resultObj = [];
     for(let key in result){
@@ -293,12 +286,12 @@ class GenericDatasource {
         if(key.indexOf("values.") === -1) continue;
         resultObj.push(key);
         // sort the keys
-        resultObj.sort(); 
+        resultObj.sort();
     }
 
     // parse the sorted keys to preserve the order
     for (let i = 0; i < resultObj.length; i++){
-      
+
       let key = resultObj[i];
       let args = key.split(/[(,)]/).map(x => x.trim());
       let name = null;
@@ -397,13 +390,11 @@ class GenericDatasource {
      * request is successful the plugin is configured correctly.
      */
     testDatasource() {
-      let form = new FormData();
-      form.append('method', 'get_measurement_types');
 
       let request = {
-          headers: {'Content-Type' : 'multipart/form-data'},
           method: 'POST',
-          data: form,
+          headers: { 'Content-Type' : 'application/x-www-form-urlencoded' },
+          data: 'method=get_measurement_types',
           url: `${this.url}/metadata.cgi`
       };
 
@@ -454,7 +445,7 @@ class GenericDatasource {
         if (element.type === 'adhoc') {
             return;
         }
-        
+
         if(element.type !== 'query') return;
 
         fields.push({
@@ -490,14 +481,12 @@ class GenericDatasource {
      * @param {Object} options - An unused parameter
      */
     getTagKeys(options) {
-        let form = new FormData();
-        form.append('method', 'get_meta_fields');
-        form.append('measurement_type', this.templateSrv.replace(this.getMeasurementType(), null, 'regex'));
+        const measurement_type = this.templateSrv.replace(this.getMeasurementType(), null, 'regex');
         const payload = {
             url: `${this.url}/metadata.cgi`,
-            data: form,
+            data: `method=get_meta_fields;measurement_type=${measurement_type}`,
             method: 'POST',
-            headers: { 'Content-Type': 'multipart/form-data' }
+            headers: { 'Content-Type' : 'application/x-www-form-urlencoded' }
         };
 
         if (this.basicAuth || this.withCredentials) {
@@ -543,25 +532,25 @@ class GenericDatasource {
             // TODO Update like field as user types
             // console.log(this.templateSrv.getAdhocFilters(this.name));
         }
-        let form = new FormData();
-        form.append('method', 'get_distinct_meta_field_values');
-        form.append('measurement_type', this.templateSrv.replace(this.getMeasurementType(), null, 'regex'));
         let parent_meta_fields = this.getParentMetaFields(options.key);
         let that = this;
-        _.forEach(parent_meta_fields, function(parent_meta) {
-            form.append(`${parent_meta.key}_like`, parent_meta.value);
+
+        let request_query = `method=get_distinct_meta_field_values;measurement_type=${this.templateSrv.replace(this.getMeasurementType(), null, 'regex')}`;
+        let temp_fields = [];
+        _.forEach(parent_meta_fields, function(parent_field) {
+            temp_fields.push(`${parent_field.key}_like=${parent_field.value}`);
         });
-        form.append('meta_field',options.key);
-        form.append(`${options.key}_like`, like);
-        form.append('limit',1000);
-        form.append('offset',0);  
-        
+
+        const parent_meta_string = temp_fields.join(";");
+        request_query +=`;${parent_meta_string}`;
+        request_query += `;meta_field=${options.key};${options.key}_like=${like};limit=1000;offset=0`;
+
         const payload = {
             url: `${this.url}/metadata.cgi`,
-            data: form,
+            data: request_query,
             method: 'POST',
-            headers: { 'Content-Type': 'multipart/form-data' }
-        }; 
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+        };
 
         if (this.basicAuth || this.withCredentials) {
             payload.withCredentials = true;
@@ -585,7 +574,7 @@ class GenericDatasource {
     buildWhere(fields, tokens){
         let where = [];
         // where  (field = value or field = value)
-        
+
         _.forEach(tokens, function(tkn){
             let partials = [];
             _.forEach(fields, function(field){
@@ -640,13 +629,10 @@ class GenericDatasource {
         }
 
         if (queryObject.type === 'values') {
-            let form = new FormData();
-            form.append('method', 'get_measurement_type_values');
-            form.append('measurement_type', queryObject.measurement_type);
 
             let request = {
-            data: form,
-            headers: {'Content-Type' : 'multipart/form-data'},
+            data: `method=get_measurement_type_values;measurement_type=${queryObject.measurement_type}`,
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             method: 'POST',
             url: `${this.url}/metadata.cgi`
             };
@@ -665,15 +651,15 @@ class GenericDatasource {
         }
 
         if (queryObject.type === 'search'){
-            console.log("I'm a search query"); 
-            // build the search query here. 
+            console.log("I'm a search query");
+            // build the search query here.
             if(queryObject.get === undefined || queryObject.get.length<1){
                 throw {message: "Required get field was not specified."}
             }
             const get_fields = queryObject.get.join(",");
             var query = `get ${get_fields} between ($START, $END)`;
             if ("by" in queryObject){
-                query+=` by ${queryObject.by}`; 
+                query+=` by ${queryObject.by}`;
             }else {
                 throw {message: "Required by field was not specified."};
             }
@@ -724,7 +710,7 @@ class GenericDatasource {
             }
             if("order_by" in queryObject){
                 query+=` ordered by ${queryObject.order_by}`;
-            } 
+            }
             queryObject.query = query;
         }
         target = queryObject.query;
@@ -745,17 +731,12 @@ class GenericDatasource {
         // Nested template variables are escaped, which tsds doesn't
         // expect. Remove any `\` characters from the template
         // variable query to craft a valid tsds query.
-	target = target.replace(/(=\s*"[^"]+")/g, function(match){ var fixed = match.replace(/\\/g, ""); return fixed; });
-        //target = target.replace(/\\/g, "");
-
-        let form = new FormData();
-        form.append('method', 'query');
-        form.append('query', target);
+        target = target.replace(/(=\s*"[^"]+")/g, function(match){ var fixed = match.replace(/\\/g, ""); return fixed; });
 
         let request = {
-        headers: {'Content-Type' : 'multipart/form-data'},
+        headers: { 'Content-Type' : 'application/x-www-form-urlencoded' },
         method: 'POST',
-        data: form,
+        data: `method=query;query=${target}`,
         url: `${this.url}/query.cgi`
         };
 
@@ -803,12 +784,10 @@ class GenericDatasource {
      * measurement datasets.
      */
     getMeasurementTypes() {
-      let form = new FormData();
-      form.append('method', 'get_measurement_types');
 
       let request = {
-        data: form,
-        headers: {'Content-Type' : 'multipart/form-data'},
+        data: 'method=get_measurement_types',
+        headers: { 'Content-Type' : 'application/x-www-form-urlencoded' },
         method: 'POST',
         url: `${this.url}/metadata.cgi`
       };
@@ -826,7 +805,7 @@ class GenericDatasource {
           response.data.results.forEach((x) => {
             if(!x.parent){
                 measurement_types.push({text: x.name, value: x.name});
-            }   
+            }
           });
           return measurement_types;
         });
@@ -841,13 +820,10 @@ class GenericDatasource {
      * @param {string} type - The measurement type to query
      */
     getMeasurementTypeValues(type) {
-      let form = new FormData();
-      form.append('method', 'get_measurement_type_values');
-      form.append('measurement_type', type);
 
       let request = {
-        data: form,
-        headers: {'Content-Type' : 'multipart/form-data'},
+        data: `method=get_measurement_type_values;measurement_type=${type}`,
+        headers: { 'Content-Type' : 'application/x-www-form-urlencoded' },
         method: 'POST',
         url: `${this.url}/metadata.cgi`
       };
@@ -873,13 +849,10 @@ class GenericDatasource {
      * @param {string} type - The measurement type to query
      */
     getMetaFields(type) {
-      let form = new FormData();
-      form.append('method', 'get_meta_fields');
-      form.append('measurement_type', this.templateSrv.replace(type, null, 'regex'));
 
       let request = {
-          data: form,
-          headers: {'Content-Type' : 'multipart/form-data'},
+          data: `method=get_meta_fields;measurement_type=${this.templateSrv.replace(type, null, 'regex')}`,
+          headers: { 'Content-Type' : 'application/x-www-form-urlencoded' },
           method: 'POST',
           url: `${this.url}/metadata.cgi`
       };
@@ -921,12 +894,8 @@ class GenericDatasource {
      * @param {function} callback - Success callback for query results
      */
     getMetaFieldValues(type, where, groupIndex, index, callback) {
-      let form = new FormData();
-      form.append('method', 'get_distinct_meta_field_values');
-      form.append('measurement_type', this.templateSrv.replace(type, null, 'regex'));
-      form.append('limit', 1000);
-      form.append('offset', 0);
-
+      const measurement_type = this.templateSrv.replace(type, null, 'regex');
+      let request_query = `method=get_distinct_meta_field_values;measurement_type=${measurement_type};limit=1000;offset=0;`;
       if (where[groupIndex].length >1) {
         let whereList = where[groupIndex];
         let meta_field = "";
@@ -951,13 +920,10 @@ class GenericDatasource {
           }
         }
 
-        form.append('meta_field', meta_field);
-
         let like_field_name = `${meta_field}_like`;
-        form.append(like_field_name, like_field);
 
-        form.append('parent_meta_field', parent_meta_field);
-        form.append('parent_meta_field_value', parent_meta_field_value);
+        request_query += `meta_field=${meta_field};${like_field_name}=${like_field};parent_meta_field=${parent_meta_field};parent_meta_field_value=${parent_meta_field_value}`;
+
       } else {
         let meta_field = where[groupIndex][index].left;
         meta_field = this.templateSrv.replace(meta_field, null, 'regex');
@@ -965,15 +931,13 @@ class GenericDatasource {
         let like_field = where[groupIndex][index].right;
         like_field = this.templateSrv.replace(like_field, null, 'regex');
 
-        form.append('meta_field', meta_field);
-
         let like_field_name = `${meta_field}_like`;
-        form.append(like_field_name, like_field);
+        request_query += `meta_field=${meta_field};${like_field_name}=${like_field}`;
       }
 
       var payload = {
-        data: form,
-        headers: { 'Content-Type': 'multipart/form-data' },
+        data: request_query,
+        headers: { 'Content-Type' : 'application/x-www-form-urlencoded' },
         method: 'POST',
         url: `${this.url}/metadata.cgi`
       };
@@ -992,11 +956,11 @@ class GenericDatasource {
           return callback(data);
         });
     }
-    
+
     // Returns the formatted where clause
     // This function is passed as a parameter to the templateSrv.replace
     // to support repeated panels by making use of the scopedVars
-    
+
     formatWhere(value){
         let clause = this.clause;
         let allArgs=[];
@@ -1007,7 +971,7 @@ class GenericDatasource {
                 } else {
                     allArgs.push(`${clause.left} ${clause.op} "${val}"`);
                 }
-            }); 
+            });
             return "(" + allArgs.join(' or ') + ")";
         }
         return `${clause.left} ${clause.op} "${value}"`;
@@ -1025,6 +989,7 @@ class GenericDatasource {
       // Returns each template variable and its selected value has a
       // hash. i.e. {'metric':'average', 'example':
       // 'another_metric'}. getVariableDetails excludes any adhoc
+
       // variables from the the result.
       function getVariableDetails(){
         let varDetails = {};
@@ -1054,7 +1019,7 @@ class GenericDatasource {
         if (func.type === 'Singleton') {
           if (func.title === 'Extrapolate') {
             let endpoint = Date.parse(options.range.to) / 1000;
-            query = `extrapolate(${parentQuery}, ${endpoint})`;
+            query = `extrapolate(${parentQuery}, series)`;
           } else {
             query = `${func.title.toLowerCase()}(${parentQuery})`;
           }
@@ -1078,7 +1043,7 @@ class GenericDatasource {
           if(targets) {
             if (!Array.isArray(targets)) { targets = [targets]; }
 
-            if(func.wrapper.length === 0) {  
+            if(func.wrapper.length === 0) {
               query_list = targets.map(target => {
                 query = `aggregate(values.${target}, ${bucket}, ${method})`;
                 return query;
@@ -1094,14 +1059,14 @@ class GenericDatasource {
             query = `aggregate(values.${target}, ${bucket}, ${method})`;
           }
         }
-	
+
         if (func.wrapper.length === 0) {
           return query;
         }
         return TSDSQuery(func.wrapper[0], query);
       }
 
-      // creates an array of all possible combinations of clause.right. 
+      // creates an array of all possible combinations of clause.right.
       function buildWhereClause(whereArgument, wheres){
         if(!t.templateSrv.variableExists(whereArgument)){
             return whereArgument;
@@ -1110,7 +1075,7 @@ class GenericDatasource {
                         if(!Array.isArray(value)) {
                             value = [value];
                         }
-	                // template var may not have any applicable values, this (in almost every case) prevents it from 
+	                // template var may not have any applicable values, this (in almost every case) prevents it from
 	                // generating an error about bad query syntax
 	                if (value.length === 0){
                             value[0] = "__MISSINGVALUE__";
@@ -1124,8 +1089,8 @@ class GenericDatasource {
                         });
                         return map_arr;
                     });
-        whereArgument = temp; 
-        return buildWhereClause(whereArgument, wheres);     
+        whereArgument = temp;
+        return buildWhereClause(whereArgument, wheres);
       }
 
       var queries = options.targets.map(function(target) {
@@ -1190,17 +1155,17 @@ class GenericDatasource {
           target.metric_array.forEach((metric) => {
             query += `${metric}, `;
           });
-           
+
           let aggregate_query, aggregate_function = [];
           if(target.aggregate_all){
             aggregate_query = query;
-          } 
+          }
 
           let functions = target.func.map((f) => {
             let aggregation = TSDSQuery(f);
-            if(!Array.isArray(aggregation)) { aggregation = [aggregation] } 
+            if(!Array.isArray(aggregation)) { aggregation = [aggregation] }
             let template_variables = getVariableDetails();
-            let defaultBucket = duration / options.maxDataPoints;	      
+            let defaultBucket = duration / options.maxDataPoints;
             // get defaultBucket rounded to nearest 10 for pretty
             defaultBucket = Math.ceil(defaultBucket / 10) * 10;
             let size = (f.bucket === '') ? defaultBucket : parseInt(f.bucket);
@@ -1212,12 +1177,11 @@ class GenericDatasource {
             } else {
               size = Math.max(60, size);
             }
-            
+
             let aggregate = aggregation.map( agg => {
                 agg = agg.replace(/\$quantify/g, size.toString());
-                let alias_value = template_variables[f.alias.replace('$', '')] ? template_variables[f.alias.replace('$', '')] : f.alias; 
-                target.metricValueAliasMappings[agg] = alias_value;  
-                
+                let alias_value = template_variables[f.alias.replace('$', '')] ? template_variables[f.alias.replace('$', '')] : f.alias;
+
                 let split_aggr = agg.split(/[(,)]/).map(x => x.trim());
                 let as_alias = split_aggr[1];
                 let bucket = split_aggr[2];
@@ -1227,15 +1191,18 @@ class GenericDatasource {
                     agg += ` ${f.operation} as ${as_alias}`
                 } else {
                     agg += ` ${f.operation}`;
-                } 
+                }
+                agg = agg.trim();
+                target.metricValueAliasMappings[agg] = alias_value;
+
                 return `${agg}`;
             }).join(', ');
-            
+
             return aggregate;
 
           });
 
-          
+
           query += `${functions} between (${start}, ${end}) `;
 
           if (target.groupby_field) query += `by ${target.groupby_field} `;
@@ -1254,7 +1221,7 @@ class GenericDatasource {
 
               let whereArgument = clause.right;
               if (clause.right.indexOf('$') !== -1) {
-                that.clause = clause; 
+                that.clause = clause;
                 let wheres = [];
 
                 // build all the possible clause.right combinations
@@ -1272,7 +1239,7 @@ class GenericDatasource {
             });
 
             query += ')';
-            
+
           });
 
           let filters = [];
