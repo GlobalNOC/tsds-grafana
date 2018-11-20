@@ -1,3 +1,14 @@
+## GRNOC TSDS Grafana 0.2.7 -- Tue Nov 20 2018
+
+### Features
+
+* Optimized template variables to allow for using 'in' operators for more efficient queries.
+* Support for the case where search values could be empty.
+* Added percentile/extrapolate to be shown as a line instead of showing it as a single point.
+* Replaced multipart/form-data with application/x-www-form-urlencoded.
+* Fixed aliasing bug by trimming trailing spaces in the keys of alias mapping object.
+
+
 ## GRNOC TSDS Grafana 0.2.6 -- Fri Sep 21 2018
 
 ### Features
