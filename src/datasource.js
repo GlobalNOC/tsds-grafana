@@ -96,9 +96,10 @@ class GenericDatasource {
         let output = [];
 
         let requests = query.targets.map((target) => {
-          return new Promise((resolve, reject) => {
+            return new Promise((resolve, reject) => {
+            let request_query = encodeURIComponent(target.target)
             let request = {
-                data: `method=query;query=${target.target}`,
+                data: `method=query;query=${request_query}`,
                 headers: {'Content-Type' : 'application/x-www-form-urlencoded'},
                 method: 'POST',
                 url: `${this.url}/query.cgi`
@@ -732,11 +733,11 @@ class GenericDatasource {
         // expect. Remove any `\` characters from the template
         // variable query to craft a valid tsds query.
         target = target.replace(/(=\s*"[^"]+")/g, function(match){ var fixed = match.replace(/\\/g, ""); return fixed; });
-
+        const request_query = encodeURIComponent(target);
         let request = {
         headers: { 'Content-Type' : 'application/x-www-form-urlencoded' },
         method: 'POST',
-        data: `method=query;query=${target}`,
+        data: `method=query;query=${request_query}`,
         url: `${this.url}/query.cgi`
         };
 
