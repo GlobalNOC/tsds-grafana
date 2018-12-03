@@ -1,3 +1,9 @@
+## GRNOC TSDS Grafana 0.2.8 -- Mon Dec 3 2018
+
+### Features
+
+* Bug Fix to handle special characters in the query by encoding the query string.
+
 ## GRNOC TSDS Grafana 0.2.7 -- Tue Nov 20 2018
 
 ### Features
