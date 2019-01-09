@@ -1054,7 +1054,7 @@ class GenericDatasource {
                 return query_list;
               }
             } else {
-              return targets.map(target => TSDSQuery(func.wrapper[0], `aggregate(values.${target}, ${bucket}, ${method})`)).join(', ');
+              return targets.map(target => TSDSQuery(func.wrapper[0], `aggregate(values.${target}, ${bucket}, ${method})`));
             }
           } else{
             query = `aggregate(values.${target}, ${bucket}, ${method})`;
