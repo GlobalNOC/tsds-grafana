@@ -1,3 +1,9 @@
+## GRNOC TSDS Grafana 0.2.9 -- Mon Jan 14 2019
+
+### Features
+
+* Bug Fix to handle aliasing when multi-select template variables are used for targets along with wrapper functions
+
 ## GRNOC TSDS Grafana 0.2.8 -- Mon Dec 3 2018
 
 ### Features
