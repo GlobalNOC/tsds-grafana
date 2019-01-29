@@ -1094,6 +1094,21 @@ class GenericDatasource {
         return buildWhereClause(whereArgument, wheres);
       }
 
+      // creates the combine all series part of the query
+      function aggregateAll(split_aggr){
+        let type = split_aggr[0]; 
+        let aggregate = "";
+        if(type === 'percentile' || type === 'extrapolate'){
+            aggregate = `${type}(${split_aggr[1]}(${split_aggr[2]}, ${split_aggr[3]}, sum), ${split_aggr[5]})`;
+        }else if(type === 'aggregate'){
+            aggregate = `${type}(${split_aggr[1]}, ${split_aggr[2]}, sum)`;
+        }
+        else {
+            aggregate = `${type}(${split_aggr[1]}(${split_aggr[2]}, ${split_aggr[3]}, sum))`;
+        }
+        return aggregate;
+      }
+
       var queries = options.targets.map(function(target) {
         return new Promise((resolve, reject) => {
           if (typeof(target) === "string"){
@@ -1163,7 +1178,14 @@ class GenericDatasource {
           }
 
           let functions = target.func.map((f) => {
+              //f.aggregate_all = target.aggregate_all;
+            if(f.wrapper.length === 0){
+              f.aggregate_all = target.aggregate_all;
+            }else {
+              f.wrapper[0].aggregate_all = target.aggregate_all;
+            }
             let aggregation = TSDSQuery(f);
+              
             if(!Array.isArray(aggregation)) { aggregation = [aggregation] }
             let template_variables = getVariableDetails();
             let defaultBucket = duration / options.maxDataPoints;
@@ -1182,15 +1204,26 @@ class GenericDatasource {
             let aggregate = aggregation.map( agg => {
                 agg = agg.replace(/\$quantify/g, size.toString());
                 let alias_value = template_variables[f.alias.replace('$', '')] ? template_variables[f.alias.replace('$', '')] : f.alias;
-
-                let split_aggr = agg.split(/[(,)]/).map(x => x.trim());
-                let as_alias = split_aggr[1];
-                let bucket = split_aggr[2];
+                
+                let split_aggr = agg.split(/[(,)]/).map(x => x.trim()).filter(x => x != "");
+                let as_alias, bucket;
+                let agg_all = aggregateAll(split_aggr);
                 f.operation = f.operation || '';
-                if(target.aggregate_all){
-                    aggregate_function.push(`${split_aggr[0]}(${as_alias}, ${bucket}, sum)`);
-                    agg += ` ${f.operation} as ${as_alias}`
-                } else {
+                if(f.wrapper.length !== 0 && f.wrapper[0].aggregate_all){
+                    as_alias = split_aggr[2];
+                    aggregate_function.push(agg_all);
+                    agg = "";
+                    agg += `${split_aggr[1]}(${as_alias}, ${split_aggr[3]}, ${split_aggr[4]})`
+                    agg += ` ${f.operation} as ${as_alias}`;
+                }else if(f.aggregate_all){
+                    as_alias = split_aggr[1];
+                    aggregate_function.push(agg_all);
+                    agg += ` ${f.operation} as ${as_alias}`;
+                }
+                // if(target.aggregate_all){
+                    //aggregate_function.push(`${split_aggr[0]}(${as_alias}, ${bucket}, sum)`);
+                    //agg += ` ${f.operation} as ${as_alias}`
+                else {
                     agg += ` ${f.operation}`;
                 }
                 agg = agg.trim();
@@ -1265,11 +1298,11 @@ class GenericDatasource {
             var formatQ = oldQ.replace(/,/gi, " or ");
             query = query.replace(oldQ, formatQ);
             if(target.aggregate_all){
-              let aggr = aggregate_function.join(', ');
-              aggregate_query += aggr;
-              aggregate_query += ` by nothing from ( ${query} )`;
-              target.target = aggregate_query;
-              query = aggregate_query;
+                let aggr = aggregate_function.join(', ');
+                aggregate_query += aggr;
+                aggregate_query += ` by nothing from ( ${query} )`;
+                target.target = aggregate_query;
+                query = aggregate_query;
             }else{
               target.target = query;
             }
