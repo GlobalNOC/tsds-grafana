@@ -1,3 +1,9 @@
+## GRNOC TSDS Grafana 0.3.0 -- Wed Feb 6 2019
+
+### Features
+
+* Fixing wrapper function combine all series bug
+
 ## GRNOC TSDS Grafana 0.2.9 -- Mon Jan 14 2019
 
 ### Features
