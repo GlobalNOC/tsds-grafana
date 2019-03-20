@@ -199,7 +199,10 @@ class GenericDatasource {
           Object.keys(datasetsAtTimestamp).sort().reverse().forEach(milliseconds => {
             let datapoints = datasetsAtTimestamp[milliseconds];
             let dateStr    = new Date(parseInt(milliseconds));
-
+            let range = angular.element('grafana-app').injector().get('timeSrv').timeRange();
+            if(range.from._isUTC && range.to._isUTC) {
+                dateOptions.timeZone = "utc";
+            }
             table.columns.push({text: dateStr.toLocaleDateString("en-US", dateOptions), type: 'text'});
 
             for (let i = 0; i < datapoints.length; i++) {
@@ -313,9 +316,17 @@ class GenericDatasource {
         let measurement = args[1].replace('values.', '');
         measurement = measurement.charAt(0).toUpperCase() + measurement.slice(1);
         let humanTime   = this.getHumanTime(args[2]);
+        let align;
+        if(args[4] && args[4].includes('align')){
+            align = args[4].split(' ')[1];
+        }
         let aggregation = args[3];
         if (aggregation === 'max') { aggregation = 'maxe'; }
-        name = `${measurement} (${humanTime} ${aggregation}s)`;
+        if(align) {
+            name = `${measurement} [${align} (${humanTime} ${aggregation}s)]`;
+        }else {
+            name = `${measurement} [${humanTime} ${aggregation}s]`;
+        }
       }
 
       let targetNames = [];
@@ -1031,6 +1042,7 @@ class GenericDatasource {
           let bucket = func.bucket || '$quantify';
           let method = func.method || 'average';
           let target = func.target || 'input';
+          let align = func.align || '';
           let templates = getVariableDetails();
           bucket = templates[bucket.replace('$','')] ? templates[bucket.replace('$', '')] : bucket;
           if (method == 'percentile') {
@@ -1046,7 +1058,7 @@ class GenericDatasource {
 
             if(func.wrapper.length === 0) {
               query_list = targets.map(target => {
-                query = `aggregate(values.${target}, ${bucket}, ${method})`;
+                query = `aggregate(values.${target}, ${bucket}, ${method}) ${align}`;
                 return query;
               });
 
@@ -1054,10 +1066,10 @@ class GenericDatasource {
                 return query_list;
               }
             } else {
-              return targets.map(target => TSDSQuery(func.wrapper[0], `aggregate(values.${target}, ${bucket}, ${method})`));
+              return targets.map(target => TSDSQuery(func.wrapper[0], `aggregate(values.${target}, ${bucket}, ${method}) ${align}`));
             }
           } else{
-            query = `aggregate(values.${target}, ${bucket}, ${method})`;
+            query = `aggregate(values.${target}, ${bucket}, ${method}) ${align}`;
           }
         }
 
@@ -1172,20 +1184,19 @@ class GenericDatasource {
             query += `${metric}, `;
           });
 
-          let aggregate_query, aggregate_function = [];
+          let aggregate_query, temp_aggregate_alls = [], aggregate_function = [];
           if(target.aggregate_all){
             aggregate_query = query;
           }
 
           let functions = target.func.map((f) => {
-              //f.aggregate_all = target.aggregate_all;
             if(f.wrapper.length === 0){
               f.aggregate_all = target.aggregate_all;
             }else {
               f.wrapper[0].aggregate_all = target.aggregate_all;
             }
             let aggregation = TSDSQuery(f);
-              
+ 
             if(!Array.isArray(aggregation)) { aggregation = [aggregation] }
             let template_variables = getVariableDetails();
             let defaultBucket = duration / options.maxDataPoints;
@@ -1204,30 +1215,40 @@ class GenericDatasource {
             let aggregate = aggregation.map( agg => {
                 agg = agg.replace(/\$quantify/g, size.toString());
                 let alias_value = template_variables[f.alias.replace('$', '')] ? template_variables[f.alias.replace('$', '')] : f.alias;
-                
+
                 let split_aggr = agg.split(/[(,)]/).map(x => x.trim()).filter(x => x != "");
                 let as_alias, bucket;
                 let agg_all = aggregateAll(split_aggr);
+                agg_all = agg_all.trim();
+                f.align = f.align || '';
                 f.operation = f.operation || '';
                 if(f.wrapper.length !== 0 && f.wrapper[0].aggregate_all){
                     as_alias = split_aggr[2];
+                    let align_all;
                     aggregate_function.push(agg_all);
+                    temp_aggregate_alls.push(agg_all+` ${f.align}`);
                     agg = "";
                     agg += `${split_aggr[1]}(${as_alias}, ${split_aggr[3]}, ${split_aggr[4]})`
+                    if(split_aggr[5].includes('align')){
+                        agg += ` ${split_aggr[5]}`;
+                    }
                     agg += ` ${f.operation} as ${as_alias}`;
+                    agg = agg.trim();
+                    let temp_aggr = agg_all + ` ${f.align}`;
+                    target.metricValueAliasMappings[temp_aggr] = alias_value;
                 }else if(f.aggregate_all){
                     as_alias = split_aggr[1];
                     aggregate_function.push(agg_all);
+                    temp_aggregate_alls.push(agg_all+` ${f.align}`);
                     agg += ` ${f.operation} as ${as_alias}`;
+                    let temp_aggr = agg_all + ` ${f.align}`;
+                    target.metricValueAliasMappings[temp_aggr] = alias_value;
                 }
-                // if(target.aggregate_all){
-                    //aggregate_function.push(`${split_aggr[0]}(${as_alias}, ${bucket}, sum)`);
-                    //agg += ` ${f.operation} as ${as_alias}`
                 else {
                     agg += ` ${f.operation}`;
+                    agg = agg.trim();
+                    target.metricValueAliasMappings[agg] = alias_value;
                 }
-                agg = agg.trim();
-                target.metricValueAliasMappings[agg] = alias_value;
 
                 return `${agg}`;
             }).join(', ');
