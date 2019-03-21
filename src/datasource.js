@@ -298,6 +298,7 @@ class GenericDatasource {
 
       let key = resultObj[i];
       let args = key.split(/[(,)]/).map(x => x.trim());
+      args = args.filter(item => item !== '');
       let name = null;
 
       if (aliases.hasOwnProperty(key) && aliases[key] !== '') {
@@ -310,8 +311,15 @@ class GenericDatasource {
         let humanTime   = this.getHumanTime(args[2]);
         let aggregation = args[3];
         let percentile  = args[4];
-
-        name = `${measurement} ${humanTime} ${percentile}th ${aggregation}s`;
+        let align;
+        if(args[5] && args[5].includes('align')){
+            align = args[5].split(' ')[1];
+        }
+        if(align){
+            name = `${measurement} [${align} (${humanTime} ${percentile}th ${aggregation}s)]`;
+        }else {
+            name = `${measurement} [${humanTime} ${percentile}th ${aggregation}s]`;
+        }
       } else {
         let measurement = args[1].replace('values.', '');
         measurement = measurement.charAt(0).toUpperCase() + measurement.slice(1);
@@ -1184,7 +1192,7 @@ class GenericDatasource {
             query += `${metric}, `;
           });
 
-          let aggregate_query, temp_aggregate_alls = [], aggregate_function = [];
+          let aggregate_query, aggregate_function = [];
           if(target.aggregate_all){
             aggregate_query = query;
           }
@@ -1226,7 +1234,6 @@ class GenericDatasource {
                     as_alias = split_aggr[2];
                     let align_all;
                     aggregate_function.push(agg_all);
-                    temp_aggregate_alls.push(agg_all+` ${f.align}`);
                     agg = "";
                     agg += `${split_aggr[1]}(${as_alias}, ${split_aggr[3]}, ${split_aggr[4]})`
                     if(split_aggr[5].includes('align')){
@@ -1239,7 +1246,6 @@ class GenericDatasource {
                 }else if(f.aggregate_all){
                     as_alias = split_aggr[1];
                     aggregate_function.push(agg_all);
-                    temp_aggregate_alls.push(agg_all+` ${f.align}`);
                     agg += ` ${f.operation} as ${as_alias}`;
                     let temp_aggr = agg_all + ` ${f.align}`;
                     target.metricValueAliasMappings[temp_aggr] = alias_value;
