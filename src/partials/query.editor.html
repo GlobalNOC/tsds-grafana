@@ -34,6 +34,7 @@
         <option "style = background: #292929" value="max">max</option>
         <option "style = background: #292929" value="min">min</option>
         <option "style = background: #292929" value="sum">sum</option>
+        <option "style = background: #292929" value="count">count</option>
         <option "style = background: #292929" value="percentile">percentile</option>
         <option "style = background: #292929" value="template">template</option>
       </select>
@@ -114,7 +115,20 @@
 
         <div class="gf-form">
           <label class="gf-form-label query-keyword width-6">Operation</label>
-	      <input type="text" class="gf-form-input width-10" placeholder="* 4" ng-model="ctrl.target.func[$index].operation" bs-tooltip="'Operation applied to the datapoints in this aggregation'"/>
+	        <input type="text" class="gf-form-input width-10" placeholder="* 4" ng-model="ctrl.target.func[$index].operation" bs-tooltip="'Operation applied to the datapoints in this aggregation'"/>
+          <div class="gf-form-label gf-form-label--grow"></div>
+        </div>
+
+        <div class="gf-form">
+          <label class="gf-form-label query-keyword width-6">Align</label>
+          <span class="gf-form-select-wrapper">
+            <select class="gf-form-input width-10" name="align" ng-model="ctrl.target.func[$index].align" bs-tooltip="'Align this aggregation to the selected value'">
+              <option "style = background: #292929" value=""></option> 
+              <option "style = background: #292929" value="align week">week</option>
+              <option "style = background: #292929" value="align month">month</option>
+              <option "style = background: #292929" value="align year">year</option>
+            </select>
+          </span>
           <div class="gf-form-label gf-form-label--grow"></div>
         </div>
       </div>
@@ -122,20 +136,21 @@
 
 	<div class="gf-form-inline">
 	  <div class="gf-form">
-        <label class="gf-form-label query-keyword width-8">Metadata</label>
+      <label class="gf-form-label query-keyword width-8">Metadata</label>
 	  </div>
-      <div ng-repeat="element in ctrl.target.metric_array track by $index" class="gf-form">
-		<metric-segment-model style="min-width:66px;" property="ctrl.target.metric_array[$index]" get-options="ctrl.getMetaFields()"></metric-segment-model>
-		<button class="btn btn-inverse gf-form-btn"  ng-click="ctrl.removeSegment($index)"><i class="fa fa-trash"></i></button>
-      </div>
-	  
+
+    <div ng-repeat="element in ctrl.target.metric_array track by $index" class="gf-form">
+		  <metric-segment-model style="min-width:66px;" property="ctrl.target.metric_array[$index]" get-options="ctrl.getMetaFields()"></metric-segment-model>
+		  <button class="btn btn-inverse gf-form-btn"  ng-click="ctrl.removeSegment($index)"><i class="fa fa-trash"></i></button>
+    </div>
+
 	  <div class="gf-form">
-        <button class = "btn btn-inverse gf-form-btn query-keyword"  ng-click="ctrl.addSegments()"><i class="fa fa-plus"></i></button>
-      </div>
+      <button class = "btn btn-inverse gf-form-btn query-keyword"  ng-click="ctrl.addSegments()"><i class="fa fa-plus"></i></button>
+    </div>
 
 	  <div class="gf-form gf-form--grow">
-        <div class="gf-form-label gf-form-label--grow"></div>
-      </div>
+      <div class="gf-form-label gf-form-label--grow"></div>
+    </div>
 	</div>
 
 	<div ng-repeat="line in ctrl.target.whereClauseGroup" ng-init="parentIndex = $index">

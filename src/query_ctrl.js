@@ -50,6 +50,7 @@ class GenericFunction {
     this.alias = (typeof options.alias === 'undefined') ? '' : options.alias;
     this.bucket = (typeof options.bucket === 'undefined') ? '' : options.bucket;
     this.operation = (typeof options.operation === 'undefined') ? '' : options.operation;
+    this.align = (typeof options.align === 'undefined') ? '' : options.align;
 
     this.percentile = (typeof options.percentile === 'undefined') ? '85' : options.percentile;
 
