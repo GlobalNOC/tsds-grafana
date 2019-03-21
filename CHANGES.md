@@ -1,3 +1,11 @@
+## GRNOC TSDS Grafana 0.3.1 -- Thu Mar 21 2019
+
+### Features
+
+* Ability to align data by week, month, or year from within the options
+* Added aliasing support for align
+* Added UTC support for table data
+
 ## GRNOC TSDS Grafana 0.3.0 -- Wed Feb 6 2019
 
 ### Features
