@@ -1065,8 +1065,12 @@ class GenericDatasource {
             if (!Array.isArray(targets)) { targets = [targets]; }
 
             if(func.wrapper.length === 0) {
-              query_list = targets.map(target => {
-                query = `aggregate(values.${target}, ${bucket}, ${method}) ${align}`;
+                query_list = targets.map(target => {
+                if(align){
+                    query = `aggregate(values.${target}, ${bucket}, ${method}) ${align}`;
+                }else {
+                    query = `aggregate(values.${target}, ${bucket}, ${method})`;
+                }
                 return query;
               });
 
@@ -1074,10 +1078,18 @@ class GenericDatasource {
                 return query_list;
               }
             } else {
-              return targets.map(target => TSDSQuery(func.wrapper[0], `aggregate(values.${target}, ${bucket}, ${method}) ${align}`));
+              if(align){
+                return targets.map(target => TSDSQuery(func.wrapper[0], `aggregate(values.${target}, ${bucket}, ${method}) ${align}`));
+              }else {
+                  return targets.map(target => TSDSQuery(func.wrapper[0], `aggregate(values.${target}, ${bucket}, ${method})`));
+              }
             }
           } else{
-            query = `aggregate(values.${target}, ${bucket}, ${method}) ${align}`;
+            if(align){
+                query = `aggregate(values.${target}, ${bucket}, ${method}) ${align}`;
+            }else {
+                query = `aggregate(values.${target}, ${bucket}, ${method})`;
+            }
           }
         }
 
@@ -1241,13 +1253,23 @@ class GenericDatasource {
                     }
                     agg += ` ${f.operation} as ${as_alias}`;
                     agg = agg.trim();
-                    let temp_aggr = agg_all + ` ${f.align}`;
+                    let temp_aggr;
+                    if(f.align){
+                        temp_aggr = agg_all + ` ${f.align}`;
+                    }else {
+                        temp_aggr = agg_all;
+                    }
                     target.metricValueAliasMappings[temp_aggr] = alias_value;
                 }else if(f.aggregate_all){
                     as_alias = split_aggr[1];
                     aggregate_function.push(agg_all);
                     agg += ` ${f.operation} as ${as_alias}`;
-                    let temp_aggr = agg_all + ` ${f.align}`;
+                    let temp_aggr;
+                    if(f.align){
+                        temp_aggr = agg_all + ` ${f.align}`;
+                    }else {
+                        temp_aggr = agg_all;
+                    }
                     target.metricValueAliasMappings[temp_aggr] = alias_value;
                 }
                 else {
