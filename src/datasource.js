@@ -142,7 +142,6 @@ class GenericDatasource {
                 let targetObjects = this.getTargetNames(result, template, aliases);
                 targetObjects.forEach((targetObject) => {
                   let datapoints = result[targetObject['name']];
-
                   if (Array.isArray(datapoints)) {
                     // TSDS returns [timestamp, value], but Grafana
                     // wants [value, timestamp] in milliseconds.
@@ -182,9 +181,20 @@ class GenericDatasource {
           let table       = {columns: [{text: 'target', type: 'text', sort: true, desc: true}], rows: [], type: 'table'};
           let dateOptions = {year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric', timeZoneName: 'short'};
 
+          // Make one column for each meta field
+          Object.keys(output[0]['meta']).sort().reverse().forEach(metakey => {
+            table.columns.push({text:metakey, type:'text', sort:true, desc:true})
+          });
+
           let datasetsAtTimestamp = {};
           output.forEach((dataset, i) => {
-            table.rows.push([dataset.target]);
+            let metafields = [];
+            metafields.push(dataset.target);
+            Object.keys(dataset.meta).sort().reverse().forEach(metakey => { 
+              metafields.push(dataset['meta'][metakey]);
+            });
+
+            table.rows.push(metafields);
 
             dataset.datapoints.forEach((datapoint, j) => {
               let milliseconds = datapoint[1];
@@ -206,7 +216,7 @@ class GenericDatasource {
             table.columns.push({text: dateStr.toLocaleDateString("en-US", dateOptions), type: 'text'});
 
             for (let i = 0; i < datapoints.length; i++) {
-	      var point = datapoints[i];
+	          var point = datapoints[i];
               table.rows[i].push(point == null ? null : point[0]);
             }
           });
@@ -285,11 +295,15 @@ class GenericDatasource {
 
     // construct an array of objects to preserve the order
     let resultObj = [];
+    let metaData = {};
     for(let key in result){
         // Aggregate functions will have 'values.' in the key. The rest are metric names
-        if(key.indexOf("values.") === -1) continue;
-        resultObj.push(key);
-        // sort the keys
+        if(key.indexOf("values.") === -1) {
+            metaData[key] = result[key];
+        } else {
+            resultObj.push(key);
+            // sort the keys
+        }
         resultObj.sort();
     }
 
@@ -365,6 +379,7 @@ class GenericDatasource {
 
       returnNames.push({
         name:   key,
+        meta: metaData,
         target: targetNames.join(' ')
       });
     }
