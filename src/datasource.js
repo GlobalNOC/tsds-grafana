@@ -216,7 +216,7 @@ class GenericDatasource {
             table.columns.push({text: dateStr.toLocaleDateString("en-US", dateOptions), type: 'text'});
 
             for (let i = 0; i < datapoints.length; i++) {
-	          var point = datapoints[i];
+              var point = datapoints[i];
               table.rows[i].push(point == null ? null : point[0]);
             }
           });
@@ -379,7 +379,7 @@ class GenericDatasource {
 
       returnNames.push({
         name:   key,
-        meta: metaData,
+        meta:   metaData,
         target: targetNames.join(' ')
       });
     }
