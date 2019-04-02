@@ -181,8 +181,10 @@ class GenericDatasource {
           let table       = {columns: [{text: 'target', type: 'text', sort: true, desc: true}], rows: [], type: 'table'};
           let dateOptions = {year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric', timeZoneName: 'short'};
 
+          let targetMetafields = options.targets[0].targetMetafields;
+
           // Make one column for each meta field
-          Object.keys(output[0]['meta']).sort().reverse().forEach(metakey => {
+          targetMetafields.forEach(metakey => {
             table.columns.push({text:metakey, type:'text', sort:true, desc:true})
           });
 
@@ -190,7 +192,7 @@ class GenericDatasource {
           output.forEach((dataset, i) => {
             let metafields = [];
             metafields.push(dataset.target);
-            Object.keys(dataset.meta).sort().reverse().forEach(metakey => { 
+            targetMetafields.forEach(metakey => {
               metafields.push(dataset['meta'][metakey]);
             });
 
@@ -252,7 +254,6 @@ class GenericDatasource {
 
 	    // default to like
 	    let context = match ? match[1] : "like";
-	    	    
 	    if(!Array.isArray(value)) {
 		value = [value];
 	    }
@@ -295,7 +296,7 @@ class GenericDatasource {
 
     // construct an array of objects to preserve the order
     let resultObj = [];
-    let metaData = {};
+    let metaData = new Map();
     for(let key in result){
         // Aggregate functions will have 'values.' in the key. The rest are metric names
         if(key.indexOf("values.") === -1) {
@@ -1206,6 +1207,7 @@ class GenericDatasource {
               target: query,
               targetAliases: target.metricValueAliasMappings,
               targetBuckets: target.bucket,
+              targetMetafields: target.metric_array,
               refId: target.refId,
               hide: target.hide,
               type: target.type || 'timeserie',
@@ -1382,6 +1384,7 @@ class GenericDatasource {
               target: query,
               targetAliases: target.metricValueAliasMappings,
               targetBuckets: target.bucket,
+              targetMetafields: target.metric_array,
               refId: target.refId,
               hide: target.hide,
               type: target.type || 'timeserie',
