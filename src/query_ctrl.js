@@ -161,6 +161,7 @@ class GenericDatasourceQueryCtrl extends QueryCtrl {
     this.target.outerGroupOperator = this.target.outerGroupOperator || [''];
     this.target.templateVariableValue = this.target.templateVariableValue || [''];   
     this.target.displayFormat = this.target.displayFormat || 'series'; // Display format may be 'series' or 'table'
+    this.target.dateFormat = this.target.dateFormat || '';
 
     // Creates an array of GenericFunctions from existing data, or if
     // the data doesn't exist, setups a single GenericFunction.

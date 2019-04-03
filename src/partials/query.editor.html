@@ -288,9 +288,9 @@
   <div class="gf-form-inline">
     <div class="gf-form">
       <label class="gf-form-label query-keyword width-8">Target Name</label>
-	  <input type="text" class="gf-form-input" ng-model="ctrl.target.target_alias" bs-tooltip="'Add target alias'" data-iplacement="right" spellcheck="false"></input>
+	    <input type="text" class="gf-form-input" ng-model="ctrl.target.target_alias" bs-tooltip="'Add target alias'" data-iplacement="right" spellcheck="false"></input>
     </div>
-	<div class="gf-form gf-form--grow">
+	  <div class="gf-form gf-form--grow">
       <div class="gf-form-label gf-form-label--grow"></div>
     </div>
   </div>
@@ -304,12 +304,18 @@
         <option value="table">table</option>
       </select>
     </span>
-    <div>
+
+    <div class="gf-form" ng-if="ctrl.target.displayFormat=='table'">
+      <label class="gf-form-label query-keyword width-8">Format Date</label>
+	    <input type="text" class="gf-form-input" ng-model="ctrl.target.dateFormat" bs-tooltip="'Add target alias'" data-iplacement="right" spellcheck="false"></input>
+    </div>
+    <div class="gf-form gf-form--grow"><div class="gf-form-label gf-form-label--grow"></div></div>
+  </div>
+
+  <div class="gf-form">
       <gf-form-switch class="gf-form" label-class="query-keyword width-10"
         label="Combine All Series"
         checked="ctrl.target.aggregate_all">
-    </div>
-    <div class="gf-form gf-form--grow"><div class="gf-form-label gf-form-label--grow"></div></div>
   </div>
 
   <div class="gf-form-inline">

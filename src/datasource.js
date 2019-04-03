@@ -21,6 +21,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+import moment from 'moment';
 import _ from "lodash";
 import {ResponseHandler} from './response_handler';
 
@@ -32,7 +33,7 @@ class GenericDatasource {
      * @param {Object} $q - A
      * @param {Object} backendSrv - A
      * @param {Object} templateSrv - A
-     */
+        */
     constructor(instanceSettings, $q, backendSrv, templateSrv) {
         this.type = instanceSettings.type;
         this.url = instanceSettings.url;
@@ -47,6 +48,7 @@ class GenericDatasource {
         this.metricValue = this.metricValue||[];
         this.metricColumn =this.metricColumn||[];
         this.whereSuggest =[];
+        this._moment = moment;
     }
 
     /**
@@ -59,9 +61,10 @@ class GenericDatasource {
      *   { message: 'Error string for the user.', data: response_object };
      * </code></pre>
      *
-     */
+    */
     query(options) {
       //this.templateSearch();
+        //let moment = moment();
       return this.buildQueryParameters(options, this).then((query) => {
         query.targets = query.targets.filter(t => !t.hide);
         if (query.targets.length <= 0) { return this.q.when({data: []}); }
@@ -88,7 +91,7 @@ class GenericDatasource {
             throw error;
           });
         }
-
+          //momentObj = moment;
         let start = Date.parse(query.range.from) / 1000;
         let end   = Date.parse(query.range.to) / 1000;
         let duration = (end - start);
@@ -167,11 +170,11 @@ class GenericDatasource {
         return Promise.all(requests).then(responses => {
           console.log(output);
 
-	  // since the queries are async there isn't a guarantee on which order they come back in
-	  // this gets them back to the order in which they were defined, ie query A is always first
+          // since the queries are async there isn't a guarantee on which order they come back in
+          // this gets them back to the order in which they were defined, ie query A is always first
           output.sort(function(a, b){ return a['__refId'].localeCompare(b['__refId']) });
-	  // remove unneeded data now
-	  output.forEach(function(o){ delete o['__refId']});
+          // remove unneeded data now
+          output.forEach(function(o){ delete o['__refId']});
 
           if (typeof options.targets[0].displayFormat === 'undefined' || options.targets[0].displayFormat === 'series') {
             console.log('Formating result as a series.');
@@ -181,7 +184,13 @@ class GenericDatasource {
           let table       = {columns: [{text: 'target', type: 'text', sort: true, desc: true}], rows: [], type: 'table'};
           let dateOptions = {year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric', timeZoneName: 'short'};
 
+          // array of metadata fields from the get field of the query builder in the order that they appear 
           let targetMetafields = options.targets[0].targetMetafields;
+
+          // get moment
+          let _moment = options.targets[0]._moment;
+          // get date format string to format the date
+          let dateFormat = options.targets[0].dateFormat;
 
           // Make one column for each meta field
           targetMetafields.forEach(metakey => {
@@ -211,11 +220,15 @@ class GenericDatasource {
           Object.keys(datasetsAtTimestamp).sort().reverse().forEach(milliseconds => {
             let datapoints = datasetsAtTimestamp[milliseconds];
             let dateStr    = new Date(parseInt(milliseconds));
+            let momentDate = _moment(parseInt(milliseconds));
+            let formattedDate = momentDate.format(dateFormat);
             let range = angular.element('grafana-app').injector().get('timeSrv').timeRange();
             if(range.from._isUTC && range.to._isUTC) {
                 dateOptions.timeZone = "utc";
+                momentDate = _moment.utc(parseInt(milliseconds));
+                formattedDate = momentDate.format(dateFormat);
             }
-            table.columns.push({text: dateStr.toLocaleDateString("en-US", dateOptions), type: 'text'});
+            table.columns.push({text: formattedDate, type: 'text'});
 
             for (let i = 0; i < datapoints.length; i++) {
               var point = datapoints[i];
@@ -1165,10 +1178,13 @@ class GenericDatasource {
               displayFormat: target.displayFormat,
               target:        target,
               targetAliases: target.metricValueAliasMappings,
+              targetMetafields: target.metric_array,
               targetBuckets: target.bucket,
               refId:         target.refId,
               hide:          target.hide,
-              type:          target.type || 'timeserie'
+              type:          target.type || 'timeserie',
+              dateFormat:    target.dateFormat,
+              _moment:       that._moment
             });
           }
 
@@ -1211,7 +1227,9 @@ class GenericDatasource {
               refId: target.refId,
               hide: target.hide,
               type: target.type || 'timeserie',
-              alias : target.target_alias
+              alias: target.target_alias,
+              dateFormat: target.dateFormat,
+              _moment: that._moment
             });
           }
 
@@ -1388,7 +1406,9 @@ class GenericDatasource {
               refId: target.refId,
               hide: target.hide,
               type: target.type || 'timeserie',
-              alias : target.target_alias
+              alias: target.target_alias,
+              dateFormat: target.dateFormat,
+              _moment: that._moment
             });
           });
 
