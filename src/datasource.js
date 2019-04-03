@@ -64,7 +64,6 @@ class GenericDatasource {
     */
     query(options) {
       //this.templateSearch();
-        //let moment = moment();
       return this.buildQueryParameters(options, this).then((query) => {
         query.targets = query.targets.filter(t => !t.hide);
         if (query.targets.length <= 0) { return this.q.when({data: []}); }
@@ -91,7 +90,6 @@ class GenericDatasource {
             throw error;
           });
         }
-          //momentObj = moment;
         let start = Date.parse(query.range.from) / 1000;
         let end   = Date.parse(query.range.to) / 1000;
         let duration = (end - start);
@@ -182,7 +180,6 @@ class GenericDatasource {
           }
 
           let table       = {columns: [{text: 'target', type: 'text', sort: true, desc: true}], rows: [], type: 'table'};
-          let dateOptions = {year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric', timeZoneName: 'short'};
 
           // array of metadata fields from the get field of the query builder in the order that they appear 
           let targetMetafields = options.targets[0].targetMetafields;
@@ -219,12 +216,10 @@ class GenericDatasource {
 
           Object.keys(datasetsAtTimestamp).sort().reverse().forEach(milliseconds => {
             let datapoints = datasetsAtTimestamp[milliseconds];
-            let dateStr    = new Date(parseInt(milliseconds));
             let momentDate = _moment(parseInt(milliseconds));
             let formattedDate = momentDate.format(dateFormat);
             let range = angular.element('grafana-app').injector().get('timeSrv').timeRange();
             if(range.from._isUTC && range.to._isUTC) {
-                dateOptions.timeZone = "utc";
                 momentDate = _moment.utc(parseInt(milliseconds));
                 formattedDate = momentDate.format(dateFormat);
             }
