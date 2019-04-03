@@ -48,7 +48,6 @@ class GenericDatasource {
         this.metricValue = this.metricValue||[];
         this.metricColumn =this.metricColumn||[];
         this.whereSuggest =[];
-        this._moment = moment;
     }
 
     /**
@@ -93,7 +92,6 @@ class GenericDatasource {
         let start = Date.parse(query.range.from) / 1000;
         let end   = Date.parse(query.range.to) / 1000;
         let duration = (end - start);
-
         let output = [];
 
         let requests = query.targets.map((target) => {
@@ -184,8 +182,6 @@ class GenericDatasource {
           // array of metadata fields from the get field of the query builder in the order that they appear 
           let targetMetafields = options.targets[0].targetMetafields;
 
-          // get moment
-          let _moment = options.targets[0]._moment;
           // get date format string to format the date
           let dateFormat = options.targets[0].dateFormat;
 
@@ -216,11 +212,11 @@ class GenericDatasource {
 
           Object.keys(datasetsAtTimestamp).sort().reverse().forEach(milliseconds => {
             let datapoints = datasetsAtTimestamp[milliseconds];
-            let momentDate = _moment(parseInt(milliseconds));
+            let momentDate = moment(parseInt(milliseconds));
             let formattedDate = momentDate.format(dateFormat);
             let range = angular.element('grafana-app').injector().get('timeSrv').timeRange();
             if(range.from._isUTC && range.to._isUTC) {
-                momentDate = _moment.utc(parseInt(milliseconds));
+                momentDate = moment.utc(parseInt(milliseconds));
                 formattedDate = momentDate.format(dateFormat);
             }
             table.columns.push({text: formattedDate, type: 'text'});
@@ -315,7 +311,9 @@ class GenericDatasource {
         }
         resultObj.sort();
     }
-
+    if(resultObj.length === 0){
+      returnNames.push({meta: metaData});
+    }
     // parse the sorted keys to preserve the order
     for (let i = 0; i < resultObj.length; i++){
 
@@ -1178,8 +1176,7 @@ class GenericDatasource {
               refId:         target.refId,
               hide:          target.hide,
               type:          target.type || 'timeserie',
-              dateFormat:    target.dateFormat,
-              _moment:       that._moment
+              dateFormat:    target.dateFormat
             });
           }
 
@@ -1223,8 +1220,7 @@ class GenericDatasource {
               hide: target.hide,
               type: target.type || 'timeserie',
               alias: target.target_alias,
-              dateFormat: target.dateFormat,
-              _moment: that._moment
+              dateFormat: target.dateFormat
             });
           }
 
@@ -1402,8 +1398,7 @@ class GenericDatasource {
               hide: target.hide,
               type: target.type || 'timeserie',
               alias: target.target_alias,
-              dateFormat: target.dateFormat,
-              _moment: that._moment
+              dateFormat: target.dateFormat
             });
           });
 
