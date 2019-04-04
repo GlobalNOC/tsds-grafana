@@ -1389,7 +1389,7 @@ class GenericDatasource {
             if(target.aggregate_all){
                 let aggr = aggregate_function.join(', ');
                 aggregate_query += aggr;
-                aggregate_query += ` by nothing from ( ${query} )`;
+                aggregate_query += ` by ${target.combineAllBy} from ( ${query} )`;
                 target.target = aggregate_query;
                 query = aggregate_query;
             }else{
