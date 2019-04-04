@@ -141,17 +141,18 @@ class GenericDatasource {
                 let targetObjects = this.getTargetNames(result, template, aliases);
                 targetObjects.forEach((targetObject) => {
                   let datapoints = result[targetObject['name']];
-                  if (Array.isArray(datapoints)) {
-                    // TSDS returns [timestamp, value], but Grafana
-                    // wants [value, timestamp] in milliseconds.
-                    targetObject['datapoints'] = datapoints.map(datapoint => [datapoint[1], datapoint[0] * 1000]);
-                  } else {
-                    // It's possible that a user may request
-                    // something like sum(aggregate(...)) which will
-                    // result in a single datapoint being returned.
-                    targetObject['datapoints'] = [[datapoints, start * 1000],[datapoints, end * 1000]];
+                  if(datapoints){
+                    if (Array.isArray(datapoints)) {
+                      // TSDS returns [timestamp, value], but Grafana
+                      // wants [value, timestamp] in milliseconds.
+                      targetObject['datapoints'] = datapoints.map(datapoint => [datapoint[1], datapoint[0] * 1000]);
+                    } else {
+                      // It's possible that a user may request
+                      // something like sum(aggregate(...)) which will
+                      // result in a single datapoint being returned.
+                      targetObject['datapoints'] = [[datapoints, start * 1000],[datapoints, end * 1000]];
+                    }
                   }
-
                   // store reference to which target this came from to ensure same order back out
                   targetObject['__refId'] = refId;
 
@@ -179,7 +180,7 @@ class GenericDatasource {
 
           let table       = {columns: [{text: 'target', type: 'text', sort: true, desc: true}], rows: [], type: 'table'};
 
-          // array of metadata fields from the get field of the query builder in the order that they appear 
+          // array of metadata fields from the get field of the query builder in the order that they appear
           let targetMetafields = options.targets[0].targetMetafields;
 
           // get date format string to format the date
@@ -191,41 +192,49 @@ class GenericDatasource {
           });
 
           let datasetsAtTimestamp = {};
+          let targetExists = false;
           output.forEach((dataset, i) => {
             let metafields = [];
-            metafields.push(dataset.target);
+            if(dataset.target){
+              metafields.push(dataset.target);
+              targetExists = true;
+            }
             targetMetafields.forEach(metakey => {
               metafields.push(dataset['meta'][metakey]);
             });
 
             table.rows.push(metafields);
+            if(dataset.datapoints){
+              dataset.datapoints.forEach((datapoint, j) => {
+                let milliseconds = datapoint[1];
+                if (typeof datasetsAtTimestamp[milliseconds] === 'undefined') {
+                  datasetsAtTimestamp[milliseconds] = Array(output.length).fill(null);
+                }
 
-            dataset.datapoints.forEach((datapoint, j) => {
-              let milliseconds = datapoint[1];
-              if (typeof datasetsAtTimestamp[milliseconds] === 'undefined') {
-                datasetsAtTimestamp[milliseconds] = Array(output.length).fill(null);
-              }
-
-              datasetsAtTimestamp[milliseconds][i] = datapoint;
-            });
+                datasetsAtTimestamp[milliseconds][i] = datapoint;
+              });
+            }
           });
-
-          Object.keys(datasetsAtTimestamp).sort().reverse().forEach(milliseconds => {
-            let datapoints = datasetsAtTimestamp[milliseconds];
-            let momentDate = moment(parseInt(milliseconds));
-            let formattedDate = momentDate.format(dateFormat);
-            let range = angular.element('grafana-app').injector().get('timeSrv').timeRange();
-            if(range.from._isUTC && range.to._isUTC) {
+          // if there's no target field remove the target column
+          if(!targetExists) { table.columns.shift(); }
+          if(Object.entries(datasetsAtTimestamp).length > 0){
+            Object.keys(datasetsAtTimestamp).sort().reverse().forEach(milliseconds => {
+              let datapoints = datasetsAtTimestamp[milliseconds];
+              let momentDate = moment(parseInt(milliseconds));
+              let formattedDate = momentDate.format(dateFormat);
+              let range = angular.element('grafana-app').injector().get('timeSrv').timeRange();
+              if(range.from._isUTC && range.to._isUTC) {
                 momentDate = moment.utc(parseInt(milliseconds));
                 formattedDate = momentDate.format(dateFormat);
-            }
-            table.columns.push({text: formattedDate, type: 'text'});
+              }
+              table.columns.push({text: formattedDate, type: 'text'});
 
-            for (let i = 0; i < datapoints.length; i++) {
-              var point = datapoints[i];
-              table.rows[i].push(point == null ? null : point[0]);
-            }
-          });
+              for (let i = 0; i < datapoints.length; i++) {
+                var point = datapoints[i];
+                table.rows[i].push(point == null ? null : point[0]);
+              }
+            });
+          }
 
           console.log('Formating result as a table.');
           return {
