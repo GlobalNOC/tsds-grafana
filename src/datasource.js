@@ -204,8 +204,10 @@ class GenericDatasource {
             });
 
             table.rows.push(metafields);
-            if(dataset.datapoints){
-              dataset.datapoints.forEach((datapoint, j) => {
+              // check if datapoints exist for each dataset
+              if(dataset.datapoints){
+                // map each dataset's datapoints at timestamp
+                dataset.datapoints.forEach((datapoint, j) => {
                 let milliseconds = datapoint[1];
                 if (typeof datasetsAtTimestamp[milliseconds] === 'undefined') {
                   datasetsAtTimestamp[milliseconds] = Array(output.length).fill(null);
@@ -215,8 +217,11 @@ class GenericDatasource {
               });
             }
           });
-          // if there's no target field remove the target column
+
+          // if there's no target field remove the target (1st) column
           if(!targetExists) { table.columns.shift(); }
+
+          // Make column for each timestamp
           if(Object.entries(datasetsAtTimestamp).length > 0){
             Object.keys(datasetsAtTimestamp).sort().reverse().forEach(milliseconds => {
               let datapoints = datasetsAtTimestamp[milliseconds];
