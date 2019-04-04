@@ -1288,7 +1288,7 @@ class GenericDatasource {
                     aggregate_function.push(agg_all);
                     agg = "";
                     agg += `${split_aggr[1]}(${as_alias}, ${split_aggr[3]}, ${split_aggr[4]})`
-                    if(split_aggr[5].includes('align')){
+                    if(split_aggr[5] && split_aggr[5].includes('align')){
                         agg += ` ${split_aggr[5]}`;
                     }
                     agg += ` ${f.operation} as ${as_alias}`;
