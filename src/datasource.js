@@ -178,7 +178,7 @@ class GenericDatasource {
             return {data: output};
           }
 
-          let table       = {columns: [{text: 'target', type: 'text', sort: true, desc: true}], rows: [], type: 'table'};
+          let table       = {columns: [], rows: [], type: 'table'};
 
           // array of metadata fields from the get field of the query builder in the order that they appear
           let targetMetafields = options.targets[0].targetMetafields;
@@ -190,19 +190,18 @@ class GenericDatasource {
           targetMetafields.forEach(metakey => {
             table.columns.push({text:metakey, type:'text', sort:true, desc:true})
           });
-
+          table.columns.push({text: 'target', type: 'text'});
           let datasetsAtTimestamp = {};
           let targetExists = false;
           output.forEach((dataset, i) => {
             let metafields = [];
+            targetMetafields.forEach(metakey => {
+              metafields.push(dataset['meta'][metakey]);
+            });
             if(dataset.target){
               metafields.push(dataset.target);
               targetExists = true;
             }
-            targetMetafields.forEach(metakey => {
-              metafields.push(dataset['meta'][metakey]);
-            });
-
             table.rows.push(metafields);
               // check if datapoints exist for each dataset
               if(dataset.datapoints){
@@ -218,8 +217,8 @@ class GenericDatasource {
             }
           });
 
-          // if there's no target field remove the target (1st) column
-          if(!targetExists) { table.columns.shift(); }
+          // if there's no target field remove the target (last) column
+          if(!targetExists) { table.columns.pop(); }
 
           // Make column for each timestamp
           if(Object.entries(datasetsAtTimestamp).length > 0){
