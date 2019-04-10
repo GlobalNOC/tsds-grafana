@@ -1,3 +1,11 @@
+## GRNOC TSDS Grafana 0.3.2 -- Wed Apr 10 2019
+
+* Added the ability to have a column for each metadata field
+* Added the ability to format the date using momentjs format strings in the table mode
+* Added ability to show only metadata without values in a table
+* Added ability to specify combine by when 'combine all series' is checked
+* Fixed an issue where wrapper function fails when used with combine all
+
 ## GRNOC TSDS Grafana 0.3.1 -- Thu Mar 21 2019
 
 ### Features
@@ -76,7 +84,7 @@ queries. Queries are now generated properly with no results.
 * Added expandable options to the visual query builder to put all the options under a collapsible region.
 * Added support for tsds math operations.
 * Added empty default for existing queries.
-* Added the ability to provide multiple template variables within a string in the where clause. 
+* Added the ability to provide multiple template variables within a string in the where clause.
 * Fixed issue with sort when null datapoints are present.
 
 ## GRNOC TSDS Grafana 0.2.1 -- Thu Mar 8 2018
@@ -87,7 +95,7 @@ queries. Queries are now generated properly with no results.
 * Fixed substring replacement for extrapolation functions.
 * Added target naming for manual query mode.
 * Fixed multi-value temp vars rendering incorrectly.
-* Added support for table generation. Data can be now formatted as a table to create tables.  
+* Added support for table generation. Data can be now formatted as a table to create tables.
 * Added Search functionality with Template variables. Added a new query type “search” to support this.
 * Fixed order by to order legend based on query results.
 * Changed `_index` to `index` of templateSrv to support grafana 5.0.1.
