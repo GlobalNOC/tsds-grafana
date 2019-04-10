@@ -21,6 +21,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+import moment from 'moment';
 import _ from "lodash";
 import {ResponseHandler} from './response_handler';
 
@@ -32,7 +33,7 @@ class GenericDatasource {
      * @param {Object} $q - A
      * @param {Object} backendSrv - A
      * @param {Object} templateSrv - A
-     */
+        */
     constructor(instanceSettings, $q, backendSrv, templateSrv) {
         this.type = instanceSettings.type;
         this.url = instanceSettings.url;
@@ -59,7 +60,7 @@ class GenericDatasource {
      *   { message: 'Error string for the user.', data: response_object };
      * </code></pre>
      *
-     */
+    */
     query(options) {
       //this.templateSearch();
       return this.buildQueryParameters(options, this).then((query) => {
@@ -88,11 +89,9 @@ class GenericDatasource {
             throw error;
           });
         }
-
         let start = Date.parse(query.range.from) / 1000;
         let end   = Date.parse(query.range.to) / 1000;
         let duration = (end - start);
-
         let output = [];
 
         let requests = query.targets.map((target) => {
@@ -142,18 +141,18 @@ class GenericDatasource {
                 let targetObjects = this.getTargetNames(result, template, aliases);
                 targetObjects.forEach((targetObject) => {
                   let datapoints = result[targetObject['name']];
-
-                  if (Array.isArray(datapoints)) {
-                    // TSDS returns [timestamp, value], but Grafana
-                    // wants [value, timestamp] in milliseconds.
-                    targetObject['datapoints'] = datapoints.map(datapoint => [datapoint[1], datapoint[0] * 1000]);
-                  } else {
-                    // It's possible that a user may request
-                    // something like sum(aggregate(...)) which will
-                    // result in a single datapoint being returned.
-                    targetObject['datapoints'] = [[datapoints, start * 1000],[datapoints, end * 1000]];
+                  if(datapoints){
+                    if (Array.isArray(datapoints)) {
+                      // TSDS returns [timestamp, value], but Grafana
+                      // wants [value, timestamp] in milliseconds.
+                      targetObject['datapoints'] = datapoints.map(datapoint => [datapoint[1], datapoint[0] * 1000]);
+                    } else {
+                      // It's possible that a user may request
+                      // something like sum(aggregate(...)) which will
+                      // result in a single datapoint being returned.
+                      targetObject['datapoints'] = [[datapoints, start * 1000],[datapoints, end * 1000]];
+                    }
                   }
-
                   // store reference to which target this came from to ensure same order back out
                   targetObject['__refId'] = refId;
 
@@ -168,48 +167,78 @@ class GenericDatasource {
         return Promise.all(requests).then(responses => {
           console.log(output);
 
-	  // since the queries are async there isn't a guarantee on which order they come back in
-	  // this gets them back to the order in which they were defined, ie query A is always first
+          // since the queries are async there isn't a guarantee on which order they come back in
+          // this gets them back to the order in which they were defined, ie query A is always first
           output.sort(function(a, b){ return a['__refId'].localeCompare(b['__refId']) });
-	  // remove unneeded data now
-	  output.forEach(function(o){ delete o['__refId']});
+          // remove unneeded data now
+          output.forEach(function(o){ delete o['__refId']});
 
           if (typeof options.targets[0].displayFormat === 'undefined' || options.targets[0].displayFormat === 'series') {
             console.log('Formating result as a series.');
             return {data: output};
           }
 
-          let table       = {columns: [{text: 'target', type: 'text', sort: true, desc: true}], rows: [], type: 'table'};
-          let dateOptions = {year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric', timeZoneName: 'short'};
+          let table       = {columns: [], rows: [], type: 'table'};
 
+          // array of metadata fields from the get field of the query builder in the order that they appear
+          let targetMetafields = options.targets[0].targetMetafields;
+
+          // get date format string to format the date
+          let dateFormat = options.targets[0].dateFormat;
+
+          // Make one column for each meta field
+          targetMetafields.forEach(metakey => {
+            table.columns.push({text:metakey, type:'text', sort:true, desc:true})
+          });
+          table.columns.push({text: 'target', type: 'text'});
           let datasetsAtTimestamp = {};
+          let targetExists = false;
           output.forEach((dataset, i) => {
-            table.rows.push([dataset.target]);
-
-            dataset.datapoints.forEach((datapoint, j) => {
-              let milliseconds = datapoint[1];
-              if (typeof datasetsAtTimestamp[milliseconds] === 'undefined') {
-                datasetsAtTimestamp[milliseconds] = Array(output.length).fill(null);
-              }
-
-              datasetsAtTimestamp[milliseconds][i] = datapoint;
+            let metafields = [];
+            targetMetafields.forEach(metakey => {
+              metafields.push(dataset['meta'][metakey]);
             });
+            if(dataset.target){
+              metafields.push(dataset.target);
+              targetExists = true;
+            }
+            table.rows.push(metafields);
+              // check if datapoints exist for each dataset
+              if(dataset.datapoints){
+                // map each dataset's datapoints at timestamp
+                dataset.datapoints.forEach((datapoint, j) => {
+                let milliseconds = datapoint[1];
+                if (typeof datasetsAtTimestamp[milliseconds] === 'undefined') {
+                  datasetsAtTimestamp[milliseconds] = Array(output.length).fill(null);
+                }
+
+                datasetsAtTimestamp[milliseconds][i] = datapoint;
+              });
+            }
           });
 
-          Object.keys(datasetsAtTimestamp).sort().reverse().forEach(milliseconds => {
-            let datapoints = datasetsAtTimestamp[milliseconds];
-            let dateStr    = new Date(parseInt(milliseconds));
-            let range = angular.element('grafana-app').injector().get('timeSrv').timeRange();
-            if(range.from._isUTC && range.to._isUTC) {
-                dateOptions.timeZone = "utc";
-            }
-            table.columns.push({text: dateStr.toLocaleDateString("en-US", dateOptions), type: 'text'});
+          // if there's no target field remove the target (last) column
+          if(!targetExists) { table.columns.pop(); }
 
-            for (let i = 0; i < datapoints.length; i++) {
-	      var point = datapoints[i];
-              table.rows[i].push(point == null ? null : point[0]);
-            }
-          });
+          // Make column for each timestamp
+          if(Object.entries(datasetsAtTimestamp).length > 0){
+            Object.keys(datasetsAtTimestamp).sort().reverse().forEach(milliseconds => {
+              let datapoints = datasetsAtTimestamp[milliseconds];
+              let momentDate = moment(parseInt(milliseconds));
+              let formattedDate = momentDate.format(dateFormat);
+              let range = angular.element('grafana-app').injector().get('timeSrv').timeRange();
+              if(range.from._isUTC && range.to._isUTC) {
+                momentDate = moment.utc(parseInt(milliseconds));
+                formattedDate = momentDate.format(dateFormat);
+              }
+              table.columns.push({text: formattedDate, type: 'text'});
+
+              for (let i = 0; i < datapoints.length; i++) {
+                var point = datapoints[i];
+                table.rows[i].push(point == null ? null : point[0]);
+              }
+            });
+          }
 
           console.log('Formating result as a table.');
           return {
@@ -242,7 +271,6 @@ class GenericDatasource {
 
 	    // default to like
 	    let context = match ? match[1] : "like";
-	    	    
 	    if(!Array.isArray(value)) {
 		value = [value];
 	    }
@@ -285,14 +313,20 @@ class GenericDatasource {
 
     // construct an array of objects to preserve the order
     let resultObj = [];
+    let metaData = new Map();
     for(let key in result){
         // Aggregate functions will have 'values.' in the key. The rest are metric names
-        if(key.indexOf("values.") === -1) continue;
-        resultObj.push(key);
-        // sort the keys
+        if(key.indexOf("values.") === -1) {
+            metaData[key] = result[key];
+        } else {
+            resultObj.push(key);
+            // sort the keys
+        }
         resultObj.sort();
     }
-
+    if(resultObj.length === 0){
+      returnNames.push({meta: metaData});
+    }
     // parse the sorted keys to preserve the order
     for (let i = 0; i < resultObj.length; i++){
 
@@ -365,6 +399,7 @@ class GenericDatasource {
 
       returnNames.push({
         name:   key,
+        meta:   metaData,
         target: targetNames.join(' ')
       });
     }
@@ -1149,10 +1184,12 @@ class GenericDatasource {
               displayFormat: target.displayFormat,
               target:        target,
               targetAliases: target.metricValueAliasMappings,
+              targetMetafields: target.metric_array,
               targetBuckets: target.bucket,
               refId:         target.refId,
               hide:          target.hide,
-              type:          target.type || 'timeserie'
+              type:          target.type || 'timeserie',
+              dateFormat:    target.dateFormat
             });
           }
 
@@ -1191,10 +1228,12 @@ class GenericDatasource {
               target: query,
               targetAliases: target.metricValueAliasMappings,
               targetBuckets: target.bucket,
+              targetMetafields: target.metric_array,
               refId: target.refId,
               hide: target.hide,
               type: target.type || 'timeserie',
-              alias : target.target_alias
+              alias: target.target_alias,
+              dateFormat: target.dateFormat
             });
           }
 
@@ -1248,7 +1287,7 @@ class GenericDatasource {
                     aggregate_function.push(agg_all);
                     agg = "";
                     agg += `${split_aggr[1]}(${as_alias}, ${split_aggr[3]}, ${split_aggr[4]})`
-                    if(split_aggr[5].includes('align')){
+                    if(split_aggr[5] && split_aggr[5].includes('align')){
                         agg += ` ${split_aggr[5]}`;
                     }
                     agg += ` ${f.operation} as ${as_alias}`;
@@ -1349,7 +1388,7 @@ class GenericDatasource {
             if(target.aggregate_all){
                 let aggr = aggregate_function.join(', ');
                 aggregate_query += aggr;
-                aggregate_query += ` by nothing from ( ${query} )`;
+                aggregate_query += ` by ${target.combineAllBy} from ( ${query} )`;
                 target.target = aggregate_query;
                 query = aggregate_query;
             }else{
@@ -1367,10 +1406,12 @@ class GenericDatasource {
               target: query,
               targetAliases: target.metricValueAliasMappings,
               targetBuckets: target.bucket,
+              targetMetafields: target.metric_array,
               refId: target.refId,
               hide: target.hide,
               type: target.type || 'timeserie',
-              alias : target.target_alias
+              alias: target.target_alias,
+              dateFormat: target.dateFormat
             });
           });
 
