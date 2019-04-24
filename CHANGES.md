@@ -1,3 +1,7 @@
+## GRNOC TSDS Grafana 0.3.2 -- Wed Apr 24 2019
+
+* Fixed issue with datapoints that have a 0 value that was causing panel errors
+
 ## GRNOC TSDS Grafana 0.3.2 -- Wed Apr 10 2019
 
 * Added the ability to have a column for each metadata field
