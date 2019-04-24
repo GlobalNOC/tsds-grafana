@@ -1,4 +1,4 @@
-## GRNOC TSDS Grafana 0.3.2 -- Wed Apr 24 2019
+## GRNOC TSDS Grafana 0.3.3 -- Wed Apr 24 2019
 
 * Fixed issue with datapoints that have a 0 value that was causing panel errors
 
