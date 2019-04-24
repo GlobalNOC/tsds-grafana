@@ -129,7 +129,7 @@ class GenericDatasource {
                 for (let key in result) {
                     for(let aliasKey in aliases){
                         aliasKey = aliasKey.trim();
-                        if(!result[aliasKey]) {
+                        if(!result[aliasKey] && result[aliasKey] !== 0) {
                             if(aliasKey.includes(key)){
                                 result[aliasKey] = result[key];
                                 delete result[key];
@@ -141,7 +141,7 @@ class GenericDatasource {
                 let targetObjects = this.getTargetNames(result, template, aliases);
                 targetObjects.forEach((targetObject) => {
                   let datapoints = result[targetObject['name']];
-                  if(datapoints){
+                  if(datapoints || datapoints === 0){
                     if (Array.isArray(datapoints)) {
                       // TSDS returns [timestamp, value], but Grafana
                       // wants [value, timestamp] in milliseconds.
