@@ -93,16 +93,23 @@ class GenericDatasource {
         let end   = Date.parse(query.range.to) / 1000;
         let duration = (end - start);
         let output = [];
-
         let requests = query.targets.map((target) => {
             return new Promise((resolve, reject) => {
             let request_query = encodeURIComponent(target.target)
+            let data;
+
+            if (request_query === 'default') {
+                data = request_query;
+            }else {
+                data = `method=query;query=${request_query}`;
+            }
+
             let request = {
-                data: `method=query;query=${request_query}`,
+                data: data,
                 headers: {'Content-Type' : 'application/x-www-form-urlencoded'},
                 method: 'POST',
                 url: `${this.url}/query.cgi`
-                };
+            };
 
             if (this.basicAuth || this.withCredentials) {
               request.withCredentials = true;
@@ -121,6 +128,11 @@ class GenericDatasource {
 
               if (typeof response.data.error !== 'undefined') {
                 reject(response);
+              }
+
+              if(response.data[0] === 'help' || response.data[1] === 'query') {
+                response.data.results = [];
+                resolve('Default');
               }
 
               //Adding name + operation to the name returned by TSDS response
@@ -257,16 +269,16 @@ class GenericDatasource {
     }
 
     // function used to do query replacement of template variables.
-    // tries to do some instrospection of context of the template variable 
+    // tries to do some instrospection of context of the template variable
     // to generate the most efficient query
-    // for example, `like $foo` vs `in $foo` vs `= $foo` 
+    // for example, `like $foo` vs `in $foo` vs `= $foo`
     replaceQueryTemplate(string, options){
 	let localtemplateSrv = this.templateSrv;
 	string = this.templateSrv.replace(string, options.scopedVars, function(value, info, callback){
 	    let name = info.name;
 
 	    // try to figure out context
-	    let s = "(in)\\s+\\$" + name; 
+	    let s = "(in)\\s+\\$" + name;
 	    let match = string.match(s);
 
 	    // default to like
@@ -278,7 +290,7 @@ class GenericDatasource {
 	    if (context == "in"){
 		return "(" + value.map(val => '"' + val + '"').join(",") + ")";
 	    }
-	    return localtemplateSrv.formatValue(value, 'regex');	    
+	    return localtemplateSrv.formatValue(value, 'regex');
 
 	});
 
@@ -464,7 +476,7 @@ class GenericDatasource {
       return this.backendSrv.datasourceRequest(request)
         .then((response) => {
           if (response.status === 200) {
-            return { status: "success", message: "Data source is working", title: "Success" };
+              return { status: "success", message: "Data source is working", title: "Success" };
           }
 
           return { error: "Data source isn't working" };
@@ -1237,6 +1249,15 @@ class GenericDatasource {
             });
           }
 
+          if(!target.series) {
+              return resolve({
+                target: 'default',
+                refId: target.refId,
+                targetAliases: null,
+                alias: ''
+              });
+          }
+
           let query = 'get ';
 
           target.metric_array.forEach((metric) => {
@@ -1255,7 +1276,7 @@ class GenericDatasource {
               f.wrapper[0].aggregate_all = target.aggregate_all;
             }
             let aggregation = TSDSQuery(f);
- 
+
             if(!Array.isArray(aggregation)) { aggregation = [aggregation] }
             let template_variables = getVariableDetails();
             let defaultBucket = duration / options.maxDataPoints;
