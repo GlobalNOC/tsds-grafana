@@ -1,3 +1,9 @@
+## GRNOC TSDS Grafana 0.3.4 -- Fri June 7 2019
+
+* Fixed issue where home dashboard runs a query when the datasource is marked as default
+* Added support to handle processing of hidden queries to plugin.json as suggested for Grafana v6.2
+* Updated packages with potential security vulnerabilities
+
 ## GRNOC TSDS Grafana 0.3.3 -- Wed Apr 24 2019
 
 * Fixed issue with datapoints that have a 0 value that was causing panel errors
