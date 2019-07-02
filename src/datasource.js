@@ -93,6 +93,7 @@ class GenericDatasource {
         let end   = Date.parse(query.range.to) / 1000;
         let duration = (end - start);
         let output = [];
+        let displayFormat = options.targets[0].displayFormat;
         let requests = query.targets.map((target) => {
             return new Promise((resolve, reject) => {
             let request_query = encodeURIComponent(target.target)
@@ -141,7 +142,8 @@ class GenericDatasource {
                 for (let key in result) {
                     for(let aliasKey in aliases){
                         aliasKey = aliasKey.trim();
-                        if(!result[aliasKey] && result[aliasKey] !== 0) {
+                        if(aliasKey in result) break;
+                        if(result[aliasKey] !== null && result[aliasKey] !== 0) {
                             if(aliasKey.includes(key)){
                                 result[aliasKey] = result[key];
                                 delete result[key];
@@ -162,7 +164,12 @@ class GenericDatasource {
                       // It's possible that a user may request
                       // something like sum(aggregate(...)) which will
                       // result in a single datapoint being returned.
-                      targetObject['datapoints'] = [[datapoints, start * 1000],[datapoints, end * 1000]];
+                      // add start and end datapoint to make it a series only if the display Format is series
+                      if(typeof displayFormat === 'undefined' || displayFormat === 'series') {
+                        targetObject['datapoints'] = [[datapoints, start * 1000],[datapoints, end * 1000]];
+                      }else {
+                        targetObject['datapoints'] = [[datapoints, start * 1000]];
+                      }
                     }
                   }
                   // store reference to which target this came from to ensure same order back out
