@@ -152,7 +152,7 @@ class GenericDatasource {
                     }
                 }
 
-                let targetObjects = this.getTargetNames(result, template, aliases);
+                let targetObjects = this.getTargetNames(result, template, aliases, displayFormat);
                 targetObjects.forEach((targetObject) => {
                   let datapoints = result[targetObject['name']];
                   if(datapoints || datapoints === 0){
@@ -196,7 +196,7 @@ class GenericDatasource {
             console.log('Formating result as a series.');
             return {data: output};
           }
-
+          let singleStat;
           let table       = {columns: [], rows: [], type: 'table'};
 
           // array of metadata fields from the get field of the query builder in the order that they appear
@@ -209,6 +209,12 @@ class GenericDatasource {
           targetMetafields.forEach(metakey => {
             table.columns.push({text:metakey, type:'text', sort:true, desc:true})
           });
+          if (output[0].singleStat){
+            for (let key in output[0]) {
+                if(key === 'meta' || key === 'singleStat') continue;
+                table.columns.push({text: key, type: 'text'});
+            }
+          }
           table.columns.push({text: 'target', type: 'text'});
           let datasetsAtTimestamp = {};
           let targetExists = false;
@@ -222,17 +228,26 @@ class GenericDatasource {
               targetExists = true;
             }
             table.rows.push(metafields);
-              // check if datapoints exist for each dataset
+            singleStat = dataset.singleStat;
+            // check if datapoints exist for each dataset
+            if(singleStat){
+              for (let key in dataset) {
+                  if(key === 'meta' || key === 'singleStat') continue;
+                  table.rows[i].push(dataset[key]);
+              }
+            }
+            if(!singleStat){
               if(dataset.datapoints){
                 // map each dataset's datapoints at timestamp
                 dataset.datapoints.forEach((datapoint, j) => {
-                let milliseconds = datapoint[1];
-                if (typeof datasetsAtTimestamp[milliseconds] === 'undefined') {
-                  datasetsAtTimestamp[milliseconds] = Array(output.length).fill(null);
-                }
+                  let milliseconds = datapoint[1];
+                  if (typeof datasetsAtTimestamp[milliseconds] === 'undefined') {
+                    datasetsAtTimestamp[milliseconds] = Array(output.length).fill(null);
+                  }
 
-                datasetsAtTimestamp[milliseconds][i] = datapoint;
-              });
+                  datasetsAtTimestamp[milliseconds][i] = datapoint;
+                });
+              }
             }
           });
 
@@ -249,9 +264,8 @@ class GenericDatasource {
               if(range.from._isUTC && range.to._isUTC) {
                 momentDate = moment.utc(parseInt(milliseconds));
                 formattedDate = momentDate.format(dateFormat);
+                table.columns.push({text: formattedDate, type: 'text'});
               }
-              table.columns.push({text: formattedDate, type: 'text'});
-
               for (let i = 0; i < datapoints.length; i++) {
                 var point = datapoints[i];
                 table.rows[i].push(point == null ? null : point[0]);
@@ -327,7 +341,7 @@ class GenericDatasource {
         return `${seconds}s`;
     }
 
-  getTargetNames(result, template, aliases) {
+  getTargetNames(result, template, aliases, displayFormat) {
     let returnNames = [];
 
     // construct an array of objects to preserve the order
@@ -415,7 +429,6 @@ class GenericDatasource {
           targetNames[i] = '';
         }
       }
-
       returnNames.push({
         name:   key,
         meta:   metaData,
@@ -423,6 +436,29 @@ class GenericDatasource {
       });
     }
 
+    let res = {};
+    let singleStat = false;
+    returnNames.forEach(item => {
+      if(typeof result[item.name] === 'number' || (typeof result[item.name] === 'object' && result[item.name] === null)){
+        singleStat = true;
+      } else {
+        singleStat = false;
+      }
+
+      res['meta'] = item.meta;
+        //res[target.name] = result[target.name];
+      let target = item.target;
+      let name = item.name;
+      if(name.includes(target.toLowerCase())){
+        res[target] = result[item.name];
+      } else {
+        res[item.name] = result[item.name];
+      }
+      res['singleStat'] = singleStat;
+    });
+    if(singleStat && displayFormat === 'table'){
+      return [res];
+    }
     return returnNames;
   }
 
