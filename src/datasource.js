@@ -202,18 +202,18 @@ class GenericDatasource {
           // array of metadata fields from the get field of the query builder in the order that they appear
           let targetMetafields = options.targets[0].targetMetafields;
 
-          // get date format string to format the date
-          let dateFormat = options.targets[0].dateFormat;
-
           // Make one column for each meta field
           targetMetafields.forEach(metakey => {
             table.columns.push({text:metakey, type:'text', sort:true, desc:true})
           });
           if (output[0].singleStat){
-            for (let key in output[0]) {
-                if(key === 'meta' || key === 'singleStat') continue;
-                table.columns.push({text: key, type: 'text'});
-            }
+              Object.keys(output[0]).sort().forEach(key => {
+                  if(key === 'meta' || key === 'singleStat') {
+                    console.log(`Skipping ${key}`);
+                  }else {
+                    table.columns.push({text: key, type: 'text'});
+                  }
+            });
           }
           table.columns.push({text: 'target', type: 'text'});
           let datasetsAtTimestamp = {};
@@ -229,14 +229,16 @@ class GenericDatasource {
             }
             table.rows.push(metafields);
             singleStat = dataset.singleStat;
-            // check if datapoints exist for each dataset
             if(singleStat){
-              for (let key in dataset) {
-                  if(key === 'meta' || key === 'singleStat') continue;
-                  table.rows[i].push(dataset[key]);
-              }
-            }
-            if(!singleStat){
+                Object.keys(dataset).sort().forEach(key => {
+                if(key === 'meta' || key === 'singleStat') {
+                    console.log(`Skipping ${key}`);
+                }else {
+                    table.rows[i].push(dataset[key]);
+                }
+              });
+            }else {
+              // check if datapoints exist for each dataset
               if(dataset.datapoints){
                 // map each dataset's datapoints at timestamp
                 dataset.datapoints.forEach((datapoint, j) => {
@@ -253,6 +255,9 @@ class GenericDatasource {
 
           // if there's no target field remove the target (last) column
           if(!targetExists) { table.columns.pop(); }
+
+          // get date format string to format the date
+          let dateFormat = options.targets[0].dateFormat;
 
           // Make column for each timestamp
           if(Object.entries(datasetsAtTimestamp).length > 0){
@@ -449,7 +454,7 @@ class GenericDatasource {
         //res[target.name] = result[target.name];
       let target = item.target;
       let name = item.name;
-      if(name.includes(target.toLowerCase())){
+      if(target && (typeof target === 'string' || name.includes(target.toLowerCase()))){
         res[target] = result[item.name];
       } else {
         res[item.name] = result[item.name];
