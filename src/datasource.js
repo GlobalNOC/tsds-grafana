@@ -165,11 +165,7 @@ class GenericDatasource {
                       // something like sum(aggregate(...)) which will
                       // result in a single datapoint being returned.
                       // add start and end datapoint to make it a series only if the display Format is series
-                      if(typeof displayFormat === 'undefined' || displayFormat === 'series') {
-                        targetObject['datapoints'] = [[datapoints, start * 1000],[datapoints, end * 1000]];
-                      }else {
-                        targetObject['datapoints'] = [[datapoints, start * 1000]];
-                      }
+                      targetObject['datapoints'] = [[datapoints, start * 1000],[datapoints, end * 1000]];
                     }
                   }
                   // store reference to which target this came from to ensure same order back out
