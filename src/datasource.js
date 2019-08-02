@@ -93,6 +93,7 @@ class GenericDatasource {
         let end   = Date.parse(query.range.to) / 1000;
         let duration = (end - start);
         let output = [];
+        let displayFormat = options.targets[0].displayFormat;
         let requests = query.targets.map((target) => {
             return new Promise((resolve, reject) => {
             let request_query = encodeURIComponent(target.target)
@@ -141,7 +142,8 @@ class GenericDatasource {
                 for (let key in result) {
                     for(let aliasKey in aliases){
                         aliasKey = aliasKey.trim();
-                        if(!result[aliasKey] && result[aliasKey] !== 0) {
+                        if(aliasKey in result) break;
+                        if(result[aliasKey] !== null && result[aliasKey] !== 0) {
                             if(aliasKey.includes(key)){
                                 result[aliasKey] = result[key];
                                 delete result[key];
@@ -150,7 +152,7 @@ class GenericDatasource {
                     }
                 }
 
-                let targetObjects = this.getTargetNames(result, template, aliases);
+                let targetObjects = this.getTargetNames(result, template, aliases, displayFormat);
                 targetObjects.forEach((targetObject) => {
                   let datapoints = result[targetObject['name']];
                   if(datapoints || datapoints === 0){
@@ -162,6 +164,7 @@ class GenericDatasource {
                       // It's possible that a user may request
                       // something like sum(aggregate(...)) which will
                       // result in a single datapoint being returned.
+                      // add start and end datapoint to make it a series only if the display Format is series
                       targetObject['datapoints'] = [[datapoints, start * 1000],[datapoints, end * 1000]];
                     }
                   }
@@ -189,19 +192,25 @@ class GenericDatasource {
             console.log('Formating result as a series.');
             return {data: output};
           }
-
+          let singleStat;
           let table       = {columns: [], rows: [], type: 'table'};
 
           // array of metadata fields from the get field of the query builder in the order that they appear
           let targetMetafields = options.targets[0].targetMetafields;
 
-          // get date format string to format the date
-          let dateFormat = options.targets[0].dateFormat;
-
           // Make one column for each meta field
           targetMetafields.forEach(metakey => {
             table.columns.push({text:metakey, type:'text', sort:true, desc:true})
           });
+          if (output[0].singleStat){
+              Object.keys(output[0]).sort().forEach(key => {
+                  if(key === 'meta' || key === 'singleStat') {
+                    console.log(`Skipping ${key}`);
+                  }else {
+                    table.columns.push({text: key, type: 'text'});
+                  }
+            });
+          }
           table.columns.push({text: 'target', type: 'text'});
           let datasetsAtTimestamp = {};
           let targetExists = false;
@@ -215,22 +224,36 @@ class GenericDatasource {
               targetExists = true;
             }
             table.rows.push(metafields);
+            singleStat = dataset.singleStat;
+            if(singleStat){
+                Object.keys(dataset).sort().forEach(key => {
+                if(key === 'meta' || key === 'singleStat') {
+                    console.log(`Skipping ${key}`);
+                }else {
+                    table.rows[i].push(dataset[key]);
+                }
+              });
+            }else {
               // check if datapoints exist for each dataset
               if(dataset.datapoints){
                 // map each dataset's datapoints at timestamp
                 dataset.datapoints.forEach((datapoint, j) => {
-                let milliseconds = datapoint[1];
-                if (typeof datasetsAtTimestamp[milliseconds] === 'undefined') {
-                  datasetsAtTimestamp[milliseconds] = Array(output.length).fill(null);
-                }
+                  let milliseconds = datapoint[1];
+                  if (typeof datasetsAtTimestamp[milliseconds] === 'undefined') {
+                    datasetsAtTimestamp[milliseconds] = Array(output.length).fill(null);
+                  }
 
-                datasetsAtTimestamp[milliseconds][i] = datapoint;
-              });
+                  datasetsAtTimestamp[milliseconds][i] = datapoint;
+                });
+              }
             }
           });
 
           // if there's no target field remove the target (last) column
           if(!targetExists) { table.columns.pop(); }
+
+          // get date format string to format the date
+          let dateFormat = options.targets[0].dateFormat;
 
           // Make column for each timestamp
           if(Object.entries(datasetsAtTimestamp).length > 0){
@@ -242,9 +265,8 @@ class GenericDatasource {
               if(range.from._isUTC && range.to._isUTC) {
                 momentDate = moment.utc(parseInt(milliseconds));
                 formattedDate = momentDate.format(dateFormat);
+                table.columns.push({text: formattedDate, type: 'text'});
               }
-              table.columns.push({text: formattedDate, type: 'text'});
-
               for (let i = 0; i < datapoints.length; i++) {
                 var point = datapoints[i];
                 table.rows[i].push(point == null ? null : point[0]);
@@ -320,7 +342,7 @@ class GenericDatasource {
         return `${seconds}s`;
     }
 
-  getTargetNames(result, template, aliases) {
+  getTargetNames(result, template, aliases, displayFormat) {
     let returnNames = [];
 
     // construct an array of objects to preserve the order
@@ -408,7 +430,6 @@ class GenericDatasource {
           targetNames[i] = '';
         }
       }
-
       returnNames.push({
         name:   key,
         meta:   metaData,
@@ -416,6 +437,29 @@ class GenericDatasource {
       });
     }
 
+    let res = {};
+    let singleStat = false;
+    returnNames.forEach(item => {
+      if(typeof result[item.name] === 'number' || (typeof result[item.name] === 'object' && result[item.name] === null)){
+        singleStat = true;
+      } else {
+        singleStat = false;
+      }
+
+      res['meta'] = item.meta;
+        //res[target.name] = result[target.name];
+      let target = item.target;
+      let name = item.name;
+      if(target && (typeof target === 'string' || name.includes(target.toLowerCase()))){
+        res[target] = result[item.name];
+      } else {
+        res[item.name] = result[item.name];
+      }
+      res['singleStat'] = singleStat;
+    });
+    if(singleStat && displayFormat === 'table'){
+      return [res];
+    }
     return returnNames;
   }
 
@@ -745,31 +789,37 @@ class GenericDatasource {
             }else {
                 throw {message: "Required search field was not specified."}
             }
-	    let tokens = this.tokenizeString(search_variable.current.value, " ");//.map((f) => { if (f === ""){ return ".*"; } return f; });
+            let tokens = [];
+            if ( ( search_variable.current.value.startsWith("'") || search_variable.current.value.startsWith('"') ) && ( search_variable.current.value.endsWith("'") || search_variable.current.value.endsWith('"') ) ) {
+                const search_value = search_variable.current.value.slice(1,-1);
+                tokens.push(search_value);
+            } else {
+                tokens = this.tokenizeString(search_variable.current.value, " ");
+            }
             if("fields" in queryObject){
-		// only apply search terms if the value is not empty, otherwise this generates 
-		// inefficient queries 
-		if (search_variable.current.value){
+               // only apply search terms if the value is not empty, otherwise this generates
+               // inefficient queries
+                if (search_variable.current.value){
                     let where = this.buildWhere(queryObject.fields, tokens);
                     let where_clause = ` where ${where.join(" and ")}`;
                     query+=where_clause;
                     console.log("search_query:",query);
-		}
+                }
             }else {
                 throw {message: "Required fields not specified."}
             }
-	    if("static_where" in queryObject){
-		let static_where = this.replaceQueryTemplate(queryObject.static_where, options);
+            if("static_where" in queryObject){
+               let static_where = this.replaceQueryTemplate(queryObject.static_where, options);
 
-		// if we didn't have a search variable defined yet we don't have specified "where"
-		// so make sure we build the correct syntax
-		if (search_variable.current.value){
-		    query+=` and ${static_where}`;
-		}
-		else {
-		    query+=` where ${static_where}`;
-		}
-	    }
+                // if we didn't have a search variable defined yet we don't have specified "where"
+                // so make sure we build the correct syntax
+                if (search_variable.current.value){
+                    query+=` and ${static_where}`;
+                }
+                else {
+                    query+=` where ${static_where}`;
+                }
+            }
             if("limit" in queryObject){
                 query+=` limit ${queryObject.limit} offset 0`;
             } else {
