@@ -789,31 +789,37 @@ class GenericDatasource {
             }else {
                 throw {message: "Required search field was not specified."}
             }
-	    let tokens = this.tokenizeString(search_variable.current.value, " ");//.map((f) => { if (f === ""){ return ".*"; } return f; });
+            let tokens = [];
+            if ( ( search_variable.current.value.startsWith("'") || search_variable.current.value.startsWith('"') ) && ( search_variable.current.value.endsWith("'") || search_variable.current.value.endsWith('"') ) ) {
+                const search_value = search_variable.current.value.slice(1,-1);
+                tokens.push(search_value);
+            } else {
+                tokens = this.tokenizeString(search_variable.current.value, " ");
+            }
             if("fields" in queryObject){
-		// only apply search terms if the value is not empty, otherwise this generates 
-		// inefficient queries 
-		if (search_variable.current.value){
+               // only apply search terms if the value is not empty, otherwise this generates
+               // inefficient queries
+                if (search_variable.current.value){
                     let where = this.buildWhere(queryObject.fields, tokens);
                     let where_clause = ` where ${where.join(" and ")}`;
                     query+=where_clause;
                     console.log("search_query:",query);
-		}
+                }
             }else {
                 throw {message: "Required fields not specified."}
             }
-	    if("static_where" in queryObject){
-		let static_where = this.replaceQueryTemplate(queryObject.static_where, options);
+            if("static_where" in queryObject){
+               let static_where = this.replaceQueryTemplate(queryObject.static_where, options);
 
-		// if we didn't have a search variable defined yet we don't have specified "where"
-		// so make sure we build the correct syntax
-		if (search_variable.current.value){
-		    query+=` and ${static_where}`;
-		}
-		else {
-		    query+=` where ${static_where}`;
-		}
-	    }
+                // if we didn't have a search variable defined yet we don't have specified "where"
+                // so make sure we build the correct syntax
+                if (search_variable.current.value){
+                    query+=` and ${static_where}`;
+                }
+                else {
+                    query+=` where ${static_where}`;
+                }
+            }
             if("limit" in queryObject){
                 query+=` limit ${queryObject.limit} offset 0`;
             } else {
