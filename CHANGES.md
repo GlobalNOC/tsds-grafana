@@ -1,3 +1,8 @@
+## GRNOC TSDS Grafana 0.3.5 -- Thu Aug 7 2019
+
+* Added support to represent each single stat value as a column of its own in table mode
+* Added support for search template variable to use multiple terms
+
 ## GRNOC TSDS Grafana 0.3.4 -- Fri June 7 2019
 
 * Fixed issue where home dashboard runs a query when the datasource is marked as default
