@@ -2,6 +2,7 @@
 layout: page
 title: Template Variables
 permalink: /variables/
+published: true
 ---
 
 To create a dynamic dashboard panels, template variables may be
@@ -12,6 +13,8 @@ creator in any field in the visual query builder.
 ![]({{ "/assets/img/tmp-use.png" | relative_url }})
 
 ## Query
+
+### Basic Example
 
 A TSDS query can be used to generate values for a template variable.
 
@@ -24,6 +27,18 @@ metric. Assuming the query is configured correctly the Preview will
 list an example of the returned values.
 
 ![]({{ "/assets/img/tmp-query-config.png" | relative_url }})
+
+### Search Template Variable
+
+![]({{ "/assets/img/search-template-var.png" | relative_url }})
+
+To create a search template variable create a mew template variable of type `Text box` and name it `Search`. The default value field under text options can be left empty. Next, create another template variable of type `Query` as shown in the basic example. Input the following query:
+
+```json
+{"type": "search", "get": ["node"], "by": "node", "from": "interface", "fields": ["node"], "search": "$Search",  "order_by": "node", "limit": "100", "text": "{{node}}", "value": "{{node}}"}
+```
+
+Preview of values should show all the nodes from the query. Click save and go back to the dashboard. Inputting any search term in the search box will now show the results in the drop down list.
 
 ## Adhoc filters
 
