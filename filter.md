@@ -54,3 +54,15 @@ type of `Ad hoc filters` and a Name of `interface`.
 *Note: The Name **must** be `interface`.*
 
 ![]({{ "/assets/img/tmp-filter-config.png" | relative_url }})
+
+## Custom
+
+Custom variables can be added to the dashboard which can also be used in any field of the visual query builder.
+
+![]({{ "/assets/img/custom-template-var.png" | relative_url }})
+
+To add a custom variable, create a new variable of type `Custom`. Add comma separated values in the `Custom Options` section.
+
+![]({{ "/assets/img/custom-template-var-config.png" | relative_url }})
+
+Note: There are other types of template variables like `Interval, Datasource, Constant` etc that can be created depending on the usecase and requirements of a dashboard.
