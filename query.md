@@ -2,7 +2,12 @@
 layout: page
 title: Query Builder
 permalink: /query/
+published: true
 ---
+
+### From
+
+`From` dropdown contains the list of measurement types available for the selected datasource.
 
 ### Get function
 
@@ -126,6 +131,14 @@ names now take the form `ethernet3/1 Input (1m averages)`.
 In the above example we used the special `$VALUE` variable. This
 variable contains the value of the function name or alias if it was
 defined.
+
+### Format As
+
+`Format As` provides two options: `series`, and `table`. The data coming from TSDS will be formatted as a series or as a table for visualizing the data on a Table panel. The table format also provides the ability to provide the date format by using momentjs date formatting options.
+
+### Combine All Series
+
+When this switch is turned on, all the series on the graph are combined into a single series by summation. This is achieved by an outer query that will be created around the current query in the visual query builder when this option is turned on. By default, the results are grouped by `nothing` on the outer query.
 
 ## Raw Query Builder
 
