@@ -38,7 +38,7 @@ To create a search template variable create a mew template variable of type `Tex
 {"type": "search", "get": ["node"], "by": "node", "from": "interface", "fields": ["node"], "search": "$Search",  "order_by": "node", "limit": "100", "text": "{{node}}", "value": "{{node}}"}
 ```
 
-Preview of values should show all the nodes from the query. Click save and go back to the dashboard. Inputting any search term in the search box will now show the results in the drop down list.
+Preview of values should show all the nodes from the query. Click save and go back to the dashboard. Inputting any search term in the search box will now show any matching results as a drop down list.
 
 ## Adhoc filters
 
