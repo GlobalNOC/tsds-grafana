@@ -19,7 +19,7 @@ After installation verify the install was successful.
 
 ## Development
 
-This plugin requires node 6.10.0. Assuming this requirement is met you
+This plugin requires node > 10 < 11. Assuming this requirement is met you
 can build the project.
 
 ```
