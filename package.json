@@ -18,7 +18,7 @@
     "url": "https://github.com/GlobalNOC/tsds-grafana/issues"
   },
   "engines": {
-    "node": "^6.10.0"
+    "node": ">=10.0.0 <11.0.0"
   },
   "engineStrict": true,
   "devDependencies": {
@@ -37,7 +37,7 @@
     "grunt-execute": "~0.2.2",
     "grunt-mocha-test": "^0.12.7",
     "grunt-systemjs-builder": "^0.2.7",
-    "jsdom": "~3.1.2",
+    "jsdom-no-contextify": "~3.1.0",
     "load-grunt-tasks": "^3.2.0",
     "lodash": "^4.17.13",
     "mocha": "^2.5.3",

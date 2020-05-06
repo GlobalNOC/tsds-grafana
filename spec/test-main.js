@@ -1,5 +1,5 @@
 import prunk from 'prunk';
-import {jsdom} from 'jsdom';
+import {jsdom} from 'jsdom-no-contextify';
 import chai from 'chai';
 
 // Mock Grafana modules that are not available outside of the core project
