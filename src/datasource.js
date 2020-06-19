@@ -296,8 +296,22 @@ class GenericDatasource {
     // for example, `like $foo` vs `in $foo` vs `= $foo`
     replaceQueryTemplate(string, options){
 	let localtemplateSrv = this.templateSrv;
-	string = this.templateSrv.replace(string, options.scopedVars, function(value, info, callback){
+	// handle searchFilter
+
+	var DEFAULT_SEARCH = ".*";
+
+	options['__searchFilter'] = {"value": DEFAULT_SEARCH, "text": ""};
+	if (options.searchFilter){
+	    options['__searchFilter'] = {"value": options["searchFilter"], "text": ""};
+	}
+
+	string = this.templateSrv.replace(string, options, function(value, info, callback){
 	    let name = info.name;
+
+	    // name seems to be undefined when doing __searchFilter
+	    if (! name && value == DEFAULT_SEARCH){
+		return value;
+	    }
 
 	    // try to figure out context
 	    let s = "(in)\\s+\\$" + name;
@@ -704,7 +718,7 @@ class GenericDatasource {
      *
      * @param {string} options - A TSDS query
      */
-    metricFindQuery(options) {
+    metricFindQuery(options, optionalOptions) {
         var target = typeof options === "string" ? options : options.target;
 
         if (typeof angular === 'undefined') {
@@ -809,7 +823,7 @@ class GenericDatasource {
                 throw {message: "Required fields not specified."}
             }
             if("static_where" in queryObject){
-               let static_where = this.replaceQueryTemplate(queryObject.static_where, options);
+               let static_where = this.replaceQueryTemplate(queryObject.static_where, optionalOptions);
 
                 // if we didn't have a search variable defined yet we don't have specified "where"
                 // so make sure we build the correct syntax
@@ -842,7 +856,7 @@ class GenericDatasource {
         target = target.replace("$START", start.toString());
         target = target.replace("$END", end.toString());
         target = target.replace("$TIMESPAN", duration.toString());
-        target = this.replaceQueryTemplate(target, options);
+        target = this.replaceQueryTemplate(target, optionalOptions);
 
 
         // Nested template variables are escaped, which tsds doesn't
