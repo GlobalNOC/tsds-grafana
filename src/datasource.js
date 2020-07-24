@@ -265,8 +265,8 @@ class GenericDatasource {
               if(range.from._isUTC && range.to._isUTC) {
                 momentDate = moment.utc(parseInt(milliseconds));
                 formattedDate = momentDate.format(dateFormat);
-                table.columns.push({text: formattedDate, type: 'text'});
               }
+              table.columns.push({text: formattedDate, type: 'text'});
               for (let i = 0; i < datapoints.length; i++) {
                 var point = datapoints[i];
                 table.rows[i].push(point == null ? null : point[0]);
