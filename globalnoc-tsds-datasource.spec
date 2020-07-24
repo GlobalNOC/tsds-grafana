@@ -1,6 +1,6 @@
 Summary: GlobalNOC TSDS Datasource
 Name:    globalnoc-tsds-datasource
-Version: 0.3.5
+Version: 0.4.0
 Release: %{_buildno}%{?dist}
 License: Apache
 Group:   GRNOC

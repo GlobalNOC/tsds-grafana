@@ -1,3 +1,10 @@
+## GRNOC TSDS Grafana 0.4.0 -- Fri Jul 24 2020
+
+* Fixed issue where table mode data would only work when dashboard was in UTC mode
+* Added support for $__searchFilter in template variables, added in Grafana 6.5
+* Updating some build requirements, misc security fixes
+
+
 ## GRNOC TSDS Grafana 0.3.5 -- Thu Aug 7 2019
 
 * Added support to represent each single stat value as a column of its own in table mode
