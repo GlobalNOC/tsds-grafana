@@ -18,15 +18,15 @@
       "url": "https://globalnoc.iu.edu/"
     },
     "logos": {
-      "small": "img/simpleJson_logo.svg",
-      "large": "img/simpleJson_logo.svg"
+      "small": "img/globalnoc.svg",
+      "large": "img/globalnoc.svg"
     },
     "links": [
       {"name": "Github", "url": "https://github.com/GlobalNOC/tsds-grafana/tree/master/globalnoc-tsds-datasource"},
       {"name": "MIT License", "url": "https://github.com/GlobalNOC/tsds-grafana/blob/cleanup/globalnoc-tsds-datasource/LICENSE"}
     ],
-    "version": "0.4.0",
-    "updated": "2019-08-07"
+    "version": "0.4.1",
+    "updated": "2021-04-16"
   },
 
   "dependencies": {
