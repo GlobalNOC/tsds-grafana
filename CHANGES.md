@@ -1,3 +1,9 @@
+## GRNOC TSDS Grafana 0.4.1 -- Thu Apr 2021
+
+* Removing unused instance variable `this.variables` on the `GenericDatasource` class
+* The above instance variable causes a collision with newer versions of Grafana (7.4.0+) where that property name is reserved 
+* Replaced logo with the GlobalNOC logo
+
 ## GRNOC TSDS Grafana 0.4.0 -- Fri Jul 24 2020
 
 * Fixed issue where table mode data would only work when dashboard was in UTC mode

@@ -5,3 +5,4 @@ out/*
 Gemfile.lock
 _site/
 *.swp
+.DS_Store

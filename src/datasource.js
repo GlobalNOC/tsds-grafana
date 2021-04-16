@@ -43,7 +43,6 @@ class GenericDatasource {
         this.withCredentials = instanceSettings.withCredentials;
         this.backendSrv = backendSrv;
         this.templateSrv = templateSrv;
-        this.variables = this.templateSrv.variables;
         this.selectMenu = ['=','>','<'];
         this.metricValue = this.metricValue||[];
         this.metricColumn =this.metricColumn||[];
