@@ -62,5 +62,8 @@
     "mocha": "^2.4.5",
     "underscore.string": "^3.3.5"
   },
+  "resolutions": {
+    "graceful-fs": "^4.2.4"
+  },
   "homepage": "https://github.com/GlobalNOC/tsds-grafana/#readme"
 }
