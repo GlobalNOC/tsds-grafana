@@ -24,6 +24,10 @@
 import moment from "moment";
 import _ from "lodash";
 import { ResponseHandler } from "./response_handler";
+import {
+  MutableDataFrame,
+  FieldType,
+} from "@grafana/data";
 
 class GenericDatasource {
   /**
@@ -187,8 +191,6 @@ class GenericDatasource {
 
       return Promise.all(requests)
         .then((responses) => {
-          console.log(output);
-
           // since the queries are async there isn't a guarantee on which order they come back in
           // this gets them back to the order in which they were defined, ie query A is always first
           output.sort(function (a, b) {
@@ -196,7 +198,7 @@ class GenericDatasource {
           });
           // remove unneeded data now
           output.forEach(function (o) {
-            delete o["__refId"];
+            o.refId = o["__refId"];
           });
 
           if (
@@ -204,7 +206,8 @@ class GenericDatasource {
             options.targets[0].displayFormat === "series"
           ) {
             console.log("Formating result as a series.");
-            return { data: output };
+            let dataframes = this.convertOutputToDataFrame(output);
+            return { data: dataframes };
           }
           let singleStat;
           let table = { columns: [], rows: [], type: "table" };
@@ -927,7 +930,6 @@ class GenericDatasource {
     }
 
     return this.backendSrv.datasourceRequest(request).then((response) => {
-      console.log(response);
       if (response.data.error) {
         throw { message: response.data.error_text };
       }
@@ -1160,7 +1162,6 @@ class GenericDatasource {
    */
   buildQueryParameters(options, t) {
     var that = this;
-
     // Returns each template variable and its selected value has a
     // hash. i.e. {'metric':'average', 'example':
     // 'another_metric'}. getVariableDetails excludes any adhoc
@@ -1330,10 +1331,7 @@ class GenericDatasource {
           let duration = end - start;
 
           if (target.rawQuery) {
-            let query = t.templateSrv.replace(target.target, options.scopedVars);
-            let oldQ = query.substr(query.indexOf("{"), query.length);
-            let formatQ = oldQ.replace(/,/gi, " or ");
-            query = query.replace(oldQ, formatQ);
+            let query = that.replaceQueryTemplate(target.target, options);
 
             let defaultBucket = duration / options.maxDataPoints;
             // get defaultBucket rounded to nearest 10 for pretty
@@ -1341,7 +1339,7 @@ class GenericDatasource {
 
             if (duration >= 7776000) {
               size = Math.max(86400, size);
-            } else if (duration >= 259200) {
+            } else if (duration >= 1209600) {
               size = Math.max(3600, size);
             } else {
               size = Math.max(60, size);
@@ -1407,7 +1405,7 @@ class GenericDatasource {
 
             if (duration >= 7776000) {
               size = Math.max(86400, size);
-            } else if (duration >= 259200) {
+            } else if (duration >= 1209600) {
               size = Math.max(3600, size);
             } else {
               size = Math.max(60, size);
@@ -1540,12 +1538,6 @@ class GenericDatasource {
               target.target = query;
             }
 
-            // Log final query for debugging.
-            // TODO
-            console.log(options);
-            console.log(target);
-            console.log(query);
-
             return resolve({
               displayFormat: target.displayFormat,
               target: query,
@@ -1569,6 +1561,59 @@ class GenericDatasource {
       options.targets = targets;
       return Promise.resolve(options);
     });
+  }
+
+  /**
+   * Converts the TSDS Datasource Series Output to Dataframes
+   * @param {any} outputs
+   * @returns {MutableDataFrame[]} 
+   */
+  convertOutputToDataFrame(outputs) {
+    let results = []
+
+    for(const output of outputs) {
+      // Create dataframe with the TSDS output datapoints and timestamps
+      let df = new MutableDataFrame({
+        refId: output.refId,
+        fields: [
+          { name: 'time', type: FieldType.time },
+          { name: output.target, type: FieldType.number },
+        ],
+      })
+      
+      df.target = output.target
+
+      // Adding output.meta values as dataframe fields
+      // Meta Fields will either be coerced to a string | number type
+      for(const [key, value] of Object.entries(output.meta)) {
+        if(value == undefined || value === "" || isNaN(value)) {
+          df.addField({
+            name: key,
+            type: FieldType.string,
+            display: false
+          })
+        } else {
+          df.addField({
+            name: key,
+            type: FieldType.number,
+            display: false
+          })
+        }
+      }
+
+      for(const dp of output.datapoints) {
+        // Since spread operators are not allowed. we're going old school
+        const combined = Object.assign({
+          time: dp[1],
+          [output.target]: dp[0],
+        }, output.meta)
+
+        df.add(combined)
+      }
+
+      results.push(df) 
+    }
+    return results;
   }
 }
 

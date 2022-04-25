@@ -1,3 +1,10 @@
+## GRNOC TSDS Grafana 0.5.0 -- Mon Apr 2022
+
+* Enabled refID property on all queries
+* Time Series Data is now returned as dataframes
+* Added a more consistent method to how variables are interpreted
+* Changed Bucket Size for weekly time frames
+
 ## GRNOC TSDS Grafana 0.4.1 -- Thu Apr 2021
 
 * Removing unused instance variable `this.variables` on the `GenericDatasource` class
