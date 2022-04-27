@@ -321,7 +321,7 @@ class GenericDatasource {
   // tries to do some instrospection of context of the template variable
   // to generate the most efficient query
   // for example, `like $foo` vs `in $foo` vs `= $foo`
-  replaceQueryTemplate(string, options) {
+  replaceQueryTemplate(string, options, formatValue = true) {
     let localtemplateSrv = this.templateSrv;
     // handle searchFilter
 
@@ -353,7 +353,12 @@ class GenericDatasource {
       if (context == "in") {
         return "(" + value.map((val) => '"' + val + '"').join(",") + ")";
       }
-      return localtemplateSrv.formatValue(value, "regex");
+      
+      if (formatValue) {
+        return localtemplateSrv.formatValue(value, "regex");
+      } else {
+        return value.join("|");
+      }
     });
 
     return string;
@@ -1331,7 +1336,7 @@ class GenericDatasource {
           let duration = end - start;
 
           if (target.rawQuery) {
-            let query = that.replaceQueryTemplate(target.target, options);
+            let query = that.replaceQueryTemplate(target.target, options.scopedVars, false);
 
             let defaultBucket = duration / options.maxDataPoints;
             // get defaultBucket rounded to nearest 10 for pretty

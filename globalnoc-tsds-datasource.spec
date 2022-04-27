@@ -25,7 +25,7 @@ cp -pr %{_sourcedir}/*  %{_builddir}
 %build
 npm install yarn
 yarn install
-npm run build
+yarn run build
 
 %install
 rm -rf $RPM_BUILDR_ROOT
