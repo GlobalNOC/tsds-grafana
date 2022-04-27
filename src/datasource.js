@@ -321,6 +321,8 @@ class GenericDatasource {
   // tries to do some instrospection of context of the template variable
   // to generate the most efficient query
   // for example, `like $foo` vs `in $foo` vs `= $foo`
+  // 04-27-1998 Adding a new param to disable regex escaping for variables
+  // In Manual Query Builder
   replaceQueryTemplate(string, options, formatValue = true) {
     let localtemplateSrv = this.templateSrv;
     // handle searchFilter

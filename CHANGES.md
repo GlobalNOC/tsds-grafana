@@ -1,3 +1,6 @@
+## GRNOC TSDS Grafana 0.5.1 -- Wed Apr 2022
+* Bug Fix for Manual Query Builder that would fail to load when querying over repeating panels
+
 ## GRNOC TSDS Grafana 0.5.0 -- Mon Apr 2022
 
 * Enabled refID property on all queries
