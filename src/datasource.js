@@ -143,48 +143,66 @@ class GenericDatasource {
               resolve("Default");
             }
 
-            //Adding name + operation to the name returned by TSDS response
-            // to make it consistent for aliasing
-            response.data.results.forEach((result) => {
-              for (let key in result) {
-                for (let aliasKey in aliases) {
-                  aliasKey = aliasKey.trim();
-                  if (aliasKey in result) break;
-                  if (result[aliasKey] !== null && result[aliasKey] !== 0) {
-                    if (aliasKey.includes(key)) {
-                      result[aliasKey] = result[key];
-                      delete result[key];
+            console.log(response.data, 'DATAAAAAAAA');
+
+            let collection = query.match(/from\s*(\S+)/)[1];
+
+            let units = {}
+            this.getMeasurementTypeValues(collection)
+              .then((values) => {
+                units = values;
+                resolveData()
+              })
+              .catch((error) => resolveData());
+            console.log(collection, 'COLLECTION');
+
+            const resolveData = () =>{
+              console.log(units, 'UNITS')
+              //Adding name + operation to the name returned by TSDS response
+              // to make it consistent for aliasing
+              response.data.results.forEach((result) => {
+                for (let key in result) {
+                  for (let aliasKey in aliases) {
+                    aliasKey = aliasKey.trim();
+                    if (aliasKey in result) break;
+                    if (result[aliasKey] !== null && result[aliasKey] !== 0) {
+                      if (aliasKey.includes(key)) {
+                        result[aliasKey] = result[key];
+                        delete result[key];
+                      }
                     }
                   }
                 }
-              }
 
-              let targetObjects = this.getTargetNames(result, template, aliases, displayFormat);
-              targetObjects.forEach((targetObject) => {
-                let datapoints = result[targetObject["name"]];
-                if (datapoints || datapoints === 0) {
-                  if (Array.isArray(datapoints)) {
-                    // TSDS returns [timestamp, value], but Grafana
-                    // wants [value, timestamp] in milliseconds.
-                    targetObject["datapoints"] = datapoints.map((datapoint) => [datapoint[1], datapoint[0] * 1000]);
-                  } else {
-                    // It's possible that a user may request
-                    // something like sum(aggregate(...)) which will
-                    // result in a single datapoint being returned.
-                    // add start and end datapoint to make it a series only if the display Format is series
-                    targetObject["datapoints"] = [
-                      [datapoints, start * 1000],
-                      [datapoints, end * 1000],
-                    ];
+                let targetObjects = this.getTargetNames(result, template, aliases, displayFormat, units);
+                targetObjects.forEach((targetObject) => {
+                  let datapoints = result[targetObject["name"]];
+                  if (datapoints || datapoints === 0) {
+                    if (Array.isArray(datapoints)) {
+                      // TSDS returns [timestamp, value], but Grafana
+                      // wants [value, timestamp] in milliseconds.
+                      targetObject["datapoints"] = datapoints.map((datapoint) => [datapoint[1], datapoint[0] * 1000]);
+                    } else {
+                      // It's possible that a user may request
+                      // something like sum(aggregate(...)) which will
+                      // result in a single datapoint being returned.
+                      // add start and end datapoint to make it a series only if the display Format is series
+                      targetObject["datapoints"] = [
+                        [datapoints, start * 1000],
+                        [datapoints, end * 1000],
+                      ];
+                    }
                   }
-                }
-                // store reference to which target this came from to ensure same order back out
-                targetObject["__refId"] = refId;
+                  // store reference to which target this came from to ensure same order back out
+                  console.log('Target Object', targetObject)
+                  targetObject["__refId"] = refId;
 
-                output.push(targetObject);
+                  output.push(targetObject);
+                });
               });
-            });
-            resolve(output);
+              resolve(output);
+            }
+            
           });
         });
       });
@@ -394,12 +412,13 @@ class GenericDatasource {
     return `${seconds}s`;
   }
 
-  getTargetNames(result, template, aliases, displayFormat) {
+  getTargetNames(result, template, aliases, displayFormat, units = {}) {
     let returnNames = [];
 
     // construct an array of objects to preserve the order
     let resultObj = [];
     let metaData = new Map();
+    console.log(result, template, aliases, displayFormat);
     for (let key in result) {
       // Aggregate functions will have 'values.' in the key. The rest are metric names
       if (key.indexOf("values.") === -1) {
@@ -416,9 +435,17 @@ class GenericDatasource {
     // parse the sorted keys to preserve the order
     for (let i = 0; i < resultObj.length; i++) {
       let key = resultObj[i];
+      console.log('In Loop', key)
       let args = key.split(/[(,)]/).map((x) => x.trim());
       args = args.filter((item) => item !== "");
+      console.log(args, 'ARGS')
       let name = null;
+
+      // Map the key to correct unit type here
+      let unit;
+      console.log('TEST', key, key.match(/values.(.+?),/), units)
+      let valueType = key.match(/values.(.+?),/)[1]
+      unit = units[valueType];
 
       if (aliases.hasOwnProperty(key) && aliases[key] !== "") {
         name = aliases[key];
@@ -487,6 +514,7 @@ class GenericDatasource {
         name: key,
         meta: metaData,
         target: targetNames.join(" "),
+        unit: unit,
       });
     }
 
@@ -1022,9 +1050,12 @@ class GenericDatasource {
     }
 
     return this.backendSrv.datasourceRequest(request).then((response) => {
-      return response.data.results.map((x) => {
-        return { text: x.name, value: x.name };
-      });
+      if (response.data.error === 1) return {}
+      const result = {}
+      response.data.results.forEach((x) => {
+        result[x.name] = x.units
+      })
+      return result;
     });
   }
 
@@ -1576,51 +1607,87 @@ class GenericDatasource {
    * @returns {MutableDataFrame[]} 
    */
   convertOutputToDataFrame(outputs) {
-    let results = []
+    console.log('OLD Data', outputs);
+    return this.newConverter(outputs);
+  }
 
-    for(const output of outputs) {
-      // Create dataframe with the TSDS output datapoints and timestamps
-      let df = new MutableDataFrame({
-        refId: output.refId,
-        fields: [
-          { name: 'time', type: FieldType.time },
-          { name: output.target, type: FieldType.number },
-        ],
-      })
-      
-      df.target = output.target
+  newConverter(outputs) {
 
-      // Adding output.meta values as dataframe fields
-      // Meta Fields will either be coerced to a string | number type
-      for(const [key, value] of Object.entries(output.meta)) {
-        if(value == undefined || value === "" || isNaN(value)) {
-          df.addField({
-            name: key,
-            type: FieldType.string,
-            display: false
-          })
-        } else {
-          df.addField({
-            name: key,
-            type: FieldType.number,
-            display: false
-          })
+    const dataframes = {};
+    const frameFields = {};
+    const result = [];
+
+    for (const output of outputs) {
+      const { refId, target, meta, datapoints, name, unit } = output;
+      let df, frameField;
+
+      if(!dataframes[refId]) {
+        df = new MutableDataFrame({
+          refId,
+          fields: [
+            { name: 'time', type: FieldType.time },
+          ],
+        });
+        df.target = target;
+        // df.name = name;
+
+        const metaFields = {};
+        for(const [key, value] of Object.entries(meta)) {
+          metaFields[key] = Array.from(Array(datapoints.length), () => value);
+          if(value == undefined || value === "" || isNaN(value)) {
+            df.addField({
+              name: key,
+              type: FieldType.string,
+              display: false
+            })
+          } else {
+            df.addField({
+              name: key,
+              type: FieldType.number,
+              display: false
+            })
+          }
         }
+
+        dataframes[refId] = df;
+        frameFields[refId] = { 
+          meta: metaFields, 
+          fields: {
+            time: datapoints.map(dp => dp[1])
+          }
+        };
+        frameField = frameFields[refId];
+      } else {
+        df = dataframes[refId];
+        frameField = frameFields[refId];
       }
-
-      for(const dp of output.datapoints) {
-        // Since spread operators are not allowed. we're going old school
-        const combined = Object.assign({
-          time: dp[1],
-          [output.target]: dp[0],
-        }, output.meta)
-
-        df.add(combined)
-      }
-
-      results.push(df) 
+      df.addField({name: target, type: FieldType.number, config: {
+        unit
+      }});
+      frameField.fields[target] = datapoints.map(dp => dp[0]);
     }
-    return results;
+
+    console.log('Converter', dataframes, frameFields);
+    for (const refId in dataframes) {
+      const frameField = frameFields[refId];
+      const df = dataframes[refId];
+
+      for (let i = 0; i < frameField.fields.time.length; i++) {
+        const row = { };
+        for (const field in frameField.fields) {
+          row[field] = frameField.fields[field][i];
+        }
+        for (const field in frameField.meta) {
+          row[field] = frameField.meta[field][i];
+        }
+        df.add(row);
+      }
+      result.push(df);
+    }
+
+    console.log('RESULT', result);
+    
+    return result;
   }
 }
 
