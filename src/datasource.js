@@ -51,6 +51,7 @@ class GenericDatasource {
     this.metricValue = this.metricValue || [];
     this.metricColumn = this.metricColumn || [];
     this.whereSuggest = [];
+    this.measurementValueTypes = {}
   }
 
   /**
@@ -133,77 +134,79 @@ class GenericDatasource {
           let template = target.alias !== "" ? target.alias.split(" ") : null; // Value of 'Target Name'
           let refId = target.refId;
 
-          return this.backendSrv.datasourceRequest(request).then((response) => {
+          let collection = query.match(/from\s*(\S+)/)[1];
+          let hasUnits;
+
+          if (!this.measurementValueTypes[collection]) {
+            hasUnits = this.getUnits(collection)
+              .then((values) => {
+                this.measurementValueTypes[collection] = values;
+                return Promise.resolve(values);
+              })
+              .catch((error) => Promise.resolve({}));
+          } else {
+            hasUnits = Promise.resolve(this.measurementValueTypes[collection]);
+          }
+
+
+          
+          return hasUnits.then(units => {
+            this.backendSrv.datasourceRequest(request).then((response) => {
             if (typeof response.data.error !== "undefined") {
-              reject(response);
+              return reject(response);
             }
 
             if (response.data[0] === "help" || response.data[1] === "query") {
               response.data.results = [];
-              resolve("Default");
+              return resolve("Default");
             }
 
-            console.log(response.data, 'DATAAAAAAAA');
-
-            let collection = query.match(/from\s*(\S+)/)[1];
-
-            let units = {}
-            this.getMeasurementTypeValues(collection)
-              .then((values) => {
-                units = values;
-                resolveData()
-              })
-              .catch((error) => resolveData());
-            console.log(collection, 'COLLECTION');
-
-            const resolveData = () =>{
-              console.log(units, 'UNITS')
-              //Adding name + operation to the name returned by TSDS response
-              // to make it consistent for aliasing
-              response.data.results.forEach((result) => {
-                for (let key in result) {
-                  for (let aliasKey in aliases) {
-                    aliasKey = aliasKey.trim();
-                    if (aliasKey in result) break;
-                    if (result[aliasKey] !== null && result[aliasKey] !== 0) {
-                      if (aliasKey.includes(key)) {
-                        result[aliasKey] = result[key];
-                        delete result[key];
-                      }
+            // Adding name + operation to the name returned by TSDS response
+            // to make it consistent for aliasing
+            response.data.results.forEach((result) => {
+              for (let key in result) {
+                for (let aliasKey in aliases) {
+                  aliasKey = aliasKey.trim();
+                  if (aliasKey in result) break;
+                  if (result[aliasKey] !== null && result[aliasKey] !== 0) {
+                    if (aliasKey.includes(key)) {
+                      result[aliasKey] = result[key];
+                      delete result[key];
                     }
                   }
                 }
+              }
 
-                let targetObjects = this.getTargetNames(result, template, aliases, displayFormat, units);
-                targetObjects.forEach((targetObject) => {
-                  let datapoints = result[targetObject["name"]];
-                  if (datapoints || datapoints === 0) {
-                    if (Array.isArray(datapoints)) {
-                      // TSDS returns [timestamp, value], but Grafana
-                      // wants [value, timestamp] in milliseconds.
-                      targetObject["datapoints"] = datapoints.map((datapoint) => [datapoint[1], datapoint[0] * 1000]);
-                    } else {
-                      // It's possible that a user may request
-                      // something like sum(aggregate(...)) which will
-                      // result in a single datapoint being returned.
-                      // add start and end datapoint to make it a series only if the display Format is series
-                      targetObject["datapoints"] = [
-                        [datapoints, start * 1000],
-                        [datapoints, end * 1000],
-                      ];
-                    }
+              let targetObjects = this.getTargetNames(result, template, aliases, displayFormat, units);
+              targetObjects.forEach((targetObject) => {
+                let datapoints = result[targetObject["name"]];
+                if (datapoints || datapoints === 0) {
+                  if (Array.isArray(datapoints)) {
+                    // TSDS returns [timestamp, value], but Grafana
+                    // wants [value, timestamp] in milliseconds.
+                    targetObject["datapoints"] = datapoints.map((datapoint) => [datapoint[1], datapoint[0] * 1000]);
+                  } else {
+                    // It's possible that a user may request
+                    // something like sum(aggregate(...)) which will
+                    // result in a single datapoint being returned.
+                    // add start and end datapoint to make it a series only if the display Format is series
+                    targetObject["datapoints"] = [
+                      [datapoints, start * 1000],
+                      [datapoints, end * 1000],
+                    ];
                   }
-                  // store reference to which target this came from to ensure same order back out
-                  console.log('Target Object', targetObject)
-                  targetObject["__refId"] = refId;
+                }
+                // store reference to which target this came from to ensure same order back out
+                targetObject["__refId"] = refId;
 
-                  output.push(targetObject);
-                });
+                output.push(targetObject);
               });
-              resolve(output);
-            }
+            });
+            resolve(output);
+
             
-          });
+          })});
+
         });
       });
 
@@ -224,7 +227,9 @@ class GenericDatasource {
             options.targets[0].displayFormat === "series"
           ) {
             console.log("Formating result as a series.");
+            console.log('Old output:', output);
             let dataframes = this.convertOutputToDataFrame(output);
+            console.log('New output (Dataframes):', dataframes);
             return { data: dataframes };
           }
           let singleStat;
@@ -418,7 +423,6 @@ class GenericDatasource {
     // construct an array of objects to preserve the order
     let resultObj = [];
     let metaData = new Map();
-    console.log(result, template, aliases, displayFormat);
     for (let key in result) {
       // Aggregate functions will have 'values.' in the key. The rest are metric names
       if (key.indexOf("values.") === -1) {
@@ -435,16 +439,18 @@ class GenericDatasource {
     // parse the sorted keys to preserve the order
     for (let i = 0; i < resultObj.length; i++) {
       let key = resultObj[i];
-      console.log('In Loop', key)
       let args = key.split(/[(,)]/).map((x) => x.trim());
       args = args.filter((item) => item !== "");
-      console.log(args, 'ARGS')
       let name = null;
 
       // Map the key to correct unit type here
       let unit;
-      console.log('TEST', key, key.match(/values.(.+?),/), units)
-      let valueType = key.match(/values.(.+?),/)[1]
+      let valueType = ''
+      try {
+        valueType = (key+' ').match(/values.(.+?),?\s/)[1]
+      } catch (error) {
+        console.log(error)
+      }
       unit = units[valueType];
 
       if (aliases.hasOwnProperty(key) && aliases[key] !== "") {
@@ -1033,7 +1039,7 @@ class GenericDatasource {
    *
    * @param {string} type - The measurement type to query
    */
-  getMeasurementTypeValues(type) {
+   getUnits(type) {
     let request = {
       data: `method=get_measurement_type_values;measurement_type=${type}`,
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -1056,6 +1062,37 @@ class GenericDatasource {
         result[x.name] = x.units
       })
       return result;
+    });
+  }
+
+    /**
+   * getMeasurementTypeValues returns a list of values that may be
+   * graphed. These values are the values grouped under measurement
+   * type measurementType; For example, a measurement type of
+   * interface will contain values including input and output.
+   *
+   * @param {string} type - The measurement type to query
+   */
+    getMeasurementTypeValues(type) {
+    let request = {
+      data: `method=get_measurement_type_values;measurement_type=${type}`,
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      method: "POST",
+      url: `${this.url}/metadata.cgi`,
+    };
+
+    if (this.basicAuth || this.withCredentials) {
+      request.withCredentials = true;
+    }
+
+    if (this.basicAuth) {
+      request.headers.Authorization = self.basicAuth;
+    }
+
+    return this.backendSrv.datasourceRequest(request).then((response) => {
+      return response.data.results.map((x) => {
+        return { text: x.name, value: x.name };
+      });
     });
   }
 
@@ -1607,12 +1644,6 @@ class GenericDatasource {
    * @returns {MutableDataFrame[]} 
    */
   convertOutputToDataFrame(outputs) {
-    console.log('OLD Data', outputs);
-    return this.newConverter(outputs);
-  }
-
-  newConverter(outputs) {
-
     const dataframes = {};
     const frameFields = {};
     const result = [];
@@ -1666,8 +1697,6 @@ class GenericDatasource {
       }});
       frameField.fields[target] = datapoints.map(dp => dp[0]);
     }
-
-    console.log('Converter', dataframes, frameFields);
     for (const refId in dataframes) {
       const frameField = frameFields[refId];
       const df = dataframes[refId];
@@ -1684,8 +1713,6 @@ class GenericDatasource {
       }
       result.push(df);
     }
-
-    console.log('RESULT', result);
     
     return result;
   }
