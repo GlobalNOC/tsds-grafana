@@ -1,7 +1,7 @@
 {
   "name": "globalnoc-tsds-datasource",
   "private": true,
-  "version": "1.0.0",
+  "version": "0.6.0",
   "description": "Grafana Datasource for GlobalNOC's TSDS Database",
   "main": "index.js",
   "scripts": {

@@ -1,3 +1,6 @@
+## GRNOC TSDS Grafana 0.6.0 -- Wed June 2022
+* Dataframes will now be collated into one dataframe per query.
+* Automatic Unit detection
 ## GRNOC TSDS Grafana 0.5.1 -- Wed Apr 2022
 * Bug Fix for Manual Query Builder that would fail to load when querying over repeating panels
 
