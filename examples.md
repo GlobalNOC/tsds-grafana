@@ -1,0 +1,22 @@
+---
+layout: page
+title: Examples
+permalink: /examples/
+published: true
+---
+
+
+## Adding Min, Max Threshold to a Visualization
+Sometimes, it might be useful to visualize how a certain measurement performs relative to its minimum/maximum capacity. 
+
+For example, consider two interfaces on a network device. Both interface have an input traffic of 100 Mb/s. However, the first interface has a higher capacity (10 Gb/s) than the second interface (1 Gb/s). The traffic graph for both interfaces would look similar but we would miss the fact that the first interface is running at 1% of its capacity whereas the second interface is running at 10% of its capacity.
+
+Follow the following steps to add threshold values to your measurement queries:
+
+### Step 1: Build a query
+
+<p align="center"><img src="{{ "/assets/img/max-threshold-query.png" | relative_url }}"/></p>
+
+Create a TSDS query similar to the example shown above. For more information on how to build a TSDS query, see the [Query Builder Section](https://globalnoc.github.io/tsds-grafana/query/).
+
+**Note:** Your query should also include `max_bandwidth` metadata field. This field will be used to calculate the maximum threshold value.
