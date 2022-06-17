@@ -32,9 +32,9 @@ Select the following fields:
 <p align="center"><img src="{{ "/assets/img/config-query-results.png" | relative_url }}"/></p>
 
 - **Config query**: `A` - This is the name of the query you created in Step 1.
-- **Apply To**: `Fields with name` - Select the best option that will help you apply the transformation to the values in your query. Since this example only has one `input` field, we can target it by directly selecting its name.
-- **Apply to options**: `Input*` - Based on the option selected in the previous step, the options will show which fields are available to apply the transformation to. In this case, we can target the `input` field by directly selecting its name.
--- **max_bandwidth** - 'Use as: Max' - 'Select: Last*' - This will select the latest value `max_bandwidth` field as the maximum value of the `input` field. 
+- **Apply To**: `Fields with type` - Select the best option that will help you apply the transformation to the values in your query. We can apply the max threshold to fields of a certain type. 
+- **Apply to options**: `Numeric` - Based on the option selected in the previous step, the dropdown will show different field types like Numeric, string, time present in our query data. Since `input` values are of Numeric type we will select that option.
+- **max_bandwidth** - *Use as: Max* - *Select: Last* - This will select the latest value from the `max_bandwidth` field as the maximum value of the `input` field. 
 
 We also need to add another transform to hide the max_bandwidth field now. In order to do this, click on `Add transformation` and select `Organize fields`.
 
