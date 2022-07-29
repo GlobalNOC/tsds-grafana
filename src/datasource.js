@@ -190,6 +190,7 @@ class GenericDatasource {
                     // something like sum(aggregate(...)) which will
                     // result in a single datapoint being returned.
                     // add start and end datapoint to make it a series only if the display Format is series
+                    targetObject['singleDatapoint'] = true;
                     targetObject["datapoints"] = [
                       [datapoints, start * 1000],
                       [datapoints, end * 1000],
@@ -1647,11 +1648,17 @@ class GenericDatasource {
     const dataframes = {};
     const frameFields = {};
     const result = [];
+    let totalDataPoints = 0;
+
+    outputs.sort((a, b) => b.datapoints.length - a.datapoints.length);
 
     for (const output of outputs) {
       const { refId, target, meta, datapoints, name, unit } = output;
       let df, frameField;
 
+      // Output from the same query i.e the same refID need to 
+      // be grouped in one data frame. dataframes object stores 
+      // each data frame with the refID as the key.
       if(!dataframes[refId]) {
         df = new MutableDataFrame({
           refId,
@@ -1660,7 +1667,6 @@ class GenericDatasource {
           ],
         });
         df.target = target;
-        // df.name = name;
 
         const metaFields = {};
         for(const [key, value] of Object.entries(meta)) {
@@ -1687,6 +1693,7 @@ class GenericDatasource {
             time: datapoints.map(dp => dp[1])
           }
         };
+        totalDataPoints = datapoints.length;
         frameField = frameFields[refId];
       } else {
         df = dataframes[refId];
@@ -1695,8 +1702,16 @@ class GenericDatasource {
       df.addField({name: target, type: FieldType.number, config: {
         unit
       }});
-      frameField.fields[target] = datapoints.map(dp => dp[0]);
+
+      // This is a hack to get the data points in the correct order.
+      // For TSDS values that only return a single value instead of an array
+      if(output.singleDatapoint) {
+        frameField.fields[target] = Array(totalDataPoints).fill(datapoints[0][0]);
+      } else {
+        frameField.fields[target] = datapoints.map(dp => dp[0]);
+      }
     }
+
     for (const refId in dataframes) {
       const frameField = frameFields[refId];
       const df = dataframes[refId];
