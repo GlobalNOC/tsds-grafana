@@ -1644,7 +1644,8 @@ class GenericDatasource {
    * @param {any} outputs
    * @returns {MutableDataFrame[]} 
    */
-  convertOutputToDataFrame(outputs) {
+  convertOutputToDataFrameOld(outputs) {
+    this.convertOutputToDataFrameNew(outputs);
     const dataframes = {};
     const frameFields = {};
     const result = [];
@@ -1730,6 +1731,101 @@ class GenericDatasource {
     }
     
     return result;
+    
+  }
+
+  convertOutputToDataFrame(outputs) {
+    const outputByRefId = new Map();
+    const dataframes = []
+    // Group the outputs by refId
+    outputs.reduce((acc, output) => {
+      const outputId = output.refId;
+      if (acc.has(outputId)) {
+        acc.get(outputId).push(output);
+      } else {
+        acc.set(outputId, [output]);
+      }
+      return acc;
+    }, outputByRefId)
+
+    for(const [refId, outputs] of outputByRefId) {
+      let timestampMap = new Map();
+
+      // Go Through each output and create a map of timestamps to values
+      // This is to ensure that all timestamps are present in the dataframe
+      for(const output of outputs) {
+        const { target, datapoints } = output;
+        
+        for(const datapoint of datapoints) {
+          const [value, timestamp] = datapoint;
+          if(timestampMap.has(timestamp)) {
+            timestampMap.get(timestamp).set(target, value);
+          } else {
+            timestampMap.set(timestamp, new Map([[target, value]]));
+          }
+        }
+
+      }
+
+      const timestampMapSorted = [...timestampMap.entries()].sort((a, b) => a[0] - b[0]);
+      const timestampCount = timestampMapSorted.length;
+      
+      const fields = {};
+
+      const dataframe = new MutableDataFrame({
+        refId,
+        fields: [
+          { name: 'time', type: FieldType.time },
+        ],
+      });
+
+      let metaFieldsAdded = false;
+      let metaFields = {};
+      for(const output of outputs) {
+        const { target, unit, meta } = output;
+
+        if (!metaFieldsAdded) {
+          dataframe.target = target;
+          for(const [key, value] of Object.entries(meta)) {
+            if(value == undefined || value === "" || isNaN(value)) {
+              dataframe.addField({
+                name: key,
+                type: FieldType.string,
+                display: false
+              })
+            } else {
+              dataframe.addField({
+                name: key,
+                type: FieldType.number,
+                display: false
+              })
+            }
+            metaFields[key] = value;
+          }
+          metaFieldsAdded = true;
+          
+        }
+
+        dataframe.addField({name: target, type: FieldType.number, config: {
+          unit
+        }});
+      }
+
+      for(const [timestamp, valueMap] of timestampMapSorted) {
+        const row = Object.assign({ time: timestamp }, metaFields);
+
+        for(const [target, value] of valueMap) {
+          row[target] = value;
+        }
+
+        dataframe.add(row);
+      }
+
+      dataframes.push(dataframe);
+    }
+
+    console.log(outputByRefId);
+    return dataframes;
   }
 }
 
