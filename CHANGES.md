@@ -1,3 +1,6 @@
+## GRNOC TSDS Grafana 0.6.1 -- Wed June 2022
+* Better Dataframe time interpolation for multiple values
+
 ## GRNOC TSDS Grafana 0.6.0 -- Wed June 2022
 * Dataframes will now be collated into one dataframe per query.
 * Automatic Unit detection

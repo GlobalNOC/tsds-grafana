@@ -1644,95 +1644,95 @@ class GenericDatasource {
    * @param {any} outputs
    * @returns {MutableDataFrame[]} 
    */
-  convertOutputToDataFrameOld(outputs) {
-    this.convertOutputToDataFrameNew(outputs);
-    const dataframes = {};
-    const frameFields = {};
-    const result = [];
-    let totalDataPoints = 0;
+  // convertOutputToDataFrameOld(outputs) {
+  //   this.convertOutputToDataFrameNew(outputs);
+  //   const dataframes = {};
+  //   const frameFields = {};
+  //   const result = [];
+  //   let totalDataPoints = 0;
 
-    outputs.sort((a, b) => b.datapoints.length - a.datapoints.length);
+  //   outputs.sort((a, b) => b.datapoints.length - a.datapoints.length);
 
-    for (const output of outputs) {
-      const { refId, target, meta, datapoints, name, unit } = output;
-      let df, frameField;
+  //   for (const output of outputs) {
+  //     const { refId, target, meta, datapoints, name, unit } = output;
+  //     let df, frameField;
 
-      // Output from the same query i.e the same refID need to 
-      // be grouped in one data frame. dataframes object stores 
-      // each data frame with the refID as the key.
-      if(!dataframes[refId]) {
-        df = new MutableDataFrame({
-          refId,
-          fields: [
-            { name: 'time', type: FieldType.time },
-          ],
-        });
-        df.target = target;
+  //     // Output from the same query i.e the same refID need to 
+  //     // be grouped in one data frame. dataframes object stores 
+  //     // each data frame with the refID as the key.
+  //     if(!dataframes[refId]) {
+  //       df = new MutableDataFrame({
+  //         refId,
+  //         fields: [
+  //           { name: 'time', type: FieldType.time },
+  //         ],
+  //       });
+  //       df.target = target;
 
-        const metaFields = {};
-        for(const [key, value] of Object.entries(meta)) {
-          metaFields[key] = Array.from(Array(datapoints.length), () => value);
-          if(value == undefined || value === "" || isNaN(value)) {
-            df.addField({
-              name: key,
-              type: FieldType.string,
-              display: false
-            })
-          } else {
-            df.addField({
-              name: key,
-              type: FieldType.number,
-              display: false
-            })
-          }
-        }
+  //       const metaFields = {};
+  //       for(const [key, value] of Object.entries(meta)) {
+  //         metaFields[key] = Array.from(Array(datapoints.length), () => value);
+  //         if(value == undefined || value === "" || isNaN(value)) {
+  //           df.addField({
+  //             name: key,
+  //             type: FieldType.string,
+  //             display: false
+  //           })
+  //         } else {
+  //           df.addField({
+  //             name: key,
+  //             type: FieldType.number,
+  //             display: false
+  //           })
+  //         }
+  //       }
 
-        dataframes[refId] = df;
-        frameFields[refId] = { 
-          meta: metaFields, 
-          fields: {
-            time: datapoints.map(dp => dp[1])
-          }
-        };
-        totalDataPoints = datapoints.length;
-        frameField = frameFields[refId];
-      } else {
-        df = dataframes[refId];
-        frameField = frameFields[refId];
-      }
-      df.addField({name: target, type: FieldType.number, config: {
-        unit
-      }});
+  //       dataframes[refId] = df;
+  //       frameFields[refId] = { 
+  //         meta: metaFields, 
+  //         fields: {
+  //           time: datapoints.map(dp => dp[1])
+  //         }
+  //       };
+  //       totalDataPoints = datapoints.length;
+  //       frameField = frameFields[refId];
+  //     } else {
+  //       df = dataframes[refId];
+  //       frameField = frameFields[refId];
+  //     }
+  //     df.addField({name: target, type: FieldType.number, config: {
+  //       unit
+  //     }});
 
-      // This is a hack to get the data points in the correct order.
-      // For TSDS values that only return a single value instead of an array
-      if(output.singleDatapoint) {
-        frameField.fields[target] = Array(totalDataPoints).fill(datapoints[0][0]);
-      } else {
-        frameField.fields[target] = datapoints.map(dp => dp[0]);
-      }
-    }
+  //     // This is a hack to get the data points in the correct order.
+  //     // For TSDS values that only return a single value instead of an array
+  //     if(output.singleDatapoint) {
+  //       frameField.fields[target] = Array(totalDataPoints).fill(datapoints[0][0]);
+  //     } else {
+  //       frameField.fields[target] = datapoints.map(dp => dp[0]);
+  //     }
+  //   }
 
-    for (const refId in dataframes) {
-      const frameField = frameFields[refId];
-      const df = dataframes[refId];
+  //   for (const refId in dataframes) {
+  //     const frameField = frameFields[refId];
+  //     const df = dataframes[refId];
 
-      for (let i = 0; i < frameField.fields.time.length; i++) {
-        const row = { };
-        for (const field in frameField.fields) {
-          row[field] = frameField.fields[field][i];
-        }
-        for (const field in frameField.meta) {
-          row[field] = frameField.meta[field][i];
-        }
-        df.add(row);
-      }
-      result.push(df);
-    }
+  //     for (let i = 0; i < frameField.fields.time.length; i++) {
+  //       const row = { };
+  //       for (const field in frameField.fields) {
+  //         row[field] = frameField.fields[field][i];
+  //       }
+  //       for (const field in frameField.meta) {
+  //         row[field] = frameField.meta[field][i];
+  //       }
+  //       df.add(row);
+  //     }
+  //     result.push(df);
+  //   }
     
-    return result;
+  //   return result;
     
-  }
+  // }
 
   convertOutputToDataFrame(outputs) {
     const outputByRefId = new Map();
@@ -1824,7 +1824,6 @@ class GenericDatasource {
       dataframes.push(dataframe);
     }
 
-    console.log(outputByRefId);
     return dataframes;
   }
 }
