@@ -38,7 +38,7 @@
     "lodash": "^4.17.21",
     "mocha": "^2.5.3",
     "mocha-jsdom": "^1.1.0",
-    "moment": "^2.29.2",
+    "moment": "^2.29.4",
     "prunk": "~1.2.1",
     "q": "~1.4.1",
     "require-grunt-configs": "^0.5.0"
