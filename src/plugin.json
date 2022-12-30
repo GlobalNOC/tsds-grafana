@@ -1,10 +1,10 @@
 {
   "type": "datasource",
-  "name": "GlobalNOC TSDS",
-  "id": "globalnoc-tsds-datasource",
+  "name": "GlobalNOC TSDS Large Query",
+  "id": "globalnoc-tsds-datasource-large-query",
 
   "partials": {
-    "config": "public/app/plugins/datasource/globalnoc-tsds-datasource/dist/partials/config.html"
+    "config": "public/app/plugins/datasource/globalnoc-tsds-datasource-large-query/dist/partials/config.html"
   },
 
   "metrics": true,

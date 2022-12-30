@@ -1,5 +1,5 @@
-Summary: GlobalNOC TSDS Datasource
-Name:    globalnoc-tsds-datasource
+Summary: GlobalNOC TSDS Datasource Large Query
+Name:    globalnoc-tsds-datasource-large-query
 Version: 0.6.1
 Release: %{_buildno}%{?dist}
 License: Apache
@@ -30,8 +30,8 @@ yarn run build
 %install
 rm -rf $RPM_BUILDR_ROOT
 
-%{__install} -d -p %{buildroot}%{_sharedstatedir}/grafana/plugins/globalnoc-tsds-datasource/dist
-cp -ar %{_builddir}/dist/* %{buildroot}%{_sharedstatedir}/grafana/plugins/globalnoc-tsds-datasource/dist
+%{__install} -d -p %{buildroot}%{_sharedstatedir}/grafana/plugins/globalnoc-tsds-datasource-large-query/dist
+cp -ar %{_builddir}/dist/* %{buildroot}%{_sharedstatedir}/grafana/plugins/globalnoc-tsds-datasource-large-query/dist
 
 %files
-%{_sharedstatedir}/grafana/plugins/globalnoc-tsds-datasource/dist
+%{_sharedstatedir}/grafana/plugins/globalnoc-tsds-datasource-large-query/dist

@@ -1413,13 +1413,21 @@ class GenericDatasource {
             // get defaultBucket rounded to nearest 10 for pretty
             let size = Math.ceil(defaultBucket / 10) * 10;
 
-            if (duration >= 7776000) {
+            if (duration >= 7776000) { // (90d) / 1d = 90 pts
               size = Math.max(86400, size);
-            } else if (duration >= 1209600) {
-              size = Math.max(3600, size);
+            } else if (duration >= 2592000) { // (30d) / 3h  = 240 pts
+              size = Math.max(10800, size);
+            } else if (duration >= 259200) { // (3d) / 1h = 72 pts
+              size = Math.max(3600, size)
+            } else if (duration >= 86400) { // (1d) / 600s = 144 pts
+              size = Math.max(600, size);	
             } else {
               size = Math.max(60, size);
             }
+
+            // console.log(`defaultBucket: ${defaultBucket}`);
+            // console.log(`size: ${size}`);
+            // console.log(`duration: ${duration}`);
 
             query = query.replace("$START", start.toString());
             query = query.replace("$END", end.toString());
@@ -1479,13 +1487,21 @@ class GenericDatasource {
             defaultBucket = Math.ceil(defaultBucket / 10) * 10;
             let size = f.bucket === "" ? defaultBucket : parseInt(f.bucket);
 
-            if (duration >= 7776000) {
+            if (duration >= 7776000) { // (90d) / 1d = 90 pts
               size = Math.max(86400, size);
-            } else if (duration >= 1209600) {
-              size = Math.max(3600, size);
+            } else if (duration >= 2592000) { // (30d) / 3h  = 240 pts
+              size = Math.max(10800, size);
+            } else if (duration >= 259200) { // (3d) / 15m = 72 pts
+              size = Math.max(3600, size)
+            } else if (duration >= 86400) { // (1d) / 600s = 144 pts
+              size = Math.max(600, size);	
             } else {
               size = Math.max(60, size);
             }
+
+            // console.log(`defaultBucket: ${defaultBucket}`);
+            // console.log(`size: ${size}`);
+            // console.log(`duration: ${duration}`);
 
             let aggregate = aggregation
               .map((agg) => {
