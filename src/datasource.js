@@ -1417,8 +1417,10 @@ class GenericDatasource {
               size = Math.max(86400, size);
             } else if (duration >= 1209600) {
               size = Math.max(3600, size);
-            } else {
-              size = Math.max(60, size);
+            } else if (duration > 259200) {
+              size = Math.max(60, size)
+	    } else {
+              size = 1
             }
 
             query = query.replace("$START", start.toString());
@@ -1483,8 +1485,10 @@ class GenericDatasource {
               size = Math.max(86400, size);
             } else if (duration >= 1209600) {
               size = Math.max(3600, size);
-            } else {
-              size = Math.max(60, size);
+            } else if (duration > 259200) {
+              size = Math.max(60, size)
+	    } else {
+              size = 1
             }
 
             let aggregate = aggregation
